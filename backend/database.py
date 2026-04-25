@@ -11,7 +11,9 @@ db_config = {
     "user": os.getenv("DATABASE_USER", "u659323332_fasty"),
     "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
     "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
-    "port": int(os.getenv("DATABASE_PORT") or "3306")
+    "port": int(os.getenv("DATABASE_PORT") or "3306"),
+    "use_unicode": True,
+    "charset": "utf8mb4"
 }
 
 def get_db():

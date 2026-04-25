@@ -59,13 +59,22 @@ def login(user_login: UserLogin):
         )
 
     try:
-        is_valid = pwd_context.verify(user_login.password, user["password_hash"])
-    except ValueError as e:
-        print(f"Error crítico: El hash en la BD para {user_login.email} está mal formado.")
-        print(f"Hash detectado: {user['password_hash']}")
+        # Asegurar que el hash sea string y no tenga espacios extra
+        stored_hash = user["password_hash"]
+        if isinstance(stored_hash, bytes):
+            stored_hash = stored_hash.decode('utf-8')
+        
+        stored_hash = stored_hash.strip()
+        
+        is_valid = pwd_context.verify(user_login.password, stored_hash)
+    except Exception as e:
+        print(f"Error crítico en verificación de hash para {user_login.email}")
+        print(f"Tipo de error: {type(e).__name__}")
+        print(f"Detalle: {str(e)}")
+        # Si falla el hash, podría ser que se guardó mal. Mostramos un detalle útil en el log.
         raise HTTPException(
             status_code=500,
-            detail="Error interno del servidor: Hash de contraseña inválido en la base de datos."
+            detail=f"Error interno: El formato del hash en la BD no es válido ({type(e).__name__})."
         )
 
     if not is_valid:
