@@ -64,6 +64,7 @@ def get_business_promotions(business_id: str, only_active: bool = True):
         cursor.close()
         conn.close()
 
+@router.get("", response_model=List[schemas.PromotionResponse])
 @router.get("/", response_model=List[schemas.PromotionResponse])
 def get_all_active_promotions():
     conn = get_db()
