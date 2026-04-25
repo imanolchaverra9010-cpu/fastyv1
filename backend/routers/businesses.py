@@ -41,7 +41,7 @@ def create_business(business: BusinessCreate):
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("", response_model=List[BusinessResponse])
+@router.get("/", response_model=List[BusinessResponse])
 def get_businesses(status_filter: Optional[str] = None, category: Optional[str] = None, q: Optional[str] = None):
     db = get_db()
     if not db:
