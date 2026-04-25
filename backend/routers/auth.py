@@ -7,6 +7,7 @@ from google.auth.transport import requests as google_requests
 from database import get_db
 from schemas import UserCreate, UserLogin, Token, SocialAuth
 from utils import pwd_context, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+import bcrypt
 
 router = APIRouter()
 
@@ -59,23 +60,27 @@ def login(user_login: UserLogin):
         )
 
     try:
-        # Asegurar que el hash sea string y no tenga espacios extra
+        # Preparar el hash (asegurar string y limpiar espacios)
         stored_hash = user["password_hash"]
         if isinstance(stored_hash, bytes):
             stored_hash = stored_hash.decode('utf-8')
-        
         stored_hash = stored_hash.strip()
         
-        is_valid = pwd_context.verify(user_login.password, stored_hash)
-    except Exception as e:
-        print(f"Error crítico en verificación de hash para {user_login.email}")
-        print(f"Tipo de error: {type(e).__name__}")
-        print(f"Detalle: {str(e)}")
-        # Si falla el hash, podría ser que se guardó mal. Mostramos un detalle útil en el log.
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno: El formato del hash en la BD no es válido ({type(e).__name__})."
+        # Verificar usando bcrypt directamente para evitar problemas de passlib
+        is_valid = bcrypt.checkpw(
+            user_login.password.encode('utf-8'), 
+            stored_hash.encode('utf-8')
         )
+    except Exception as e:
+        print(f"Error crítico en verificación bcrypt para {user_login.email}: {str(e)}")
+        # Fallback a passlib si bcrypt falla (por si acaso el hash no es bcrypt)
+        try:
+            is_valid = pwd_context.verify(user_login.password, user["password_hash"])
+        except:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error de seguridad: No se pudo verificar el formato de la contraseña ({type(e).__name__})."
+            )
 
     if not is_valid:
         raise HTTPException(
