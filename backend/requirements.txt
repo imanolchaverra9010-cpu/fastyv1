@@ -9,3 +9,4 @@ pydantic-settings
 cors
 google-auth
 requests
+pymysql

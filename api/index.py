@@ -12,7 +12,9 @@ from datetime import datetime
 backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from fastapi import FastAPI
+import traceback
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # Importar los routers del backend
@@ -36,6 +38,20 @@ app = FastAPI(
     title="Fasty API",
     description="API para la plataforma de domicilios Fasty"
 )
+
+# Exception handler para debug
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"ERROR GLOBAL: {exc}")
+    print(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": str(exc),
+            "type": type(exc).__name__,
+            "traceback": traceback.format_exc()
+        }
+    )
 
 # Configurar CORS
 app.add_middleware(

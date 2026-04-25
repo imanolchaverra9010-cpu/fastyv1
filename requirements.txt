@@ -10,3 +10,4 @@ fastapi-cors==0.0.6
 google-auth==2.25.2
 requests==2.31.0
 python-dotenv==1.0.0
+pymysql==1.1.0
