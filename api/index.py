@@ -13,8 +13,8 @@ backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 import traceback
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # Importar los routers del backend
@@ -132,3 +132,25 @@ def debug_db():
             return {"status": "failed", "config": safe_config, "message": "Connection returned None"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# Ruta personalizada para servir archivos estáticos (incluyendo /tmp en Vercel)
+@app.get(f"{API_PREFIX}/static/{{path:path}}")
+async def get_static_file(path: str):
+    # 1. Buscar en el directorio backend/static
+    local_static_path = backend_path / "static" / path
+    if local_static_path.exists() and local_static_path.is_file():
+        return FileResponse(str(local_static_path))
+    
+    # 2. Buscar en /tmp (para archivos subidos en Vercel)
+    tmp_path = Path("/tmp") / path
+    if tmp_path.exists() and tmp_path.is_file():
+        return FileResponse(str(tmp_path))
+        
+    # 3. Caso especial para business_images en /tmp
+    if "business_images" in path:
+        filename = path.split("/")[-1]
+        tmp_business_path = Path("/tmp/business_images") / filename
+        if tmp_business_path.exists() and tmp_business_path.is_file():
+            return FileResponse(str(tmp_business_path))
+            
+    raise HTTPException(status_code=404, detail=f"File not found: {path}")
