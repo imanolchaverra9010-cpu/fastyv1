@@ -22,7 +22,7 @@ const Businesses = () => {
 
   useEffect(() => {
     setLoading(true);
-    const url = new URL("/api/businesses");
+    const url = new URL("/api/businesses", window.location.origin);
     url.searchParams.append("status_filter", "active");
     if (categoryFilter) {
       url.searchParams.append("category", categoryFilter);

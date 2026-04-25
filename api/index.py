@@ -17,9 +17,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Importar los routers del backend
 try:
+    # Asegurarnos de que el path es absoluto
+    sys.path.insert(0, str(backend_path.absolute()))
+    
+    # Debug: imprimir el path para los logs de Vercel
+    print(f"Backend path: {backend_path.absolute()}")
+    print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
+    
     from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users
-except ImportError as e:
-    print(f"Error importando routers: {e}")
+except Exception as e:
+    print(f"Error crítico cargando routers: {e}")
+    # No podemos lanzar una excepción aquí porque mataría la app de Vercel
+    # pero al menos lo veremos en los logs.
     raise
 
 # Crear la aplicación FastAPI (SIN root_path)
