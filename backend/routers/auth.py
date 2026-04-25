@@ -66,21 +66,26 @@ def login(user_login: UserLogin):
             stored_hash = stored_hash.decode('utf-8')
         stored_hash = stored_hash.strip()
         
-        # Verificar usando bcrypt directamente para evitar problemas de passlib
-        is_valid = bcrypt.checkpw(
-            user_login.password.encode('utf-8'), 
-            stored_hash.encode('utf-8')
-        )
-    except Exception as e:
-        print(f"Error crítico en verificación bcrypt para {user_login.email}: {str(e)}")
-        # Fallback a passlib si bcrypt falla (por si acaso el hash no es bcrypt)
+        # Truco de compatibilidad: algunos sistemas viejos prefieren $2a$ en lugar de $2b$
+        # (son el mismo algoritmo, solo cambia el identificador)
+        check_hash = stored_hash
+        if check_hash.startswith('$2b$'):
+            check_hash = '$2a$' + check_hash[4:]
+        
+        # Intentar con el hash original primero
         try:
-            is_valid = pwd_context.verify(user_login.password, user["password_hash"])
-        except:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error de seguridad: No se pudo verificar el formato de la contraseña ({type(e).__name__})."
-            )
+            is_valid = bcrypt.checkpw(user_login.password.encode('utf-8'), stored_hash.encode('utf-8'))
+        except ValueError:
+            # Si falla, intentar con el truco del prefijo $2a$
+            is_valid = bcrypt.checkpw(user_login.password.encode('utf-8'), check_hash.encode('utf-8'))
+            
+    except Exception as e:
+        h_len = len(str(user.get("password_hash", "")))
+        h_pre = str(user.get("password_hash", ""))[:10]
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error diagnóstico: Hash en DB tiene {h_len} caracteres y empieza por '{h_pre}'. Error: {type(e).__name__}"
+        )
 
     if not is_valid:
         raise HTTPException(
