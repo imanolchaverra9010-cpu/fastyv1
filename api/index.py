@@ -6,6 +6,7 @@ Este archivo sirve como handler para todas las solicitudes a /api
 import sys
 import os
 from pathlib import Path
+from datetime import datetime
 
 # Agregar el directorio backend al path
 backend_path = Path(__file__).parent.parent / "backend"
@@ -57,13 +58,52 @@ except Exception as e:
 # Ruta raíz
 @app.get(f"{API_PREFIX}/")
 def read_root():
+    db_status = "Unknown"
+    db_error = None
+    try:
+        from database import get_db
+        conn = get_db()
+        if conn:
+            db_status = "Connected"
+            conn.close()
+        else:
+            db_status = "Failed"
+            db_error = "Could not connect to database (check credentials/whitelist)"
+    except Exception as e:
+        db_status = "Error"
+        db_error = str(e)
+
     return {
         "status": "Fasty API is running",
         "version": "1.0.0",
-        "environment": "production"
+        "environment": "production",
+        "database": {
+            "status": db_status,
+            "error": db_error
+        }
     }
 
 # Health check
 @app.get(f"{API_PREFIX}/health")
 def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
+# Diagnóstico de base de datos
+@app.get(f"{API_PREFIX}/debug-db")
+def debug_db():
+    try:
+        from database import db_config, get_db
+        # Ocultar password por seguridad
+        safe_config = {k: v for k, v in db_config.items() if k != "password"}
+        
+        conn = get_db()
+        if conn:
+            conn.close()
+            return {"status": "success", "config": safe_config}
+        else:
+            return {"status": "failed", "config": safe_config, "message": "Connection returned None"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

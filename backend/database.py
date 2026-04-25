@@ -11,7 +11,7 @@ db_config = {
     "user": os.getenv("DATABASE_USER", "u659323332_fasty"),
     "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
     "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
-    "port": int(os.getenv("DATABASE_PORT", "3306"))
+    "port": int(os.getenv("DATABASE_PORT") or "3306")
 }
 
 def get_db():
@@ -19,5 +19,8 @@ def get_db():
         conn = mysql.connector.connect(**db_config)
         return conn
     except mysql.connector.Error as err:
-        print(f"Error: {err}")
+        print(f"Error de conexión a la base de datos: {err}")
+        return None
+    except Exception as e:
+        print(f"Error inesperado al conectar a la base de datos: {e}")
         return None
