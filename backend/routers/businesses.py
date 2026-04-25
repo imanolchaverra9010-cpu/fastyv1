@@ -234,7 +234,11 @@ def update_business(business_id: str, business_update: BusinessUpdate):
 @router.post("/{business_id}/image")
 async def upload_business_image(business_id: str, file: UploadFile = File(...)):
     UPLOAD_DIR = "static/business_images"
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except OSError:
+        UPLOAD_DIR = "/tmp/business_images"
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
     if file.content_type not in allowed_types:

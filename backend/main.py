@@ -14,12 +14,15 @@ from routers import auth, orders, businesses, menu_items, admin, couriers, busin
 app = FastAPI(title="Rapidito API")
 
 # Directorio estático para fotos de perfil
-if not os.path.exists("static"):
-    os.makedirs("static")
-if not os.path.exists("static/profiles"):
-    os.makedirs("static/profiles")
-if not os.path.exists("static/business_images"):
-    os.makedirs("static/business_images")
+try:
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    if not os.path.exists("static/profiles"):
+        os.makedirs("static/profiles")
+    if not os.path.exists("static/business_images"):
+        os.makedirs("static/business_images")
+except OSError:
+    print("Warning: Could not create static directories (read-only file system)")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

@@ -16,8 +16,18 @@ def set_websocket_manager(manager):
 
 # Directory for profile pictures
 UPLOAD_DIR = "static/profiles"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+try:
+    if not os.path.exists(UPLOAD_DIR):
+        os.makedirs(UPLOAD_DIR)
+except OSError:
+    # On Vercel the file system is read-only. 
+    # For production, a cloud storage service should be used.
+    UPLOAD_DIR = "/tmp/profiles"
+    if not os.path.exists(UPLOAD_DIR):
+        try:
+            os.makedirs(UPLOAD_DIR)
+        except OSError:
+            pass
 
 @router.post("/{user_id}/photo")
 async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
