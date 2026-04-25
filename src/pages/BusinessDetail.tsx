@@ -51,7 +51,7 @@ const BusinessDetail = () => {
   const { data: business, isLoading: isLoadingBusiness, error: errorBusiness } = useQuery<Business>({
     queryKey: ["business", id],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8000/businesses/${id}`);
+      const response = await fetch(`/api/businesses/${id}`);
       if (!response.ok) {
         throw new Error("Error fetching business details");
       }
@@ -63,7 +63,7 @@ const BusinessDetail = () => {
   const { data: menuItems, isLoading: isLoadingMenuItems, error: errorMenuItems } = useQuery<MenuItem[]>({
     queryKey: ["menuItems", id],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8000/businesses/${id}/menu`);
+      const response = await fetch(`/api/businesses/${id}/menu`);
       if (!response.ok) {
         throw new Error("Error fetching menu items");
       }
@@ -75,7 +75,7 @@ const BusinessDetail = () => {
   const { data: promotions, isLoading: isLoadingPromos } = useQuery<Promotion[]>({
     queryKey: ["promotions", id],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8000/promotions/${id}`);
+      const response = await fetch(`/api/promotions/${id}`);
       if (!response.ok) {
         throw new Error("Error fetching promotions");
       }
@@ -127,9 +127,9 @@ const BusinessDetail = () => {
           {/* Background Image with Overlay */}
           <div className="absolute inset-0 z-0">
             {business.image_url ? (
-              <img 
-                src={business.image_url.startsWith("http") ? business.image_url : `http://localhost:8000${business.image_url}`} 
-                alt={business.name} 
+              <img
+                src={business.image_url.startsWith("http") ? business.image_url : `/api${business.image_url}`}
+                alt={business.name}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -142,7 +142,7 @@ const BusinessDetail = () => {
           <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 w-full text-white">
             <div className="h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-4 border-white/30 overflow-hidden shadow-soft shrink-0 p-2 flex items-center justify-center">
               {business.image_url ? (
-                <img src={business.image_url.startsWith("http") ? business.image_url : `http://localhost:8000${business.image_url}`} alt={business.name} className="h-full w-full object-contain" />
+                <img src={business.image_url.startsWith("http") ? business.image_url : `/api${business.image_url}`} alt={business.name} className="h-full w-full object-contain" />
               ) : (
                 <div className="h-full w-full flex items-center justify-center bg-white/10 rounded-full">
                   <Store className="h-16 w-16 text-white" />

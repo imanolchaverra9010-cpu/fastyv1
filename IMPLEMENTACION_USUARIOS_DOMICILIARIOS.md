@@ -148,7 +148,7 @@ python test_courier_creation.py
 ```
 
 **Requisitos:**
-- El servidor FastAPI debe estar ejecutándose en `http://localhost:8000`
+- El servidor FastAPI debe estar ejecutándose en `/api`
 - Tener instalado `requests`: `pip install requests`
 
 ## Cambios en la Base de Datos

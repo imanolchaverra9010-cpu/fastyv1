@@ -44,7 +44,7 @@ export const ProfileTab = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`http://localhost:8000/businesses/${business.id}/image`, {
+      const res = await fetch(`/api/businesses/${business.id}/image`, {
         method: "POST",
         body: formData,
       });
@@ -69,7 +69,7 @@ export const ProfileTab = () => {
     if (!business?.id) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`http://localhost:8000/businesses/${business.id}`, {
+      const res = await fetch(`/api/businesses/${business.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -127,7 +127,7 @@ export const ProfileTab = () => {
       <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted h-52 group">
         {form.image_url ? (
           <img
-            src={form.image_url.startsWith("http") ? form.image_url : `http://localhost:8000${form.image_url}`}
+            src={form.image_url.startsWith("http") ? form.image_url : `/api${form.image_url}`}
             alt={business.name}
             className="w-full h-full object-cover"
           />

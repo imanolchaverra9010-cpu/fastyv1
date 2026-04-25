@@ -55,10 +55,10 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
     setLoading(true);
 
     try {
-      const url = business 
-        ? `http://localhost:8000/businesses/${business.id}`
-        : "http://localhost:8000/businesses";
-      
+      const url = business
+        ? `/api/businesses/${business.id}`
+        : "/api/businesses";
+
       const method = business ? "PATCH" : "POST";
 
       const response = await fetch(url, {
@@ -74,15 +74,15 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
         throw new Error(errorData.detail || `Error al ${business ? 'actualizar' : 'crear'} el negocio`);
       }
 
-      toast({ 
-        title: "¡Éxito!", 
-        description: `Negocio ${business ? 'actualizado' : 'creado'} correctamente.` 
+      toast({
+        title: "¡Éxito!",
+        description: `Negocio ${business ? 'actualizado' : 'creado'} correctamente.`
       });
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message,
         variant: "destructive"
       });
@@ -107,12 +107,12 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="id" className="flex items-center gap-2"><Type className="h-4 w-4" /> ID Único (Slug)</Label>
-              <Input 
-                id="id" 
-                name="id" 
-                placeholder="ej: pizzeria-napolitana" 
-                required 
-                value={formData.id} 
+              <Input
+                id="id"
+                name="id"
+                placeholder="ej: pizzeria-napolitana"
+                required
+                value={formData.id}
                 onChange={handleChange}
                 disabled={!!business}
               />
@@ -123,17 +123,17 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
             </div>
             <div className="space-y-2">
               <Label htmlFor="category" className="flex items-center gap-2">Categoría</Label>
-              <select 
-                id="category" 
-                name="category" 
-                required 
-                value={formData.category} 
+              <select
+                id="category"
+                name="category"
+                required
+                value={formData.category}
                 onChange={(e) => {
                   const selectedCat = CATEGORIES.find(c => c.name === e.target.value);
-                  setFormData(prev => ({ 
-                    ...prev, 
+                  setFormData(prev => ({
+                    ...prev,
                     category: e.target.value,
-                    emoji: selectedCat?.emoji || prev.emoji 
+                    emoji: selectedCat?.emoji || prev.emoji
                   }));
                 }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

@@ -22,23 +22,23 @@ const BusinessPanel = () => {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  
-  const [newItemForm, setNewItemForm] = useState({ 
-    name: "", 
-    price: "", 
-    emoji: "🍔", 
+
+  const [newItemForm, setNewItemForm] = useState({
+    name: "",
+    price: "",
+    emoji: "🍔",
     description: "",
     category: "Platos Principales"
   });
 
   const [newPromoForm, setNewPromoForm] = useState({
-     title: "",
-     description: "",
-     discount_percent: "",
-     promo_code: "",
-     emoji: "📢",
-     expires_at: ""
-   });
+    title: "",
+    description: "",
+    discount_percent: "",
+    promo_code: "",
+    emoji: "📢",
+    expires_at: ""
+  });
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
 
@@ -48,7 +48,7 @@ const BusinessPanel = () => {
   const fetchBusinessId = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`http://localhost:8000/businesses/owner/${user.id}`);
+      const res = await fetch(`/api/businesses/owner/${user.id}`);
       if (res.ok) {
         const data = await res.json();
         setBusinessId(data.id);
@@ -62,7 +62,7 @@ const BusinessPanel = () => {
   const fetchBusinessData = async () => {
     if (!businessId) return;
     try {
-      const res = await fetch(`http://localhost:8000/businesses/${businessId}`);
+      const res = await fetch(`/api/businesses/${businessId}`);
       if (res.ok) setBusiness(await res.json());
     } catch (error) {
       console.error("Error fetching business data:", error);
@@ -83,10 +83,10 @@ const BusinessPanel = () => {
     }
     try {
       const [statsRes, ordersRes, menuRes, promoRes] = await Promise.all([
-        fetch(`http://localhost:8000/businesses/${user.id}/stats`),
-        fetch(`http://localhost:8000/businesses/${businessId}/orders`),
-        fetch(`http://localhost:8000/businesses/${businessId}/menu`),
-        fetch(`http://localhost:8000/promotions/${businessId}?only_active=false`)
+        fetch(`/api/businesses/${user.id}/stats`),
+        fetch(`/api/businesses/${businessId}/orders`),
+        fetch(`/api/businesses/${businessId}/menu`),
+        fetch(`/api/promotions/${businessId}?only_active=false`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -110,7 +110,7 @@ const BusinessPanel = () => {
       const interval = setInterval(fetchData, 10000);
       return () => clearInterval(interval);
     } else if (!user?.id) {
-       setLoading(false);
+      setLoading(false);
     }
   }, [user?.id, businessId]);
 
@@ -132,8 +132,8 @@ const BusinessPanel = () => {
         } else if (message.type === "order_status_update") {
           fetchData();
         } else if (message.type === "courier_location_update") {
-          setOrders(prev => prev.map(o => 
-            o.id === message.order_id 
+          setOrders(prev => prev.map(o =>
+            o.id === message.order_id
               ? { ...o, courier_lat: message.lat, courier_lng: message.lng }
               : o
           ));
@@ -168,9 +168,9 @@ const BusinessPanel = () => {
 
     try {
       const method = editingItem ? "PATCH" : "POST";
-      const url = editingItem 
-        ? `http://localhost:8000/businesses/${businessId}/menu/${editingItem.id}`
-        : `http://localhost:8000/businesses/${businessId}/menu`;
+      const url = editingItem
+        ? `/api/businesses/${businessId}/menu/${editingItem.id}`
+        : `/api/businesses/${businessId}/menu`;
 
       const response = await fetch(url, {
         method,
@@ -186,9 +186,9 @@ const BusinessPanel = () => {
       });
 
       if (response.ok) {
-        toast({ 
-          title: "Éxito", 
-          description: `${newItemForm.name} ${editingItem ? 'actualizado' : 'agregado'} correctamente.` 
+        toast({
+          title: "Éxito",
+          description: `${newItemForm.name} ${editingItem ? 'actualizado' : 'agregado'} correctamente.`
         });
         setNewItemForm({ name: "", price: "", emoji: "🍔", description: "", category: "Platos Principales" });
         setShowMenuForm(false);
@@ -202,7 +202,7 @@ const BusinessPanel = () => {
 
   const handleToggleMenuItem = async (itemId: number, isActive: boolean) => {
     try {
-      await fetch(`http://localhost:8000/businesses/${businessId}/menu/${itemId}`, {
+      await fetch(`/api/businesses/${businessId}/menu/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: !isActive })
@@ -217,7 +217,7 @@ const BusinessPanel = () => {
   const handleDeleteMenuItem = async (itemId: number) => {
     if (!confirm("¿Eliminar este producto del menú?")) return;
     try {
-      await fetch(`http://localhost:8000/businesses/${businessId}/menu/${itemId}`, {
+      await fetch(`/api/businesses/${businessId}/menu/${itemId}`, {
         method: "DELETE"
       });
       toast({ title: "Producto eliminado" });
@@ -235,9 +235,9 @@ const BusinessPanel = () => {
 
     try {
       const method = editingPromo ? "PUT" : "POST";
-      const url = editingPromo 
-        ? `http://localhost:8000/promotions/${editingPromo.id}`
-        : `http://localhost:8000/promotions/?business_id=${businessId}`;
+      const url = editingPromo
+        ? `/api/promotions/${editingPromo.id}`
+        : `/api/promotions/?business_id=${businessId}`;
 
       const response = await fetch(url, {
         method,
@@ -254,9 +254,9 @@ const BusinessPanel = () => {
       });
 
       if (response.ok) {
-        toast({ 
-          title: "Éxito", 
-          description: `Promoción ${editingPromo ? 'actualizada' : 'agregada'} correctamente.` 
+        toast({
+          title: "Éxito",
+          description: `Promoción ${editingPromo ? 'actualizada' : 'agregada'} correctamente.`
         });
         setNewPromoForm({ title: "", description: "", discount_percent: "", promo_code: "", emoji: "📢", expires_at: "" });
         setShowPromoForm(false);
@@ -270,7 +270,7 @@ const BusinessPanel = () => {
 
   const handleTogglePromotion = async (promoId: number, isActive: boolean) => {
     try {
-      await fetch(`http://localhost:8000/promotions/${promoId}`, {
+      await fetch(`/api/promotions/${promoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: !isActive })
@@ -285,7 +285,7 @@ const BusinessPanel = () => {
   const handleDeletePromotion = async (promoId: number) => {
     if (!confirm("¿Eliminar esta promoción?")) return;
     try {
-      await fetch(`http://localhost:8000/promotions/${promoId}`, {
+      await fetch(`/api/promotions/${promoId}`, {
         method: "DELETE"
       });
       toast({ title: "Promoción eliminada" });
@@ -297,7 +297,7 @@ const BusinessPanel = () => {
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await fetch(`http://localhost:8000/orders/${orderId}/status`, {
+      await fetch(`/api/orders/${orderId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus })
@@ -343,8 +343,8 @@ const BusinessPanel = () => {
                     </div>
                     <p className="text-sm font-bold mt-2">{formatCOP(currentNotification.total)}</p>
                     <div className="mt-4 flex gap-3">
-                      <Button 
-                        variant="hero" 
+                      <Button
+                        variant="hero"
                         className="flex-1 rounded-xl h-11 font-bold shadow-glow"
                         onClick={() => setCurrentNotification(null)}
                       >
@@ -375,7 +375,7 @@ const BusinessPanel = () => {
 
 
               {/* Dynamic Content based on React Router */}
-              <Outlet 
+              <Outlet
                 context={{
                   orders,
                   menuItems,
@@ -404,7 +404,7 @@ const BusinessPanel = () => {
                   handleAddPromotion,
                   handleTogglePromotion,
                   handleDeletePromotion
-                } satisfies BusinessContextType} 
+                } satisfies BusinessContextType}
               />
 
             </main>

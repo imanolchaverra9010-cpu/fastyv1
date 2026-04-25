@@ -5,7 +5,7 @@ import requests
 import json
 
 # URL base del backend
-BASE_URL = "http://localhost:8000"
+BASE_URL = "/api"
 
 def test_create_courier_with_user():
     """
@@ -58,7 +58,7 @@ def test_create_courier_with_user():
             
     except Exception as e:
         print(f"\n❌ ERROR de conexión: {str(e)}")
-        print("Asegúrate de que el servidor FastAPI está ejecutándose en http://localhost:8000")
+        print("Asegúrate de que el servidor FastAPI está ejecutándose en /api")
 
 if __name__ == "__main__":
     test_create_courier_with_user()

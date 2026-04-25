@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { 
-  X, MapPin, Phone, Clock, Package, 
-  CreditCard, User, Bike, CheckCircle2, 
-  AlertCircle, History 
+import {
+  X, MapPin, Phone, Clock, Package,
+  CreditCard, User, Bike, CheckCircle2,
+  AlertCircle, History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/data/mock";
@@ -22,9 +22,9 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
 
   useEffect(() => {
     // Cargar pedido
-    const fetchOrder = fetch(`http://localhost:8000/orders/${orderId}`).then(res => res.json());
+    const fetchOrder = fetch(`/api/orders/${orderId}`).then(res => res.json());
     // Cargar domiciliarios online
-    const fetchCouriers = fetch(`http://localhost:8000/admin/couriers?status_filter=online`).then(res => res.json());
+    const fetchCouriers = fetch(`/api/admin/couriers?status_filter=online`).then(res => res.json());
 
     Promise.all([fetchOrder, fetchCouriers])
       .then(([orderData, couriersData]) => {
@@ -154,7 +154,7 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                     </div>
                   )}
                 </div>
-                
+
                 {/* Timeline de Logs */}
                 <div className="space-y-4">
                   {order.logs?.map((log: any, i: number) => (
@@ -193,7 +193,7 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                   <div className="space-y-3">
                     <p className="text-xs text-muted-foreground italic">No hay domiciliario asignado a este pedido.</p>
                     <div className="flex gap-2">
-                      <select 
+                      <select
                         className="flex-1 text-sm border rounded-xl px-3 bg-background shadow-soft outline-none focus:ring-2 focus:ring-primary/20 h-10"
                         value={selectedCourierId}
                         onChange={(e) => setSelectedCourierId(e.target.value)}
@@ -203,9 +203,9 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                           <option key={c.id} value={c.id}>{c.name} ({c.vehicle})</option>
                         ))}
                       </select>
-                      <Button 
-                        size="sm" 
-                        variant="hero" 
+                      <Button
+                        size="sm"
+                        variant="hero"
                         disabled={!selectedCourierId}
                         onClick={() => onStatusUpdate(order.id, order.status, parseInt(selectedCourierId))}
                       >
@@ -234,7 +234,7 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                 </div>
               </section>
             )}
-            
+
             {order.cancellation_reason && (
               <section className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
                 <div className="flex items-center gap-2 text-destructive mb-1 font-bold text-sm">

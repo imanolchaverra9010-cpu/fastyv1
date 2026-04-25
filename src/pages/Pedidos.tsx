@@ -21,7 +21,7 @@ const Pedidos = () => {
       setLoading(true);
       setError(false);
       try {
-        const url = filter === "all" ? "http://localhost:8000/orders" : `http://localhost:8000/orders?status_filter=${filter}`;
+        const url = filter === "all" ? "/api/orders" : `/api/orders?status_filter=${filter}`;
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -48,8 +48,8 @@ const Pedidos = () => {
       if (courierId) {
         body.courier_id = courierId;
       }
-      
-      const response = await fetch(`http://localhost:8000/orders/${orderId}/status`, {
+
+      const response = await fetch(`/api/orders/${orderId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -88,7 +88,7 @@ const Pedidos = () => {
                 <p className="text-muted-foreground mt-1">Monitorea y gestiona el flujo de vida de las órdenes.</p>
               </div>
               <div className="flex items-center gap-3">
-                <select 
+                <select
                   className="h-10 rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
@@ -110,7 +110,7 @@ const Pedidos = () => {
             <div className="rounded-2xl bg-card border border-border/60 shadow-card overflow-hidden">
               <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/20">
                 <h3 className="font-bold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> 
+                  <TrendingUp className="h-4 w-4 text-primary" />
                   Lista de Pedidos {filter !== 'all' && <span className="text-muted-foreground font-normal">({filter})</span>}
                 </h3>
                 <span className="text-xs font-medium text-muted-foreground">
@@ -165,15 +165,15 @@ const Pedidos = () => {
                         </td>
                         <td className="px-5 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="soft" 
+                            <Button
+                              size="sm"
+                              variant="soft"
                               className="h-8 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => setSelectedOrderId(o.id)}
                             >
                               <Eye className="h-3.5 w-3.5" /> Detalle
                             </Button>
-                            <select 
+                            <select
                               className="text-xs border rounded-lg p-1.5 bg-background shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
                               value={o.status}
                               onChange={(e) => updateOrderStatus(o.id, e.target.value)}
@@ -201,11 +201,11 @@ const Pedidos = () => {
             </div>
           </main>
         </SidebarInset>
-        
+
         {selectedOrderId && (
-          <OrderDetailModal 
-            orderId={selectedOrderId} 
-            onClose={() => setSelectedOrderId(null)} 
+          <OrderDetailModal
+            orderId={selectedOrderId}
+            onClose={() => setSelectedOrderId(null)}
             onStatusUpdate={(id, status, courierId) => {
               updateOrderStatus(id, status, courierId);
               setSelectedOrderId(null);

@@ -30,7 +30,7 @@ const OpenOrder = () => {
     const fetchLastOrder = async () => {
       if (!user?.id) return;
       try {
-        const response = await fetch(`http://localhost:8000/orders/user/${user.id}`);
+        const response = await fetch(`/api/orders/user/${user.id}`);
         if (response.ok) {
           const orders = await response.json();
           if (orders && orders.length > 0) {
@@ -61,7 +61,7 @@ const OpenOrder = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/orders", {
+      const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,35 +135,35 @@ const OpenOrder = () => {
               </div>
               <h2 className="text-xl font-bold">¿Dónde compramos?</h2>
             </div>
-            
+
             <div className="grid gap-6">
               <div className="space-y-2">
                 <Label htmlFor="originName">Nombre del lugar *</Label>
-                <Input 
+                <Input
                   id="originName"
                   placeholder="Ej: Ferretería El Martillo, Tienda de la esquina..."
                   value={formData.originName}
-                  onChange={(e) => setFormData({...formData, originName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, originName: e.target.value })}
                   className="rounded-xl h-12"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="originAddress">Dirección del lugar (Opcional)</Label>
-                <Input 
+                <Input
                   id="originAddress"
                   placeholder="Ej: Calle 10 # 5-20"
                   value={formData.originAddress}
-                  onChange={(e) => setFormData({...formData, originAddress: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, originAddress: e.target.value })}
                   className="rounded-xl h-12"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">¿Qué necesitas que compremos? *</Label>
-                <Textarea 
+                <Textarea
                   id="description"
                   placeholder="Describe detalladamente los productos..."
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="rounded-xl min-h-[120px]"
                 />
               </div>
@@ -182,28 +182,28 @@ const OpenOrder = () => {
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="customerName">Tu nombre *</Label>
-                <Input 
+                <Input
                   id="customerName"
                   value={formData.customerName}
-                  onChange={(e) => setFormData({...formData, customerName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   className="rounded-xl h-12"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customerPhone">Teléfono de contacto</Label>
-                <Input 
+                <Input
                   id="customerPhone"
                   value={formData.customerPhone}
-                  onChange={(e) => setFormData({...formData, customerPhone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                   className="rounded-xl h-12"
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="deliveryAddress">Dirección de entrega *</Label>
-                <Input 
+                <Input
                   id="deliveryAddress"
                   value={formData.deliveryAddress}
-                  onChange={(e) => setFormData({...formData, deliveryAddress: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
                   className="rounded-xl h-12"
                 />
               </div>
@@ -222,7 +222,7 @@ const OpenOrder = () => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setFormData({...formData, paymentMethod: 'cash'})}
+                onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
                 className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.paymentMethod === 'cash' ? 'border-primary bg-primary/5' : 'border-border/60'}`}
               >
                 <span className="text-2xl">💵</span>
@@ -230,7 +230,7 @@ const OpenOrder = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({...formData, paymentMethod: 'transfer'})}
+                onClick={() => setFormData({ ...formData, paymentMethod: 'transfer' })}
                 className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.paymentMethod === 'transfer' ? 'border-primary bg-primary/5' : 'border-border/60'}`}
               >
                 <span className="text-2xl">💸</span>
@@ -242,8 +242,8 @@ const OpenOrder = () => {
             </p>
           </section>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={loading}
             className="w-full h-16 rounded-[2rem] text-lg font-bold shadow-glow flex items-center justify-center gap-3"
             variant="hero"

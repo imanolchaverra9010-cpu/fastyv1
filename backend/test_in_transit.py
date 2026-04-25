@@ -3,7 +3,7 @@ import json
 
 def test_in_transit():
     # Primero creamos un pedido para tener un ID válido
-    url_create = "http://localhost:8000/orders"
+    url_create = "/api/orders"
     order_data = {
         "business_id": "1",
         "user_id": 3,
@@ -28,7 +28,7 @@ def test_in_transit():
     print(f"Pedido creado con ID: {order_id}")
     
     # Ahora intentamos actualizar a in_transit
-    url_status = f"http://localhost:8000/orders/{order_id}/status"
+    url_status = f"/api/orders/{order_id}/status"
     status_data = {"status": "in_transit"}
     
     print(f"Actualizando pedido {order_id} a 'in_transit'...")

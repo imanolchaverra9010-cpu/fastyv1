@@ -2,7 +2,7 @@ import requests
 import json
 
 def test_frontend_request():
-    url = "http://localhost:8000/orders"
+    url = "/api/orders"
     payload = {
         "business_id": "1",
         "customer_name": "Verified User",

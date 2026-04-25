@@ -42,7 +42,7 @@ async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
         
         # Public URL (assuming static files are served)
-        photo_url = f"http://localhost:8000/static/profiles/{filename}"
+        photo_url = f"/api/static/profiles/{filename}"
         
         # Update courier record
         cursor.execute("UPDATE couriers SET image_url = %s WHERE user_id = %s", (photo_url, user_id))

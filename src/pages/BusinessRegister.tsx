@@ -41,7 +41,7 @@ const BusinessRegister = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/businesses/requests", {
+      const response = await fetch("/api/businesses/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -50,8 +50,8 @@ const BusinessRegister = () => {
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.detail && typeof errorData.detail === 'object') {
-            setFieldErrors(errorData.detail.fields || {});
-            throw new Error(errorData.detail.message || "Error al enviar la solicitud");
+          setFieldErrors(errorData.detail.fields || {});
+          throw new Error(errorData.detail.message || "Error al enviar la solicitud");
         }
         throw new Error(errorData.detail || "Error al enviar la solicitud");
       }
@@ -113,21 +113,21 @@ const BusinessRegister = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className={fieldErrors.name ? "text-destructive" : ""}>Nombre del negocio</Label>
-                <Input 
-                   id="name" 
-                   name="name" 
-                   required 
-                   placeholder="Ej. La Brasa Dorada" 
-                   className={fieldErrors.name ? "border-destructive ring-destructive" : ""}
+                <Input
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="Ej. La Brasa Dorada"
+                  className={fieldErrors.name ? "border-destructive ring-destructive" : ""}
                 />
                 {fieldErrors.name && <p className="text-xs text-destructive font-medium">{fieldErrors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>
-                <select 
+                <select
                   id="category"
                   name="category_select"
-                  required 
+                  required
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -148,13 +148,13 @@ const BusinessRegister = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className={fieldErrors.email ? "text-destructive" : ""}>Email</Label>
-                <Input 
-                   id="email" 
-                   name="email" 
-                   required 
-                   type="email" 
-                   placeholder="hola@negocio.com" 
-                   className={fieldErrors.email ? "border-destructive ring-destructive" : ""}
+                <Input
+                  id="email"
+                  name="email"
+                  required
+                  type="email"
+                  placeholder="hola@negocio.com"
+                  className={fieldErrors.email ? "border-destructive ring-destructive" : ""}
                 />
                 {fieldErrors.email && <p className="text-xs text-destructive font-medium">{fieldErrors.email}</p>}
               </div>

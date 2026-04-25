@@ -4,7 +4,7 @@ import time
 
 def test_business_notification():
     # Simular la creación de un pedido para el negocio con ID '1'
-    url = "http://localhost:8000/orders"
+    url = "/api/orders"
     
     order_data = {
         "business_id": "1",

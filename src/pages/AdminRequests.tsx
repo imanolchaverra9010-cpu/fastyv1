@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Info, 
-  Loader2, 
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Info,
+  Loader2,
   ChevronRight,
   Utensils,
   Store,
@@ -39,7 +39,7 @@ const AdminRequests = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch("http://localhost:8000/businesses/admin/requests");
+      const response = await fetch("/api/businesses/admin/requests");
       if (response.ok) {
         setRequests(await response.json());
       }
@@ -57,15 +57,15 @@ const AdminRequests = () => {
   const handleApprove = async (id: number) => {
     setProcessing(id);
     try {
-      const response = await fetch(`http://localhost:8000/businesses/admin/requests/${id}/approve`, {
+      const response = await fetch(`/api/businesses/admin/requests/${id}/approve`, {
         method: "POST"
       });
       const data = await response.json();
-      
+
       if (response.ok) {
-        toast({ 
-          title: "Solicitud aprobada", 
-          description: `Negocio creado. Usuario: ${data.username}, Clave temporal: ${data.temp_password}` 
+        toast({
+          title: "Solicitud aprobada",
+          description: `Negocio creado. Usuario: ${data.username}, Clave temporal: ${data.temp_password}`
         });
         fetchRequests();
         setSelectedRequest(null);
@@ -73,10 +73,10 @@ const AdminRequests = () => {
         throw new Error(data.detail || "Error al aprobar");
       }
     } catch (error: any) {
-      toast({ 
-        title: "No se pudo aprobar", 
-        description: error.message, 
-        variant: "destructive" 
+      toast({
+        title: "No se pudo aprobar",
+        description: error.message,
+        variant: "destructive"
       });
     } finally {
       setProcessing(null);
@@ -86,7 +86,7 @@ const AdminRequests = () => {
   const handleReject = async (id: number) => {
     setProcessing(id);
     try {
-      const response = await fetch(`http://localhost:8000/businesses/admin/requests/${id}/reject`, {
+      const response = await fetch(`/api/businesses/admin/requests/${id}/reject`, {
         method: "POST"
       });
       if (response.ok) {
@@ -134,8 +134,8 @@ const AdminRequests = () => {
                     </div>
                   ) : (
                     requests.map((req) => (
-                      <div 
-                        key={req.id} 
+                      <div
+                        key={req.id}
                         onClick={() => setSelectedRequest(req)}
                         className={`group bg-card border-2 rounded-2xl p-6 transition-all cursor-pointer hover:shadow-glow
                           ${selectedRequest?.id === req.id ? 'border-primary shadow-glow' : 'border-border/60'}
@@ -167,39 +167,39 @@ const AdminRequests = () => {
                   {selectedRequest ? (
                     <div className="bg-card border-2 border-border/60 rounded-3xl p-8 sticky top-24 shadow-card animate-in fade-in slide-in-from-right-4">
                       <h2 className="text-2xl font-display font-bold mb-6">Detalle de Solicitud</h2>
-                      
+
                       <div className="space-y-6">
                         <section className="space-y-4">
                           <div className="flex items-start gap-3">
                             <Store className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase">Negocio</p>
-                                <p className="font-semibold">{selectedRequest.name}</p>
-                                <p className="text-sm text-muted-foreground">{selectedRequest.category}</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase">Negocio</p>
+                              <p className="font-semibold">{selectedRequest.name}</p>
+                              <p className="text-sm text-muted-foreground">{selectedRequest.category}</p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase">Dirección</p>
-                                <p className="text-sm">{selectedRequest.address}</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase">Dirección</p>
+                              <p className="text-sm">{selectedRequest.address}</p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
                             <Mail className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase">Email</p>
-                                <p className="text-sm">{selectedRequest.email}</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase">Email</p>
+                              <p className="text-sm">{selectedRequest.email}</p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
                             <Phone className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase">Teléfono</p>
-                                <p className="text-sm">{selectedRequest.phone}</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase">Teléfono</p>
+                              <p className="text-sm">{selectedRequest.phone}</p>
                             </div>
                           </div>
                         </section>
@@ -207,28 +207,28 @@ const AdminRequests = () => {
                         <section className="bg-muted/30 rounded-2xl p-4">
                           <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Menú inicial</p>
                           <div className="space-y-2">
-                             {selectedRequest.menu_json.map((item: any, idx: number) => (
-                               <div key={idx} className="flex justify-between items-center text-sm bg-background border border-border/40 p-2 rounded-lg">
-                                  <span className="font-medium">{item.name}</span>
-                                  <span className="text-primary font-bold">${item.price}</span>
-                               </div>
-                             ))}
+                            {selectedRequest.menu_json.map((item: any, idx: number) => (
+                              <div key={idx} className="flex justify-between items-center text-sm bg-background border border-border/40 p-2 rounded-lg">
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-primary font-bold">${item.price}</span>
+                              </div>
+                            ))}
                           </div>
                         </section>
 
                         {selectedRequest.status === 'pending' && (
                           <div className="flex gap-3 pt-4">
-                            <Button 
+                            <Button
                               onClick={() => handleReject(selectedRequest.id)}
-                              variant="outline" 
+                              variant="outline"
                               className="flex-1 rounded-xl text-destructive hover:bg-destructive/10"
                               disabled={processing !== null}
                             >
                               {processing === selectedRequest.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><XCircle className="mr-2 h-4 w-4" /> Rechazar</>}
                             </Button>
-                            <Button 
+                            <Button
                               onClick={() => handleApprove(selectedRequest.id)}
-                              variant="hero" 
+                              variant="hero"
                               className="flex-1 rounded-xl shadow-glow"
                               disabled={processing !== null}
                             >

@@ -33,7 +33,7 @@ const Checkout = () => {
     const fetchLastOrder = async () => {
       if (!user?.id) return;
       try {
-        const response = await fetch(`http://localhost:8000/orders/user/${user.id}`);
+        const response = await fetch(`/api/orders/user/${user.id}`);
         if (response.ok) {
           const orders = await response.json();
           if (orders && orders.length > 0) {
@@ -126,13 +126,13 @@ const Checkout = () => {
 
     try {
       const summaries: any[] = [];
-      
+
       const orderPromises = Object.entries(linesByBusiness).map(async ([businessId, bLines]) => {
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
         const bFee = 4500;
         const bDiscount = promo ? (bSubtotal * promo.discount / 100) : 0;
         const bTotal = bSubtotal + bFee - bDiscount;
-        
+
         const mappedBusinessId = idMap[businessId] || businessId;
 
         const orderData = {
@@ -155,7 +155,7 @@ const Checkout = () => {
           }))
         };
 
-        const response = await fetch("http://localhost:8000/orders", {
+        const response = await fetch("/api/orders", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -197,8 +197,8 @@ const Checkout = () => {
       clear();
       toast({ title: "¡Pedidos confirmados!", description: "Tus pedidos están siendo preparados." });
     } catch (error: any) {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "No se pudo procesar el pedido. Intenta de nuevo.",
         variant: "destructive"
       });
@@ -210,7 +210,7 @@ const Checkout = () => {
   if (done && orderSummaries.length > 0) {
     return (
       <div className="min-h-screen bg-gradient-warm py-12 px-4 flex flex-col justify-center items-center">
-        <MultiReceipt 
+        <MultiReceipt
           customerName={orderSummaries[0].customerName}
           deliveryAddress={orderSummaries[0].deliveryAddress}
           paymentMethod={orderSummaries[0].paymentMethod}
@@ -259,10 +259,10 @@ const Checkout = () => {
                   <Input key={initialData.address} id="address" name="address" required defaultValue={initialData.address} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={getCurrentLocation} 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={getCurrentLocation}
                     disabled={locationLoading}
                     className="gap-2"
                   >
@@ -304,7 +304,7 @@ const Checkout = () => {
 
           <aside className="rounded-2xl bg-card border border-border/60 p-6 shadow-card h-fit lg:sticky lg:top-24">
             <h2 className="text-lg font-bold mb-4">Resumen de tu pedido</h2>
-            
+
             <div className="space-y-6 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted">
               {Array.from(new Set(lines.map(l => l.businessName))).map(businessName => {
                 const businessLines = lines.filter(l => l.businessName === businessName);

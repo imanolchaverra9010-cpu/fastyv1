@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { 
-  Package, 
-  MapPin, 
-  Clock, 
-  CheckCircle2, 
-  Search, 
-  Loader2, 
+import {
+  Package,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Search,
+  Loader2,
   Phone,
   ArrowLeft,
   ChevronRight,
@@ -77,7 +77,7 @@ const OrderTracking = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/orders/${id}`);
+      const response = await fetch(`/api/orders/${id}`);
       if (!response.ok) {
         throw new Error("Pedido no encontrado. Verifica el ID.");
       }
@@ -108,7 +108,7 @@ const OrderTracking = () => {
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        
+
         if (message.type === "courier_location_update" && message.order_id === order.id) {
           setOrder(prev => prev ? {
             ...prev,
@@ -120,7 +120,7 @@ const OrderTracking = () => {
             ...prev,
             status: message.status as any
           } : null);
-          
+
           toast({
             title: "Pedido actualizado",
             description: `Tu pedido ahora está en estado: ${message.status}`,
@@ -145,7 +145,7 @@ const OrderTracking = () => {
     if (!order) return;
     setSubmittingRating(true);
     try {
-      const response = await fetch(`http://localhost:8000/orders/${order.id}/rate`, {
+      const response = await fetch(`/api/orders/${order.id}/rate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,8 +186,8 @@ const OrderTracking = () => {
             <h1 className="text-2xl font-display font-bold mb-2">Rastrea tu pedido</h1>
             <p className="text-muted-foreground mb-6">Ingresa el ID de tu pedido para ver su estado actual.</p>
             <form onSubmit={handleSearch} className="flex gap-2">
-              <Input 
-                placeholder="Ej: ORD-723A" 
+              <Input
+                placeholder="Ej: ORD-723A"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
                 className="h-11 rounded-xl"
@@ -219,7 +219,7 @@ const OrderTracking = () => {
                   Actualizar
                 </Button>
                 {!urlOrderId && (
-                   <Button variant="outline" size="sm" onClick={() => setOrder(null)} className="rounded-xl">
+                  <Button variant="outline" size="sm" onClick={() => setOrder(null)} className="rounded-xl">
                     Nueva búsqueda
                   </Button>
                 )}
@@ -231,8 +231,8 @@ const OrderTracking = () => {
               <div className="relative flex justify-between">
                 {/* Connector line */}
                 <div className="absolute top-5 left-0 w-full h-1 bg-muted -z-0" />
-                <div 
-                  className="absolute top-5 left-0 h-1 bg-primary transition-all duration-700 ease-in-out -z-0" 
+                <div
+                  className="absolute top-5 left-0 h-1 bg-primary transition-all duration-700 ease-in-out -z-0"
                   style={{ width: `${(Math.max(0, currentStepIndex) / (statusSteps.length - 1)) * 100}%` }}
                 />
 
@@ -263,38 +263,38 @@ const OrderTracking = () => {
               {/* Map or Detail */}
               <div className="bg-card border rounded-3xl overflow-hidden shadow-card h-[400px]">
                 {order.status === 'shipped' || order.status === 'in_transit' ? (
-                   <DeliveryMap 
-                      pickup={{ 
-                        lat: order.business_lat || 4.67, 
-                        lng: order.business_lng || -74.05, 
-                        label: order.business_name || "Restaurante",
-                        emoji: order.business_emoji
-                      }}
-                      dropoff={{ 
-                        lat: order.latitude || 4.68, 
-                        lng: order.longitude || -74.06, 
-                        label: "Tu destino" 
-                      }}
-                      courier={order.courier_lat && order.courier_lng ? { 
-                        lat: order.courier_lat, 
-                        lng: order.courier_lng, 
-                        label: "Tu domiciliario" 
-                      } : undefined}
-                   />
+                  <DeliveryMap
+                    pickup={{
+                      lat: order.business_lat || 4.67,
+                      lng: order.business_lng || -74.05,
+                      label: order.business_name || "Restaurante",
+                      emoji: order.business_emoji
+                    }}
+                    dropoff={{
+                      lat: order.latitude || 4.68,
+                      lng: order.longitude || -74.06,
+                      label: "Tu destino"
+                    }}
+                    courier={order.courier_lat && order.courier_lng ? {
+                      lat: order.courier_lat,
+                      lng: order.courier_lng,
+                      label: "Tu domiciliario"
+                    } : undefined}
+                  />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-muted/20">
                     <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
                       {order.status === 'delivered' ? <CheckCircle2 className="h-10 w-10" /> : <Clock className="h-10 w-10 animate-pulse" />}
                     </div>
                     <h3 className="font-bold text-xl mb-2">
-                      {order.status === 'delivered' ? '¡Entregado!' : 
-                       order.status === 'preparing' ? 'Preparando tu comida' : 
-                       'Esperando confirmación'}
+                      {order.status === 'delivered' ? '¡Entregado!' :
+                        order.status === 'preparing' ? 'Preparando tu comida' :
+                          'Esperando confirmación'}
                     </h3>
                     <p className="text-muted-foreground max-w-xs">
-                      {order.status === 'delivered' ? 'Esperamos que disfrutes tu pedido. ¡Vuelve pronto!' : 
-                       order.status === 'preparing' ? 'El restaurante está cocinando tus platos favoritos.' : 
-                       'El restaurante recibirá tu pedido en unos segundos.'}
+                      {order.status === 'delivered' ? 'Esperamos que disfrutes tu pedido. ¡Vuelve pronto!' :
+                        order.status === 'preparing' ? 'El restaurante está cocinando tus platos favoritos.' :
+                          'El restaurante recibirá tu pedido en unos segundos.'}
                     </p>
                   </div>
                 )}
@@ -326,7 +326,7 @@ const OrderTracking = () => {
                     <MapPin className="h-5 w-5 text-primary shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-muted-foreground uppercase">Dirección de entrega</p>
-                      <a 
+                      <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -352,9 +352,9 @@ const OrderTracking = () => {
                     <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
                       <div className="relative">
                         {order.courier_image ? (
-                          <img 
-                            src={order.courier_image} 
-                            alt={order.courier_name} 
+                          <img
+                            src={order.courier_image}
+                            alt={order.courier_name}
                             className="h-14 w-14 rounded-full object-cover border-2 border-primary/20 shadow-sm"
                           />
                         ) : (
@@ -364,7 +364,7 @@ const OrderTracking = () => {
                         )}
                         <div className="absolute -bottom-1 -right-1 bg-success h-4 w-4 rounded-full border-2 border-card" title="En línea" />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-bold text-lg truncate">{order.courier_name || "Domiciliario asignado"}</p>
@@ -381,13 +381,13 @@ const OrderTracking = () => {
                           </span>
                           {order.courier_phone && (
                             <div className="flex items-center gap-3">
-                              <a 
-                                href={`tel:${order.courier_phone}`} 
+                              <a
+                                href={`tel:${order.courier_phone}`}
                                 className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                               >
                                 <Phone className="h-3 w-3" /> Llamar
                               </a>
-                              <a 
+                              <a
                                 href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Rapidito, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -403,7 +403,7 @@ const OrderTracking = () => {
                   </div>
                 )}
               </div>
-             </div>
+            </div>
 
             {/* Rating Section */}
             {order.status === 'delivered' && !order.is_rated && !ratedLocally && (
@@ -422,8 +422,8 @@ const OrderTracking = () => {
                     <p className="font-bold text-center">¿Qué tal estuvo la comida?</p>
                     <div className="flex justify-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <button 
-                          key={star} 
+                        <button
+                          key={star}
                           onClick={() => setBizRating(star)}
                           className="transition-transform active:scale-95"
                         >
@@ -439,8 +439,8 @@ const OrderTracking = () => {
                       <p className="font-bold text-center">¿Cómo fue la entrega?</p>
                       <div className="flex justify-center gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <button 
-                            key={star} 
+                          <button
+                            key={star}
                             onClick={() => setCourierRating(star)}
                             className="transition-transform active:scale-95"
                           >
@@ -453,16 +453,16 @@ const OrderTracking = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <Input 
-                    placeholder="Deja un comentario opcional..." 
+                  <Input
+                    placeholder="Deja un comentario opcional..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     className="h-12 rounded-xl"
                   />
-                  <Button 
-                    onClick={handleRate} 
+                  <Button
+                    onClick={handleRate}
                     disabled={submittingRating}
-                    variant="hero" 
+                    variant="hero"
                     className="w-full h-12 rounded-xl text-lg font-bold shadow-glow"
                   >
                     {submittingRating ? <Loader2 className="animate-spin h-5 w-5" /> : <><Send className="mr-2 h-5 w-5" /> Enviar calificación</>}
@@ -478,21 +478,21 @@ const OrderTracking = () => {
                 <p className="text-muted-foreground">Tu opinión ha sido registrada con éxito.</p>
               </div>
             )}
-            
+
             {/* History Logs */}
             <div className="bg-card border rounded-3xl p-6 shadow-card">
-               <h3 className="font-bold text-lg mb-4">Historial</h3>
-               <div className="space-y-4">
-                 {order.logs.map((log, idx) => (
-                   <div key={idx} className="flex items-center gap-4">
-                     <div className="h-2 w-2 rounded-full bg-primary" />
-                     <div className="flex-1">
-                        <p className="text-sm font-bold capitalize">Estado: {log.status}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleString()}</p>
-                     </div>
-                   </div>
-                 ))}
-               </div>
+              <h3 className="font-bold text-lg mb-4">Historial</h3>
+              <div className="space-y-4">
+                {order.logs.map((log, idx) => (
+                  <div key={idx} className="flex items-center gap-4">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold capitalize">Estado: {log.status}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

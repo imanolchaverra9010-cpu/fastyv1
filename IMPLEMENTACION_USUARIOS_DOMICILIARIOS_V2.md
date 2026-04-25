@@ -141,7 +141,7 @@ class CourierCreateRequest(BaseModel):
 ### Con cURL
 
 ```bash
-curl -X POST http://localhost:8000/admin/couriers \
+curl -X POST /api/admin/couriers \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Carlos Mendez",
@@ -157,7 +157,7 @@ curl -X POST http://localhost:8000/admin/couriers \
 ```python
 import requests
 
-url = "http://localhost:8000/admin/couriers"
+url = "/api/admin/couriers"
 data = {
     "name": "Carlos Mendez",
     "phone": "3105555555",
@@ -181,7 +181,7 @@ const data = {
   password: "Segura123"
 };
 
-const response = await fetch('http://localhost:8000/admin/couriers', {
+const response = await fetch('/api/admin/couriers', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(data)

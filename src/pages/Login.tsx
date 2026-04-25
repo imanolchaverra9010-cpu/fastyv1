@@ -22,7 +22,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +62,7 @@ const Login = () => {
   const handleRealSocialLogin = async (provider: 'google' | 'facebook', token: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/social-login", {
+      const response = await fetch("/api/social-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, token }),
@@ -175,9 +175,9 @@ const Login = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4 w-full">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 className="rounded-xl h-11 font-semibold"
                 onClick={() => loginGoogle()}
                 disabled={isLoading}
@@ -186,39 +186,39 @@ const Login = () => {
                 Google
               </Button>
               <FacebookLogin
-  appId={import.meta.env.VITE_FACEBOOK_APP_ID || "tu_facebook_app_id_aqui"}
-  onSuccess={(response: any) => {
-    if (response.accessToken) {
-      handleRealSocialLogin("facebook", response.accessToken);
-    } else {
-      toast({
-        title: "Error",
-        description: "No se pudo obtener el token de Facebook",
-        variant: "destructive",
-      });
-    }
-  }}
-  onFail={(error: any) => {
-    toast({
-      title: "Error",
-      description: "El login de Facebook falló",
-      variant: "destructive",
-    });
-    console.error(error);
-  }}
-  render={({ onClick }: any) => (
-    <Button
-      type="button"
-      variant="outline"
-      className="rounded-xl h-11 font-semibold"
-      onClick={onClick}
-      disabled={isLoading}
-    >
-      <Facebook className="mr-2 h-4 w-4 text-blue-600" />
-      Facebook
-    </Button>
-  )}
-/>
+                appId={import.meta.env.VITE_FACEBOOK_APP_ID || "tu_facebook_app_id_aqui"}
+                onSuccess={(response: any) => {
+                  if (response.accessToken) {
+                    handleRealSocialLogin("facebook", response.accessToken);
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: "No se pudo obtener el token de Facebook",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                onFail={(error: any) => {
+                  toast({
+                    title: "Error",
+                    description: "El login de Facebook falló",
+                    variant: "destructive",
+                  });
+                  console.error(error);
+                }}
+                render={({ onClick }: any) => (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl h-11 font-semibold"
+                    onClick={onClick}
+                    disabled={isLoading}
+                  >
+                    <Facebook className="mr-2 h-4 w-4 text-blue-600" />
+                    Facebook
+                  </Button>
+                )}
+              />
             </div>
 
             <p className="text-sm text-center text-muted-foreground mt-2">

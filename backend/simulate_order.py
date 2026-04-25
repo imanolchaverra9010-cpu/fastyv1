@@ -3,7 +3,7 @@ import json
 import time
 
 def simulate_order():
-    url = "http://localhost:8000/orders"
+    url = "/api/orders"
     
     # Datos del pedido de prueba
     order_data = {

@@ -68,9 +68,9 @@ cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-El servidor estará disponible en: `http://localhost:8000`
+El servidor estará disponible en: `/api`
 
-**Documentación interactiva:** `http://localhost:8000/docs`
+**Documentación interactiva:** `/api/docs`
 
 ## Paso 2: Configurar el Frontend
 
@@ -88,7 +88,7 @@ pnpm install
 Crear un archivo `.env.local` en la raíz del proyecto:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=/api
 VITE_APP_NAME=Rapidito
 ```
 
@@ -125,7 +125,7 @@ El frontend estará disponible en: `http://localhost:5173`
 ### 3.3 Probar con cURL
 
 ```bash
-curl -X POST http://localhost:8000/admin/couriers \
+curl -X POST /api/admin/couriers \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Carlos Mendez",

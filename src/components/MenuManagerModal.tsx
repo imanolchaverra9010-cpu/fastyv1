@@ -31,7 +31,7 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
   const fetchMenu = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/businesses/${businessId}/menu`);
+      const response = await fetch(`/api/businesses/${businessId}/menu`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -49,19 +49,19 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === "price" ? parseInt(value) || 0 : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === "price" ? parseInt(value) || 0 : value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingItem 
-        ? `http://localhost:8000/businesses/${businessId}/menu/${editingItem.id}`
-        : `http://localhost:8000/businesses/${businessId}/menu`;
-      
+      const url = editingItem
+        ? `/api/businesses/${businessId}/menu/${editingItem.id}`
+        : `/api/businesses/${businessId}/menu`;
+
       const method = editingItem ? "PATCH" : "POST";
 
       const response = await fetch(url, {
@@ -85,7 +85,7 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
   const deleteItem = async (id: number) => {
     if (!confirm("¿Eliminar este producto?")) return;
     try {
-      const response = await fetch(`http://localhost:8000/businesses/${businessId}/menu/${id}`, {
+      const response = await fetch(`/api/businesses/${businessId}/menu/${id}`, {
         method: "DELETE",
       });
       if (response.ok) {
@@ -144,10 +144,10 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
                 <Button type="submit" variant="hero" className="flex-1 rounded-xl font-bold h-10">
                   {editingItem ? 'Actualizar' : 'Agregar al Menú'}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="rounded-xl h-10" 
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl h-10"
                   onClick={() => { setIsAdding(false); setEditingItem(null); }}
                 >
                   Cancelar
@@ -187,9 +187,9 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-9 w-9 text-muted-foreground hover:text-primary"
                       onClick={() => {
                         setEditingItem(item);
@@ -207,9 +207,9 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
                       <Trash2 className="h-4 w-4 hidden" /> {/* Placeholder hack */}
                       <Utensils className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-9 w-9 text-destructive hover:bg-destructive/10"
                       onClick={() => deleteItem(item.id)}
                     >

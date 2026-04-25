@@ -19,10 +19,10 @@ const AdminPanel = () => {
     const fetchDashboardData = async () => {
       try {
         const [statsRes, revenueRes, hoursRes, topRes] = await Promise.all([
-          fetch("http://localhost:8000/admin/stats"),
-          fetch("http://localhost:8000/admin/revenue-chart"),
-          fetch("http://localhost:8000/admin/hours-chart"),
-          fetch("http://localhost:8000/admin/top-businesses")
+          fetch("/api/admin/stats"),
+          fetch("/api/admin/revenue-chart"),
+          fetch("/api/admin/hours-chart"),
+          fetch("/api/admin/top-businesses")
         ]);
 
         if (statsRes.ok) setStats(await statsRes.json());
@@ -67,33 +67,33 @@ const AdminPanel = () => {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-              <StatCard 
-                icon={DollarSign} 
-                label="Ingresos totales" 
-                value={formatCOP(stats?.total_revenue || 0)} 
-                hint={`Ticket prom: ${formatCOP(stats?.avg_ticket || 0)}`} 
-                tone="success" 
+              <StatCard
+                icon={DollarSign}
+                label="Ingresos totales"
+                value={formatCOP(stats?.total_revenue || 0)}
+                hint={`Ticket prom: ${formatCOP(stats?.avg_ticket || 0)}`}
+                tone="success"
               />
-              <StatCard 
-                icon={ShoppingBag} 
-                label="Pedidos" 
-                value={String(stats?.total_orders || 0)} 
-                hint={`${stats?.payments?.card || 0} 💳 · ${stats?.payments?.cash || 0} 💵 · ${stats?.payments?.wallet || 0} 📱`} 
-                tone="primary" 
+              <StatCard
+                icon={ShoppingBag}
+                label="Pedidos"
+                value={String(stats?.total_orders || 0)}
+                hint={`${stats?.payments?.card || 0} 💳 · ${stats?.payments?.cash || 0} 💵 · ${stats?.payments?.wallet || 0} 📱`}
+                tone="primary"
               />
-              <StatCard 
-                icon={Store} 
-                label="Negocios" 
-                value={String(stats?.businesses?.active || 0)} 
-                hint={`${stats?.businesses?.pending || 0} pendientes de aprobación`} 
-                tone="accent" 
+              <StatCard
+                icon={Store}
+                label="Negocios"
+                value={String(stats?.businesses?.active || 0)}
+                hint={`${stats?.businesses?.pending || 0} pendientes de aprobación`}
+                tone="accent"
               />
-              <StatCard 
-                icon={Bike} 
-                label="Domiciliarios" 
-                value={String(stats?.couriers?.online || 0)} 
-                hint={`${stats?.couriers?.total || 0} registrados`} 
-                tone="warning" 
+              <StatCard
+                icon={Bike}
+                label="Domiciliarios"
+                value={String(stats?.couriers?.online || 0)}
+                hint={`${stats?.couriers?.total || 0} registrados`}
+                tone="warning"
               />
             </div>
 

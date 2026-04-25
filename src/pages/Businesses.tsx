@@ -22,7 +22,7 @@ const Businesses = () => {
 
   useEffect(() => {
     setLoading(true);
-    const url = new URL("http://localhost:8000/businesses");
+    const url = new URL("/api/businesses");
     url.searchParams.append("status_filter", "active");
     if (categoryFilter) {
       url.searchParams.append("category", categoryFilter);
@@ -71,7 +71,7 @@ const Businesses = () => {
             <div className="flex-1 w-full">
               <SearchInput placeholder="Busca pizza, sushi, hamburguesas…" className="max-w-none" />
             </div>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="soft" size="xl" className="h-14 px-6 rounded-2xl border-border/60 bg-card/50 backdrop-blur-sm shadow-card hover:shadow-glow transition-all shrink-0">
@@ -124,9 +124,9 @@ const Businesses = () => {
                 {/* Background/Image Container */}
                 <div className="absolute inset-0 w-full h-full p-6 pb-20 bg-white">
                   {b.image_url ? (
-                    <img 
-                      src={b.image_url.startsWith("http") ? b.image_url : `http://localhost:8000${b.image_url}`} 
-                      alt={b.name} 
+                    <img
+                      src={b.image_url.startsWith("http") ? b.image_url : `/api${b.image_url}`}
+                      alt={b.name}
                       className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                   ) : (
@@ -153,7 +153,7 @@ const Businesses = () => {
                     <span className="inline-block w-2 h-2 rounded-full bg-primary/60 shrink-0"></span>
                     <span className="truncate font-medium">{b.category}</span>
                   </div>
-                  
+
                   <div className="mt-4 flex items-center justify-between text-xs border-t border-border/60 pt-4">
                     <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
                       <Clock className="h-4 w-4 text-primary/70" />

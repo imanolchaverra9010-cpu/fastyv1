@@ -17,7 +17,7 @@ const AdminCouriers = () => {
   const fetchCouriers = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/admin/couriers");
+      const response = await fetch("/api/admin/couriers");
       if (response.ok) {
         const data = await response.json();
         setCouriers(data);
@@ -37,7 +37,7 @@ const AdminCouriers = () => {
   const deleteCourier = async (id: number) => {
     if (!confirm("¿Eliminar este domiciliario?")) return;
     try {
-      const response = await fetch(`http://localhost:8000/admin/couriers/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/couriers/${id}`, { method: "DELETE" });
       if (response.ok) {
         toast({ title: "Eliminado", description: "Domiciliario eliminado correctamente." });
         fetchCouriers();
@@ -47,8 +47,8 @@ const AdminCouriers = () => {
     }
   };
 
-  const filteredCouriers = couriers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredCouriers = couriers.filter(c =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.vehicle.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -79,9 +79,9 @@ const AdminCouriers = () => {
               <div className="p-5 border-b border-border/60 flex items-center justify-end bg-muted/20">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Buscar por nombre o vehículo…" 
-                    className="pl-9 h-9 rounded-lg text-xs" 
+                  <Input
+                    placeholder="Buscar por nombre o vehículo…"
+                    className="pl-9 h-9 rounded-lg text-xs"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -109,7 +109,7 @@ const AdminCouriers = () => {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-xs shadow-soft">
-                              {c.name.split(" ").map((n:any) => n[0]).join("").slice(0,2)}
+                              {c.name.split(" ").map((n: any) => n[0]).join("").slice(0, 2)}
                             </div>
                             <div>
                               <p className="font-bold">{c.name}</p>
@@ -123,15 +123,13 @@ const AdminCouriers = () => {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            c.status === "online" ? "bg-success/10 text-success" :
-                            c.status === "busy" ? "bg-warning/15 text-warning-foreground" :
-                            "bg-muted text-muted-foreground"
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${
-                              c.status === "online" ? "bg-success animate-pulse" :
-                              c.status === "busy" ? "bg-warning" : "bg-muted-foreground"
-                            }`} />
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === "online" ? "bg-success/10 text-success" :
+                              c.status === "busy" ? "bg-warning/15 text-warning-foreground" :
+                                "bg-muted text-muted-foreground"
+                            }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${c.status === "online" ? "bg-success animate-pulse" :
+                                c.status === "busy" ? "bg-warning" : "bg-muted-foreground"
+                              }`} />
                             {c.status === "online" ? "En línea" : c.status === "busy" ? "Ocupado" : "Offline"}
                           </span>
                         </td>
@@ -149,9 +147,9 @@ const AdminCouriers = () => {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               className="h-8 w-8 text-muted-foreground hover:text-primary"
                               onClick={() => {
                                 setEditingCourier(c);
@@ -160,9 +158,9 @@ const AdminCouriers = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               className="h-8 w-8 text-destructive hover:bg-destructive/10"
                               onClick={() => deleteCourier(c.id)}
                             >
@@ -180,7 +178,7 @@ const AdminCouriers = () => {
         </SidebarInset>
 
         {isModalOpen && (
-          <CourierModal 
+          <CourierModal
             courier={editingCourier}
             onClose={() => {
               setIsModalOpen(false);
@@ -228,19 +226,19 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const url = courier 
-        ? `http://localhost:8000/admin/couriers/${courier.id}`
-        : "http://localhost:8000/admin/couriers";
-      
+      const url = courier
+        ? `/api/admin/couriers/${courier.id}`
+        : "/api/admin/couriers";
+
       // Si estamos editando, solo enviamos los campos permitidos por el backend
       // Si estamos editando o creando, construimos el payload
-      const payload: any = { 
-        name: formData.name, 
-        phone: formData.phone, 
+      const payload: any = {
+        name: formData.name,
+        phone: formData.phone,
         vehicle: formData.vehicle,
         email: formData.email
       };
-      
+
       if (formData.password) {
         payload.password = formData.password;
       }
@@ -284,9 +282,9 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="space-y-2">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nombre Completo</label>
-            <Input 
-              required 
-              value={formData.name} 
+            <Input
+              required
+              value={formData.name}
               onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
               className="h-11 rounded-xl"
               placeholder="ej: Juan Pérez"
@@ -294,9 +292,9 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Teléfono / WhatsApp</label>
-            <Input 
-              required 
-              value={formData.phone} 
+            <Input
+              required
+              value={formData.phone}
               onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               className="h-11 rounded-xl"
               placeholder="ej: 3001234567"
@@ -304,7 +302,7 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipo de Vehículo</label>
-            <select 
+            <select
               className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
               value={formData.vehicle}
               onChange={e => setFormData(prev => ({ ...prev, vehicle: e.target.value }))}
@@ -323,10 +321,10 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <User className="h-3 w-3" /> Usuario
                 </label>
-                <Input 
-                  required 
+                <Input
+                  required
                   disabled={!!courier}
-                  value={formData.username} 
+                  value={formData.username}
                   onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
                   className={`h-11 rounded-xl ${courier ? 'bg-muted cursor-not-allowed' : ''}`}
                   placeholder="ej: juan_perez"
@@ -336,10 +334,10 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Mail className="h-3 w-3" /> Correo Electrónico
                 </label>
-                <Input 
-                  required 
+                <Input
+                  required
                   type="email"
-                  value={formData.email} 
+                  value={formData.email}
                   onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   className="h-11 rounded-xl"
                   placeholder="ej: juan@example.com"
@@ -349,10 +347,10 @@ const CourierModal = ({ courier, onClose, onSuccess }: CourierModalProps) => {
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Lock className="h-3 w-3" /> {courier ? 'Nueva Contraseña (opcional)' : 'Contraseña'}
                 </label>
-                <Input 
+                <Input
                   required={!courier}
                   type="password"
-                  value={formData.password} 
+                  value={formData.password}
                   onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   className="h-11 rounded-xl"
                   placeholder={courier ? "Dejar en blanco para no cambiar" : "Mínimo 6 caracteres"}

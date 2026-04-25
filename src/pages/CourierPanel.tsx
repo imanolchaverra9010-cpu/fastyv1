@@ -93,7 +93,7 @@ const CourierPanel = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [currentNotification, setCurrentNotification] = useState<OrderNotification | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -116,7 +116,7 @@ const CourierPanel = () => {
           // Send to backend
           if (user?.id) {
             try {
-              await fetch(`http://localhost:8000/couriers/${user.id}/location`, {
+              await fetch(`/api/couriers/${user.id}/location`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ lat: latitude, lng: longitude })
@@ -128,10 +128,10 @@ const CourierPanel = () => {
         },
         (error) => {
           console.error("Geolocation error:", error);
-          toast({ 
-            title: "Error de ubicación", 
+          toast({
+            title: "Error de ubicación",
             description: "No se pudo obtener tu ubicación en tiempo real.",
-            variant: "destructive" 
+            variant: "destructive"
           });
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
@@ -169,10 +169,10 @@ const CourierPanel = () => {
     }
     try {
       const [statsRes, myOrdersRes, availableRes, profileRes] = await Promise.all([
-        fetch(`http://localhost:8000/couriers/${user.id}/stats`),
-        fetch(`http://localhost:8000/couriers/${user.id}/my-orders`),
-        fetch(`http://localhost:8000/couriers/available-orders`),
-        fetch(`http://localhost:8000/couriers/${user.id}/profile`)
+        fetch(`/api/couriers/${user.id}/stats`),
+        fetch(`/api/couriers/${user.id}/my-orders`),
+        fetch(`/api/couriers/available-orders`),
+        fetch(`/api/couriers/${user.id}/profile`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -196,7 +196,7 @@ const CourierPanel = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch(`http://localhost:8000/couriers/${user.id}/photo`, {
+      const res = await fetch(`/api/couriers/${user.id}/photo`, {
         method: "POST",
         body: formData,
       });
@@ -278,22 +278,22 @@ const CourierPanel = () => {
 
   const activeOrder = inTransit.find(o => o.id === activeDeliveryId) || inTransit[0] || mine[0] || assigned[0];
 
-  const courierPos = realCourierPos 
+  const courierPos = realCourierPos
     ? { ...realCourierPos, label: "Tú" }
     : (activeDeliveryId && inTransit.length > 0
-        ? { lat: lerp(PICKUP.lat, DROPOFF.lat, t), lng: lerp(PICKUP.lng, DROPOFF.lng, t), label: "Tú (Simulado)" }
-        : undefined);
+      ? { lat: lerp(PICKUP.lat, DROPOFF.lat, t), lng: lerp(PICKUP.lng, DROPOFF.lng, t), label: "Tú (Simulado)" }
+      : undefined);
 
-  const mapPickup = activeOrder ? { 
-    lat: activeOrder.business_lat || activeOrder.latitude || PICKUP.lat, 
-    lng: activeOrder.business_lng || activeOrder.longitude || PICKUP.lng, 
-    label: activeOrder.business_name || "Negocio" 
+  const mapPickup = activeOrder ? {
+    lat: activeOrder.business_lat || activeOrder.latitude || PICKUP.lat,
+    lng: activeOrder.business_lng || activeOrder.longitude || PICKUP.lng,
+    label: activeOrder.business_name || "Negocio"
   } : PICKUP;
 
-  const mapDropoff = activeOrder ? { 
-    lat: activeOrder.latitude || DROPOFF.lat, 
-    lng: activeOrder.longitude || DROPOFF.lng, 
-    label: "Cliente" 
+  const mapDropoff = activeOrder ? {
+    lat: activeOrder.latitude || DROPOFF.lat,
+    lng: activeOrder.longitude || DROPOFF.lng,
+    label: "Cliente"
   } : DROPOFF;
 
   const activeDeliveries = [...inTransit, ...mine];
@@ -309,7 +309,7 @@ const CourierPanel = () => {
     if (!user?.id) return;
     setOnline(val);
     try {
-      await fetch(`http://localhost:8000/couriers/${user.id}/status`, {
+      await fetch(`/api/couriers/${user.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: val ? "online" : "offline" })
@@ -326,13 +326,13 @@ const CourierPanel = () => {
     let successMessage = "";
 
     if (action === 'accept') {
-      url = `http://localhost:8000/couriers/${user.id}/accept-order/${orderId}`;
+      url = `/api/couriers/${user.id}/accept-order/${orderId}`;
       successMessage = `Pedido ${orderId} aceptado. ¡Prepárate para el viaje!`;
     } else if (action === 'reject') {
-      url = `http://localhost:8000/couriers/${user.id}/reject-order/${orderId}`;
+      url = `/api/couriers/${user.id}/reject-order/${orderId}`;
       successMessage = `Pedido ${orderId} rechazado.`;
     } else if (action === 'start_trip') {
-      url = `http://localhost:8000/orders/${orderId}/status`;
+      url = `/api/orders/${orderId}/status`;
       // Usar PATCH para actualizar el estado a in_transit
       try {
         const response = await fetch(url, {
@@ -342,7 +342,7 @@ const CourierPanel = () => {
         });
         if (response.ok) {
           toast({ title: "¡Viaje iniciado!", description: "Abriendo navegación..." });
-          
+
           // Buscar el pedido para obtener la dirección
           const order = [...availableOrders, ...myOrders].find(o => o.id === orderId);
           if (order) {
@@ -360,7 +360,7 @@ const CourierPanel = () => {
       }
       return;
     } else if (action === 'complete') {
-      url = `http://localhost:8000/couriers/${user.id}/complete-order/${orderId}`;
+      url = `/api/couriers/${user.id}/complete-order/${orderId}`;
       successMessage = `¡Entrega completada!`;
     }
 
@@ -393,11 +393,11 @@ const CourierPanel = () => {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-warm relative">
-        <CourierSidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        profileImage={profileData?.image_url}
-      />
+        <CourierSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          profileImage={profileData?.image_url}
+        />
 
         {currentNotification && online && (
           <div className="fixed inset-x-0 top-6 z-[100] flex justify-center px-4 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
@@ -409,21 +409,21 @@ const CourierPanel = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-display font-bold text-xl leading-tight">
-                      {currentNotification.is_batch ? "¡Paquete Multi-Tienda! 📦" : 
-                       currentNotification.order_type === "open" ? "¡Encargo Especial! 🛍️" : "¡Nuevo Pedido! 🚀"}
+                      {currentNotification.is_batch ? "¡Paquete Multi-Tienda! 📦" :
+                        currentNotification.order_type === "open" ? "¡Encargo Especial! 🛍️" : "¡Nuevo Pedido! 🚀"}
                     </h3>
                   </div>
                   <p className="text-muted-foreground text-sm font-medium">
                     {currentNotification.is_batch ? "Recogida en múltiples negocios" : currentNotification.business_name}
                   </p>
-                  
+
                   {currentNotification.order_type === "open" && currentNotification.description && (
                     <div className="mt-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 text-xs font-medium italic">
                       "{currentNotification.description}"
                     </div>
                   )}
 
-                  <a 
+                  <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentNotification.delivery_address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -433,15 +433,15 @@ const CourierPanel = () => {
                     {currentNotification.delivery_address}
                   </a>
                   <div className="mt-4 flex gap-3">
-                    <Button 
-                      variant="hero" 
+                    <Button
+                      variant="hero"
                       className="flex-1 rounded-xl h-11 font-bold shadow-glow"
                       onClick={() => handleAction('accept', currentNotification.order_id)}
                     >
                       <Check className="mr-2 h-4 w-4" /> Aceptar
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1 rounded-xl h-11 font-bold border-2"
                       onClick={() => handleAction('reject', currentNotification.order_id)}
                     >
@@ -501,7 +501,7 @@ const CourierPanel = () => {
                     )}
                   </div>
                   {activeDeliveries.length >= 2 && courierPos ? (
-                    <MultiStopMap courier={{lat: courierPos.lat, lng: courierPos.lng}} dropoffs={multiDropoffs} />
+                    <MultiStopMap courier={{ lat: courierPos.lat, lng: courierPos.lng }} dropoffs={multiDropoffs} />
                   ) : (
                     <div className="rounded-2xl bg-card border border-border/60 shadow-card overflow-hidden h-[360px]">
                       <DeliveryMap pickup={mapPickup} dropoff={mapDropoff} courier={courierPos} />
@@ -552,12 +552,11 @@ const CourierPanel = () => {
                     </h2>
                     <div className="space-y-3">
                       {mine.map((order) => (
-                        <div key={order.id} className={`bg-card border-2 ${
-                          order.is_batch ? 'border-purple-500/40'
-                          : order.order_type === 'open' ? 'border-orange-500/30'
-                          : 'border-primary/30'
-                        } rounded-xl p-4 shadow-sm`}>
-                          
+                        <div key={order.id} className={`bg-card border-2 ${order.is_batch ? 'border-purple-500/40'
+                            : order.order_type === 'open' ? 'border-orange-500/30'
+                              : 'border-primary/30'
+                          } rounded-xl p-4 shadow-sm`}>
+
                           {order.is_batch ? (
                             <>
                               <div className="flex items-center gap-2 mb-3">
@@ -593,14 +592,14 @@ const CourierPanel = () => {
                               <p className="font-bold text-lg text-primary">{order.order_type === 'open' ? 'Por definir' : formatCOP(order.total)}</p>
                             </div>
                           )}
-                          
+
                           {order.order_type === 'open' && order.open_order_description && (
                             <div className="mb-4 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 text-sm italic">
                               "{order.open_order_description}"
                             </div>
                           )}
 
-                          <a 
+                          <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -610,8 +609,8 @@ const CourierPanel = () => {
                             {order.delivery_address}
                           </a>
                           <div className="flex gap-2">
-                            <Button 
-                              variant="hero" 
+                            <Button
+                              variant="hero"
                               className="flex-1 rounded-lg font-bold"
                               onClick={() => handleAction('start_trip', order.id)}
                             >
@@ -631,12 +630,11 @@ const CourierPanel = () => {
                     </h2>
                     <div className="space-y-3">
                       {inTransit.map((order) => (
-                        <div key={order.id} className={`bg-card border-2 ${
-                          order.is_batch ? 'border-purple-500/40'
-                          : order.order_type === 'open' ? 'border-orange-500/30' 
-                          : 'border-success/30'
-                        } rounded-xl p-4 shadow-sm`}>
-                          
+                        <div key={order.id} className={`bg-card border-2 ${order.is_batch ? 'border-purple-500/40'
+                            : order.order_type === 'open' ? 'border-orange-500/30'
+                              : 'border-success/30'
+                          } rounded-xl p-4 shadow-sm`}>
+
                           {order.is_batch ? (
                             <>
                               <div className="flex items-center gap-2 mb-3">
@@ -662,7 +660,7 @@ const CourierPanel = () => {
                             <div className="flex items-start justify-between mb-3">
                               <div>
                                 <p className="font-bold text-lg">{order.business_name || order.origin_name} {order.business_emoji || '🛍️'}</p>
-                                <a 
+                                <a
                                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -674,7 +672,7 @@ const CourierPanel = () => {
                               <p className="font-bold text-lg text-success">{order.order_type === 'open' ? 'Por definir' : formatCOP(order.total)}</p>
                             </div>
                           )}
-                          
+
                           {order.order_type === 'open' && order.open_order_description && (
                             <div className="mb-4 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 text-sm italic">
                               "{order.open_order_description}"
@@ -682,7 +680,7 @@ const CourierPanel = () => {
                           )}
 
                           {order.is_batch && (
-                            <a 
+                            <a
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -694,8 +692,8 @@ const CourierPanel = () => {
                           )}
 
                           <div className="flex gap-2">
-                            <Button 
-                              variant="hero" 
+                            <Button
+                              variant="hero"
                               className="flex-1 rounded-lg font-bold"
                               onClick={() => handleAction('complete', order.id)}
                             >
@@ -735,11 +733,10 @@ const CourierPanel = () => {
                       <p className="text-muted-foreground text-center py-8">No hay pedidos disponibles en este momento.</p>
                     )}
                     {availableOrders.map((order) => (
-                      <div key={order.id} className={`bg-card border-2 ${
-                        order.is_batch ? 'border-purple-500/40'
-                        : order.order_type === 'open' ? 'border-orange-500/30'
-                        : 'border-primary/30'
-                      } rounded-xl p-4 shadow-sm`}>
+                      <div key={order.id} className={`bg-card border-2 ${order.is_batch ? 'border-purple-500/40'
+                          : order.order_type === 'open' ? 'border-orange-500/30'
+                            : 'border-primary/30'
+                        } rounded-xl p-4 shadow-sm`}>
 
                         {/* BATCH (multi-store) header */}
                         {order.is_batch ? (
@@ -784,7 +781,7 @@ const CourierPanel = () => {
                           </div>
                         )}
 
-                        <a 
+                        <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -794,15 +791,15 @@ const CourierPanel = () => {
                           {order.delivery_address}
                         </a>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="hero" 
+                          <Button
+                            variant="hero"
                             className="flex-1 rounded-lg font-bold"
                             onClick={() => handleAction('accept', order.id)}
                           >
                             <Check className="mr-2 h-4 w-4" /> Aceptar
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="shrink-0 rounded-lg"
                             onClick={() => handleAction('reject', order.id)}
                           >
@@ -839,7 +836,7 @@ const CourierPanel = () => {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-bold">{order.business_name || order.origin_name} {order.business_emoji || '🛍️'}</p>
-                            <a 
+                            <a
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -881,24 +878,24 @@ const CourierPanel = () => {
                             user?.username?.charAt(0).toUpperCase()
                           )}
                         </div>
-                        <button 
+                        <button
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
                           className="absolute bottom-4 right-0 p-2 bg-primary text-white rounded-full shadow-lg border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         >
                           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                         </button>
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          className="hidden" 
-                          accept="image/*" 
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
                           onChange={handleFileUpload}
                         />
                       </div>
                       <h2 className="text-xl font-bold">{profileData?.name || user?.username}</h2>
                       <p className="text-sm text-muted-foreground mb-4 capitalize">{user?.role}</p>
-                      
+
                       <div className="w-full pt-4 border-t border-border/40 space-y-3 text-left">
                         <div className="flex items-center gap-3 text-sm">
                           <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
@@ -939,7 +936,7 @@ const CourierPanel = () => {
                         <p className="text-3xl font-display font-bold">{history.length}</p>
                         <p className="text-sm text-muted-foreground mt-1">Pedidos completados con éxito</p>
                       </div>
-                      
+
                       <div className="bg-warning/5 border border-warning/10 rounded-2xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                           <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
@@ -969,7 +966,7 @@ const CourierPanel = () => {
                             <div className="h-3 w-3 rounded-full bg-white absolute right-1"></div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
