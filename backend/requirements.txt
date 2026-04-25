@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+mysql-connector-python
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pydantic
+pydantic-settings
+cors
+google-auth
+requests

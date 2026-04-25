@@ -1,0 +1,348 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { formatCOP } from "@/data/mock";
+import { toast } from "@/hooks/use-toast";
+import MultiReceipt from "@/components/MultiReceipt";
+
+const Checkout = () => {
+  const { lines, subtotal, clear, promo } = useCart();
+  const { user } = useAuth();
+  const [done, setDone] = useState<boolean>(false);
+  const [orderSummaries, setOrderSummaries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const [initialData, setInitialData] = useState({
+    name: "",
+    phone: "",
+    address: ""
+  });
+
+  useEffect(() => {
+    const fetchLastOrder = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await fetch(`http://localhost:8000/orders/user/${user.id}`);
+        if (response.ok) {
+          const orders = await response.json();
+          if (orders && orders.length > 0) {
+            const lastOrder = orders[0];
+            setInitialData({
+              name: lastOrder.customer_name || user.username || "",
+              phone: lastOrder.customer_phone || "",
+              address: lastOrder.delivery_address || ""
+            });
+          } else {
+            setInitialData(prev => ({ ...prev, name: user.username || "" }));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching last order:", error);
+      }
+    };
+    fetchLastOrder();
+  }, [user]);
+
+  const numBusinesses = new Set(lines.map(l => String(l.businessId))).size;
+  const fee = lines.length > 0 ? 4500 * numBusinesses : 0;
+  const discount = promo ? (subtotal * promo.discount / 100) : 0;
+  const total = subtotal + fee - discount;
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLocationLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setLocationLoading(false);
+          toast({ title: "Ubicación obtenida", description: "Latitud y longitud actualizadas." });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setLocationLoading(false);
+          toast({
+            title: "Error de ubicación",
+            description: "No se pudo obtener la ubicación. Asegúrate de dar permisos.",
+            variant: "destructive",
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      toast({
+        title: "Geolocalización no soportada",
+        description: "Tu navegador no soporta la geolocalización.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const customerName = formData.get("customerName") as string;
+    const customerPhone = formData.get("phone") as string;
+    const deliveryAddress = formData.get("address") as string;
+    const paymentMethod = formData.get("paymentMethod") as string;
+    const notes = formData.get("notes") as string;
+
+    const idMap: Record<string, string> = {
+      "b1": "1",
+      "b2": "3",
+      "b3": "2",
+      "b4": "4",
+      "b5": "5",
+      "b6": "6",
+      "b7": "7",
+      "b8": "8"
+    };
+
+    const linesByBusiness: Record<string, typeof lines> = {};
+    lines.forEach(l => {
+      const bId = String(l.businessId);
+      if (!linesByBusiness[bId]) linesByBusiness[bId] = [];
+      linesByBusiness[bId].push(l);
+    });
+
+    // Generate a shared batch_id only when ordering from multiple businesses
+    const businessIds = Object.keys(linesByBusiness);
+    const batchId = businessIds.length > 1
+      ? `batch-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+      : null;
+
+    try {
+      const summaries: any[] = [];
+      
+      const orderPromises = Object.entries(linesByBusiness).map(async ([businessId, bLines]) => {
+        const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
+        const bFee = 4500;
+        const bDiscount = promo ? (bSubtotal * promo.discount / 100) : 0;
+        const bTotal = bSubtotal + bFee - bDiscount;
+        
+        const mappedBusinessId = idMap[businessId] || businessId;
+
+        const orderData = {
+          user_id: user?.id,
+          business_id: mappedBusinessId,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          delivery_address: deliveryAddress,
+          payment_method: paymentMethod || "card",
+          notes: notes,
+          total: Math.round(bTotal),
+          latitude: latitude ? parseFloat(latitude.toFixed(8)) : null,
+          longitude: longitude ? parseFloat(longitude.toFixed(8)) : null,
+          batch_id: batchId,
+          items: bLines.map(l => ({
+            name: String(l.item.name),
+            price: Math.round(l.item.price),
+            quantity: Math.round(l.qty),
+            emoji: String(l.item.emoji)
+          }))
+        };
+
+        const response = await fetch("http://localhost:8000/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Error al crear el pedido");
+        }
+
+        summaries.push({
+          orderId: data.id,
+          businessName: bLines[0].businessName,
+          customerName: customerName,
+          customerPhone: customerPhone,
+          deliveryAddress: deliveryAddress,
+          paymentMethod: paymentMethod || "card",
+          items: bLines.map(l => ({
+            name: String(l.item.name),
+            price: Math.round(l.item.price),
+            quantity: Math.round(l.qty),
+            emoji: String(l.item.emoji)
+          })),
+          subtotal: bSubtotal,
+          fee: bFee,
+          discount: bDiscount,
+          promoCode: promo?.code,
+          total: bTotal
+        });
+      });
+
+      await Promise.all(orderPromises);
+
+      setOrderSummaries(summaries);
+      setDone(true);
+      clear();
+      toast({ title: "¡Pedidos confirmados!", description: "Tus pedidos están siendo preparados." });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "No se pudo procesar el pedido. Intenta de nuevo.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (done && orderSummaries.length > 0) {
+    return (
+      <div className="min-h-screen bg-gradient-warm py-12 px-4 flex flex-col justify-center items-center">
+        <MultiReceipt 
+          customerName={orderSummaries[0].customerName}
+          deliveryAddress={orderSummaries[0].deliveryAddress}
+          paymentMethod={orderSummaries[0].paymentMethod}
+          orders={orderSummaries}
+          promoCode={promo?.code}
+        />
+      </div>
+    );
+  }
+
+  if (lines.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-warm">
+        <main className="container py-20 text-center max-w-md">
+          <h1 className="text-3xl font-display font-bold">Tu carrito está vacío</h1>
+          <p className="text-muted-foreground mt-2">Añade productos desde un negocio para continuar.</p>
+          <Button asChild variant="hero" className="mt-6"><Link to="/negocios">Ver negocios</Link></Button>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-warm">
+      <main className="container py-10 max-w-5xl">
+        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="h-4 w-4" /> Seguir comprando
+        </Link>
+        <h1 className="text-4xl font-display font-bold tracking-tight mb-8">Finaliza tu pedido</h1>
+
+        <div className="grid lg:grid-cols-[1fr_380px] gap-6">
+          <form onSubmit={submit} className="space-y-6">
+            <section className="rounded-2xl bg-card border border-border/60 p-6 shadow-card">
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Dirección de entrega</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">Nombre completo</Label>
+                  <Input key={initialData.name} id="customerName" name="customerName" required defaultValue={initialData.name} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input key={initialData.phone} id="phone" name="phone" required type="tel" defaultValue={initialData.phone} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address">Dirección</Label>
+                  <Input key={initialData.address} id="address" name="address" required defaultValue={initialData.address} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={getCurrentLocation} 
+                    disabled={locationLoading}
+                    className="gap-2"
+                  >
+                    {locationLoading ? "Obteniendo ubicación..." : <><LocateFixed className="h-4 w-4" /> Usar mi ubicación actual</>}
+                  </Button>
+                  {latitude && longitude && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Ubicación: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="notes">Notas para el domiciliario</Label>
+                  <Textarea id="notes" name="notes" placeholder="Ej. Timbre dañado, llamar al llegar" />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl bg-card border border-border/60 p-6 shadow-card">
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Pago</h2>
+              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-3">
+                {[
+                  { v: "cash", l: "Efectivo", e: "💵" },
+                  { v: "transfer", l: "Transferencia", e: "💸" },
+                ].map((o) => (
+                  <Label key={o.v} htmlFor={o.v} className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:bg-muted/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
+                    <RadioGroupItem value={o.v} id={o.v} />
+                    <span className="text-xl">{o.e}</span>
+                    <span className="font-medium">{o.l}</span>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </section>
+
+            <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
+              {loading ? "Procesando..." : `Confirmar pedido · ${formatCOP(total)}`}
+            </Button>
+          </form>
+
+          <aside className="rounded-2xl bg-card border border-border/60 p-6 shadow-card h-fit lg:sticky lg:top-24">
+            <h2 className="text-lg font-bold mb-4">Resumen de tu pedido</h2>
+            
+            <div className="space-y-6 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted">
+              {Array.from(new Set(lines.map(l => l.businessName))).map(businessName => {
+                const businessLines = lines.filter(l => l.businessName === businessName);
+                return (
+                  <div key={businessName} className="space-y-3">
+                    <p className="text-sm font-bold text-primary flex items-center gap-1.5 border-b border-border/50 pb-1">
+                      <Store className="h-4 w-4" /> {businessName}
+                    </p>
+                    {businessLines.map((l) => (
+                      <div key={l.item.id} className="flex gap-3 text-sm pl-2">
+                        <span className="text-2xl">{l.item.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{l.item.name}</p>
+                          <p className="text-xs text-muted-foreground">x{l.qty}</p>
+                        </div>
+                        <span className="font-semibold">{formatCOP(l.item.price * l.qty)}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 pt-4 border-t border-border space-y-2 text-sm">
+              <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{formatCOP(subtotal)}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>Envío</span><span>{formatCOP(fee)}</span></div>
+              {promo && (
+                <div className="flex justify-between text-success font-medium">
+                  <span>Descuento ({promo.code})</span>
+                  <span>-{formatCOP(discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-display font-bold text-xl pt-2"><span>Total</span><span>{formatCOP(total)}</span></div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Checkout;

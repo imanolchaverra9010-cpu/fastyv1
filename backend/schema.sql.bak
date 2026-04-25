@@ -1,0 +1,148 @@
+CREATE DATABASE IF NOT EXISTS rapidito;
+USE rapidito;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'business', 'courier', 'customer') NOT NULL DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de Negocios
+CREATE TABLE IF NOT EXISTS businesses (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    category VARCHAR(50),
+    address VARCHAR(255),
+    phone VARCHAR(20),
+    rating DECIMAL(3,2) DEFAULT 0.0,
+    emoji VARCHAR(10),
+    image_url VARCHAR(255),
+    delivery_fee INT DEFAULT 0,
+    eta VARCHAR(20),
+    status ENUM('active', 'inactive', 'pending') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de Pedidos
+CREATE TABLE IF NOT EXISTS orders (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id INT,
+    business_id VARCHAR(50),
+    customer_name VARCHAR(100) NOT NULL,
+    total INT NOT NULL,
+    status ENUM('pending', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id)
+);
+
+-- Tabla de Detalles de Pedido (Items)
+CREATE TABLE IF NOT EXISTS order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50),
+    name VARCHAR(100) NOT NULL,
+    price INT NOT NULL,
+    quantity INT NOT NULL,
+    emoji VARCHAR(10),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Insertar algunos negocios base
+INSERT IGNORE INTO businesses (id, name, description, category, address, phone, rating, emoji, delivery_fee, eta, status) VALUES 
+('1', 'Pizzería Napolitana', 'Auténtica pizza al horno de leña.', 'Pizza', 'Calle 10 #5-20', '3001234567', 4.8, '🍕', 3500, '25-35 min', 'active'),
+('2', 'Burger House', 'Las mejores hamburguesas artesanales.', 'Hamburguesas', 'Av. Siempre Viva 123', '3009876543', 4.5, '🍔', 2000, '20-30 min', 'active'),
+('3', 'Sushi Zen', 'Sushi fresco de la mejor calidad.', 'Sushi', 'Carrera 15 #93-22', '3104567890', 4.9, '🍣', 5000, '40-50 min', 'active');
+
+-- Tabla de Domiciliarios (si no existe)
+CREATE TABLE IF NOT EXISTS couriers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    vehicle VARCHAR(50),
+    status ENUM('online', 'busy', 'offline') DEFAULT 'offline',
+    lat DECIMAL(10, 8),
+    lng DECIMAL(11, 8),
+    rating DECIMAL(3,2) DEFAULT 5.0,
+    deliveries INT DEFAULT 0,
+    earnings INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Tabla de Pedidos Extendida
+ALTER TABLE orders 
+ADD COLUMN courier_id INT,
+ADD COLUMN payment_method ENUM('card', 'cash', 'wallet') DEFAULT 'card',
+ADD COLUMN delivery_address VARCHAR(255),
+ADD COLUMN customer_phone VARCHAR(20),
+ADD COLUMN latitude DECIMAL(10, 8),
+ADD COLUMN longitude DECIMAL(11, 8),
+ADD COLUMN notes TEXT,
+ADD COLUMN cancellation_reason TEXT,
+ADD COLUMN estimated_delivery_time TIMESTAMP,
+ADD CONSTRAINT fk_courier FOREIGN KEY (courier_id) REFERENCES couriers(id);
+
+-- Tabla de Logs de Estados de Pedido
+CREATE TABLE IF NOT EXISTS order_status_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50),
+    status VARCHAR(50),
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by INT, -- ID del usuario que hizo el cambio
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Insertar domiciliarios de prueba
+INSERT IGNORE INTO couriers (id, name, vehicle, status, lat, lng) VALUES 
+(1, 3, 'Carlos Perez', 'Moto', 'online', 4.6097, -74.0817),
+(2, NULL, 'Ana Ruiz', 'Bicicleta', 'busy', 4.6110, -74.0820);
+
+-- Insertar usuarios de prueba
+INSERT IGNORE INTO users (id, username, email, password_hash, role) VALUES
+(1, 'admin', 'admin@rapidito.com', '$2b$12$T20UJ9RYhQjthW9ya5uz2uXjJMRn3iAR4WcGynWaPGy9IOKDl63Pa', 'admin'),
+(2, 'negocio1', 'negocio@rapidito.com', '$2b$12$T20UJ9RYhQjthW9ya5uz2uXjJMRn3iAR4WcGynWaPGy9IOKDl63Pa', 'business'),
+(3, 'domi1', 'domi@rapidito.com', '$2b$12$T20UJ9RYhQjthW9ya5uz2uXjJMRn3iAR4WcGynWaPGy9IOKDl63Pa', 'courier');
+
+-- Insertar algunos pedidos de prueba
+INSERT IGNORE INTO orders (id, business_id, customer_name, total, status, payment_method, delivery_address, created_at) VALUES 
+('ORD-001', '1', 'Juan Perez', 45000, 'delivered', 'card', 'Calle 10 #5-20', DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+('ORD-002', '2', 'Ana Gomez', 28000, 'preparing', 'cash', 'Av. Siempre Viva 123', DATE_SUB(NOW(), INTERVAL 15 MINUTE)),
+('ORD-003', '3', 'Carlos Ruiz', 65000, 'pending', 'card', 'Carrera 15 #93-22', NOW());
+
+-- Insertar items para esos pedidos
+INSERT IGNORE INTO order_items (order_id, name, price, quantity, emoji) VALUES 
+('ORD-001', 'Pizza Pepperoni Large', 35000, 1, '🍕'),
+('ORD-001', 'Coca-Cola 1.5L', 10000, 1, '🥤'),
+('ORD-002', 'Bacon Cheeseburger', 18000, 1, '🍔'),
+('ORD-002', 'Papas Fritas', 10000, 1, '🍟'),
+('ORD-003', 'Sushi Platter 24pcs', 65000, 1, '🍣');
+
+-- Insertar logs iniciales
+INSERT IGNORE INTO order_status_logs (order_id, status, changed_at) VALUES 
+('ORD-001', 'pending', DATE_SUB(NOW(), INTERVAL 130 MINUTE)),
+('ORD-001', 'preparing', DATE_SUB(NOW(), INTERVAL 120 MINUTE)),
+('ORD-001', 'shipped', DATE_SUB(NOW(), INTERVAL 100 MINUTE)),
+('ORD-001', 'delivered', DATE_SUB(NOW(), INTERVAL 80 MINUTE)),
+('ORD-002', 'pending', DATE_SUB(NOW(), INTERVAL 20 MINUTE)),
+('ORD-002', 'preparing', DATE_SUB(NOW(), INTERVAL 15 MINUTE)),
+('ORD-003', 'pending', NOW());
+
+-- Tabla de Items de Menú
+CREATE TABLE IF NOT EXISTS menu_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price INT NOT NULL,
+    category VARCHAR(50),
+    image_url VARCHAR(255),
+    emoji VARCHAR(10),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+);
