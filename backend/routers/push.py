@@ -3,7 +3,12 @@ from pydantic import BaseModel
 from database import get_db
 import json
 import os
-from pywebpush import webpush, WebPushException
+try:
+    from pywebpush import webpush, WebPushException
+    PUSH_SUPPORTED = True
+except ImportError:
+    PUSH_SUPPORTED = False
+    print("pywebpush not installed. Push notifications disabled.")
 
 router = APIRouter()
 
@@ -40,6 +45,10 @@ def subscribe(data: PushSubscription):
         db.close()
 
 def send_push_notification(user_id: int, message_body: dict):
+    if not PUSH_SUPPORTED:
+        print("Push notifications skipped: pywebpush not installed.")
+        return False
+        
     db = get_db()
     if not db:
         return False

@@ -1,4 +1,4 @@
-import mysql.connector
+from mysql.connector import pooling
 import os
 from dotenv import load_dotenv
 
@@ -12,17 +12,33 @@ db_config = {
     "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
     "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
     "port": int(os.getenv("DATABASE_PORT") or "3306"),
-    "use_unicode": True,
-    "charset": "utf8mb4"
 }
 
+# Crear el pool de conexiones
+try:
+    pool = pooling.MySQLConnectionPool(
+        pool_name="fasty_pool",
+        pool_size=5, # Vercel serverless no necesita un pool gigante por cada instancia
+        pool_reset_session=True,
+        **db_config
+    )
+    print("Conexión Pool establecida")
+except Exception as e:
+    print(f"Error al crear el pool: {e}")
+    pool = None
+
 def get_db():
+    if not pool:
+        # Fallback a conexión única si el pool falla
+        try:
+            import mysql.connector
+            return mysql.connector.connect(**db_config)
+        except:
+            return None
+            
     try:
-        conn = mysql.connector.connect(**db_config)
+        conn = pool.get_connection()
         return conn
-    except mysql.connector.Error as err:
-        print(f"Error de conexión a la base de datos: {err}")
-        return None
-    except Exception as e:
-        print(f"Error inesperado al conectar a la base de datos: {e}")
+    except Exception as err:
+        print(f"Error obteniendo conexión del pool: {err}")
         return None

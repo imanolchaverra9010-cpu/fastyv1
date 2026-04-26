@@ -26,7 +26,20 @@ try:
     print(f"Backend path: {backend_path.absolute()}")
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
-    from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, push
+    import routers
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push"]
+    
+    # Importar routers dinámicamente para que si uno falla no mate a los demás
+    import importlib
+    for name in router_names:
+        try:
+            globals()[name] = importlib.import_module(f"routers.{name}")
+            print(f"Módulo routers.{name} importado")
+        except Exception as e:
+            print(f"Error importando routers.{name}: {e}")
+            # Crear un objeto dummy con atributo router vacío para evitar errores posteriores
+            class Dummy: router = APIRouter()
+            globals()[name] = Dummy()
 except Exception as e:
     print(f"Error crítico cargando routers: {e}")
     # No podemos lanzar una excepción aquí porque mataría la app de Vercel
@@ -66,20 +79,27 @@ app.add_middleware(
 API_PREFIX = "/api"
 
 # Incluir Routers con prefijo correcto
-try:
-    app.include_router(auth.router, prefix=f"{API_PREFIX}", tags=["Authentication"])
-    app.include_router(orders.router, prefix=f"{API_PREFIX}/orders", tags=["Orders"])
-    app.include_router(users.router, prefix=f"{API_PREFIX}/users", tags=["Users"])
-    app.include_router(businesses.router, prefix=f"{API_PREFIX}/businesses", tags=["Businesses"])
-    app.include_router(menu_items.router, prefix=f"{API_PREFIX}/businesses", tags=["Menu Items"])
-    app.include_router(promotions.router, prefix=f"{API_PREFIX}/promotions", tags=["Promotions"])
-    app.include_router(admin.router, prefix=f"{API_PREFIX}/admin", tags=["Admin Dashboard"])
-    app.include_router(couriers.router, prefix=f"{API_PREFIX}/couriers", tags=["Couriers Panel"])
-    app.include_router(business_requests.router, prefix=f"{API_PREFIX}/businesses", tags=["Business Requests"])
-    app.include_router(push.router, prefix=f"{API_PREFIX}/push", tags=["Push Notifications"])
-except Exception as e:
-    print(f"Error incluyendo routers: {e}")
-    raise
+# Lista de routers a cargar
+routers_to_load = [
+    ("auth", auth.router, f"{API_PREFIX}", ["Authentication"]),
+    ("orders", orders.router, f"{API_PREFIX}/orders", ["Orders"]),
+    ("users", users.router, f"{API_PREFIX}/users", ["Users"]),
+    ("businesses", businesses.router, f"{API_PREFIX}/businesses", ["Businesses"]),
+    ("menu_items", menu_items.router, f"{API_PREFIX}/businesses", ["Menu Items"]),
+    ("promotions", promotions.router, f"{API_PREFIX}/promotions", ["Promotions"]),
+    ("admin", admin.router, f"{API_PREFIX}/admin", ["Admin Dashboard"]),
+    ("couriers", couriers.router, f"{API_PREFIX}/couriers", ["Couriers Panel"]),
+    ("business_requests", business_requests.router, f"{API_PREFIX}/businesses", ["Business Requests"]),
+    ("push", push.router, f"{API_PREFIX}/push", ["Push Notifications"]),
+]
+
+for name, router_obj, prefix, tags in routers_to_load:
+    try:
+        app.include_router(router_obj, prefix=prefix, tags=tags)
+        print(f"Router '{name}' cargado exitosamente")
+    except Exception as e:
+        print(f"Error cargando router '{name}': {e}")
+        # Opcional: podrías decidir si fallar o continuar
 
 # Ruta raíz
 @app.get(f"{API_PREFIX}/")
