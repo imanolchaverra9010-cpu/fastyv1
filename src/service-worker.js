@@ -4,7 +4,7 @@ import { precacheAndRoute } from 'workbox-precaching';
 precacheAndRoute(self.__WB_MANIFEST);
 
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : { title: 'Rapidito', body: 'Nueva notificación' };
+  const data = event.data ? event.data.json() : { title: 'Fasty', body: 'Nueva notificación' };
   
   const options = {
     body: data.body,
