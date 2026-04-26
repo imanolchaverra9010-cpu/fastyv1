@@ -93,6 +93,7 @@ const CourierPanel = () => {
   const watchIdRef = useRef<number | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentNotification, setCurrentNotification] = useState<OrderNotification | null>(null);
@@ -543,6 +544,14 @@ const CourierPanel = () => {
                           {order.order_type === 'open' && order.open_order_description && (
                             <p className="mt-3 text-xs text-muted-foreground italic border-t border-border/40 pt-2">"{order.open_order_description}"</p>
                           )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="mt-3 w-full h-8 text-xs gap-1.5 rounded-lg border border-warning/10 hover:bg-warning/5"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Ver detalles del pedido
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -619,6 +628,14 @@ const CourierPanel = () => {
                               onClick={() => handleAction('start_trip', order.id)}
                             >
                               <Play className="mr-2 h-4 w-4" /> Iniciar Viaje
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-lg shrink-0"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -702,6 +719,14 @@ const CourierPanel = () => {
                               onClick={() => handleAction('complete', order.id)}
                             >
                               <Check className="mr-2 h-4 w-4" /> Completar Entrega
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-lg shrink-0"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -809,6 +834,14 @@ const CourierPanel = () => {
                           >
                             <CloseIcon className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="outline"
+                            className="shrink-0 rounded-lg border-primary/20 text-primary hover:bg-primary/5"
+                            onClick={() => setSelectedOrder(order)}
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -853,6 +886,16 @@ const CourierPanel = () => {
                             <p className="font-bold text-lg text-success">{order.order_type === 'open' ? 'Encargo' : formatCOP(order.total)}</p>
                             <span className="text-xs text-success font-bold">✓ Entregado</span>
                           </div>
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs gap-1.5 rounded-lg text-muted-foreground hover:text-primary"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <Eye className="h-4 w-4" /> Ver detalles
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -991,6 +1034,126 @@ const CourierPanel = () => {
             )}
           </main>
         </SidebarInset>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-card w-full max-w-lg max-h-[85vh] overflow-hidden rounded-3xl border border-border/60 shadow-glow flex flex-col">
+              <div className="p-5 border-b border-border/60 flex items-center justify-between bg-gradient-hero text-primary-foreground">
+                <div>
+                  <h2 className="text-xl font-display font-bold flex items-center gap-2">
+                    <Package className="h-5 w-5" /> Detalle del Pedido
+                  </h2>
+                  <p className="text-xs opacity-80">#{selectedOrder.id}</p>
+                </div>
+                <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                  <CloseIcon className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* ORIGIN / BUSINESS */}
+                <section className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Store className="h-3.5 w-3.5" /> Punto de Recogida
+                  </h3>
+                  <div className="bg-muted/30 p-4 rounded-2xl border border-border/40">
+                    <p className="font-bold text-lg">{selectedOrder.business_name || selectedOrder.origin_name} {selectedOrder.business_emoji || '🛍️'}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{selectedOrder.business_address || selectedOrder.origin_address}</p>
+                    {selectedOrder.business_id && (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 rounded-lg" asChild>
+                          <a href={`tel:${selectedOrder.phone || ''}`}><Phone className="h-3 w-3" /> Llamar Negocio</a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* CUSTOMER / DELIVERY */}
+                <section className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <User className="h-3.5 w-3.5" /> Cliente y Entrega
+                  </h3>
+                  <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-lg">{selectedOrder.customer_name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedOrder.delivery_address}</p>
+                      </div>
+                      <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase">
+                        {selectedOrder.payment_method === 'cash' ? 'Efectivo 💵' : 'Pago Digital 💳'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="hero" size="sm" className="h-9 text-xs gap-1.5 rounded-lg flex-1" asChild>
+                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedOrder.delivery_address)}`} target="_blank">
+                          <Navigation className="h-3.5 w-3.5" /> Navegar
+                        </a>
+                      </Button>
+                      {selectedOrder.customer_phone && (
+                        <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 rounded-lg flex-1" asChild>
+                          <a href={`tel:${selectedOrder.customer_phone}`}><Phone className="h-3.5 w-3.5" /> Llamar Cliente</a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                {/* ITEMS */}
+                <section className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Package className="h-3.5 w-3.5" /> Productos
+                  </h3>
+                  <div className="border border-border/60 rounded-2xl overflow-hidden">
+                    <div className="max-h-48 overflow-y-auto">
+                      {(selectedOrder.items && selectedOrder.items.length > 0) ? (
+                        <div className="divide-y divide-border/40">
+                          {selectedOrder.items.map((item, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center bg-card hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">{item.emoji || '📦'}</span>
+                                <div>
+                                  <p className="text-sm font-bold">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground">Cantidad: {item.quantity}</p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-semibold">{formatCOP(item.price * item.quantity)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center text-muted-foreground italic text-sm">
+                          {selectedOrder.order_type === 'open' ? 'Encargo personalizado: ver descripción abajo.' : 'No hay items registrados.'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-muted/20 p-3 flex justify-between items-center border-t border-border/60">
+                      <span className="font-bold text-sm">Total a cobrar/pagar:</span>
+                      <span className="font-display font-bold text-lg text-primary">
+                        {selectedOrder.order_type === 'open' ? 'Por definir' : formatCOP(selectedOrder.total)}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* NOTES / DESCRIPTION */}
+                {(selectedOrder.notes || selectedOrder.open_order_description) && (
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Instrucciones / Notas</h3>
+                    <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/10 text-sm italic text-orange-800">
+                      {selectedOrder.notes || selectedOrder.open_order_description}
+                    </div>
+                  </section>
+                )}
+              </div>
+
+              <div className="p-5 border-t border-border/60 bg-muted/10">
+                <Button className="w-full rounded-xl h-11 font-bold" onClick={() => setSelectedOrder(null)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </SidebarProvider>
   );
