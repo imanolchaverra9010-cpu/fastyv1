@@ -109,19 +109,23 @@ const Checkout = () => {
   const calculateTotalFee = () => {
     if (lines.length === 0) return 0;
     const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
-    let totalFee = 0;
+    
+    let maxDistance = -1;
+    let baseFee = 5000;
 
     uniqueBusinessIds.forEach(bId => {
       const coords = businessCoords[bId];
       if (coords && latitude && longitude) {
         const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-        totalFee += getDeliveryFeeByDistance(distance);
-      } else {
-        // Tarifa base si no hay ubicación
-        totalFee += 5000;
+        if (distance > maxDistance) {
+          maxDistance = distance;
+          baseFee = getDeliveryFeeByDistance(distance);
+        }
       }
     });
-    return totalFee;
+
+    const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
+    return baseFee + additionalFees;
   };
 
   const fee = calculateTotalFee();
@@ -223,16 +227,35 @@ const Checkout = () => {
 
     try {
       const summaries: any[] = [];
+      const businessIds = Object.keys(linesByBusiness);
+      
+      // Determinar cuál es el negocio más lejano
+      let furthestBusinessId = businessIds[0];
+      let maxDistance = -1;
+      
+      businessIds.forEach(bId => {
+        const coords = businessCoords[bId];
+        if (coords && latitude && longitude) {
+          const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
+          if (distance > maxDistance) {
+            maxDistance = distance;
+            furthestBusinessId = bId;
+          }
+        }
+      });
 
       const orderPromises = Object.entries(linesByBusiness).map(async ([businessId, bLines]) => {
         const businessIdString = String(businessId);
-        const coords = businessCoords[businessIdString];
-        let bFee = 5000;
-        let distance = 0;
-        
-        if (coords && latitude && longitude) {
-          distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-          bFee = getDeliveryFeeByDistance(distance);
+        let bFee = 2000; // Base para negocios adicionales
+
+        if (businessIdString === furthestBusinessId) {
+          const coords = businessCoords[businessIdString];
+          if (coords && latitude && longitude) {
+            const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
+            bFee = getDeliveryFeeByDistance(distance);
+          } else {
+            bFee = 5000; // Fallback si no hay coordenadas
+          }
         }
 
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
