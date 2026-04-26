@@ -185,48 +185,35 @@ const Login = () => {
                 <Mail className="mr-2 h-4 w-4 text-red-500" />
                 Google
               </Button>
-              <FacebookLogin
-                appId={import.meta.env.VITE_FACEBOOK_APP_ID || "tu_facebook_app_id_aqui"}
-                onSuccess={(response: any) => {
-                  if (response.accessToken) {
-                    handleRealSocialLogin("facebook", response.accessToken);
-                  } else {
-                    toast({
-                      title: "Error",
-                      description: "No se pudo obtener el token de Facebook",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                onFail={(error: any) => {
-                  toast({
-                    title: "Error",
-                    description: "El login de Facebook falló",
-                    variant: "destructive",
-                  });
-                  console.error(error);
-                }}
-                render={({ onClick }: any) => (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl h-11 font-semibold"
-                    onClick={onClick}
-                    disabled={isLoading}
-                  >
-                    <Facebook className="mr-2 h-4 w-4 text-blue-600" />
-                    Facebook
-                  </Button>
-                )}
-              />
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl h-11 font-semibold"
+                onClick={() => toast({
+                  title: "Próximamente",
+                  description: "Estamos trabajando en la funcionalidad de inicio de sesión con Facebook.",
+                })}
+                disabled={isLoading}
+              >
+                <Facebook className="mr-2 h-4 w-4 text-blue-600" />
+                Facebook
+              </Button>
             </div>
 
-            <p className="text-sm text-center text-muted-foreground mt-2">
-              ¿No tienes una cuenta?{" "}
-              <Link to="/negocios/registro" className="text-primary font-semibold hover:underline">
-                Regístrate aquí
-              </Link>
-            </p>
+            <div className="text-sm text-center text-muted-foreground mt-4 space-y-2">
+              <p>
+                ¿No tienes una cuenta?{" "}
+                <Link to="/negocios/registro" className="text-primary font-semibold hover:underline">
+                  Regístrate aquí
+                </Link>
+              </p>
+              <p>
+                Al iniciar sesión, aceptas nuestra{" "}
+                <Link to="/politica-de-privacidad" className="text-muted-foreground underline hover:text-foreground">
+                  Política de Privacidad
+                </Link>
+              </p>
+            </div>
           </CardFooter>
         </form>
       </Card>
