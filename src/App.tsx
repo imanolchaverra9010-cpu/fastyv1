@@ -35,6 +35,7 @@ import SiteHeader from "@/components/SiteHeader";
 
 import AdminCouriers from "@/pages/AdminCouriers";
 import { InstallPWA } from "./components/InstallPWA";
+import { NotificationPrompt } from "./components/NotificationPrompt";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const AppContent = () => {
     <>
       {!hideHeader && <SiteHeader />}
       <InstallPWA />
+      <NotificationPrompt />
       <Toaster />
       <Sonner />
       <Routes>

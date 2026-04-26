@@ -26,7 +26,7 @@ try:
     print(f"Backend path: {backend_path.absolute()}")
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
-    from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users
+    from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, push
 except Exception as e:
     print(f"Error crítico cargando routers: {e}")
     # No podemos lanzar una excepción aquí porque mataría la app de Vercel
@@ -76,6 +76,7 @@ try:
     app.include_router(admin.router, prefix=f"{API_PREFIX}/admin", tags=["Admin Dashboard"])
     app.include_router(couriers.router, prefix=f"{API_PREFIX}/couriers", tags=["Couriers Panel"])
     app.include_router(business_requests.router, prefix=f"{API_PREFIX}/businesses", tags=["Business Requests"])
+    app.include_router(push.router, prefix=f"{API_PREFIX}/push", tags=["Push Notifications"])
 except Exception as e:
     print(f"Error incluyendo routers: {e}")
     raise

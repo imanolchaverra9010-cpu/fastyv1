@@ -10,3 +10,4 @@ cors
 google-auth
 requests
 pymysql
+pywebpush

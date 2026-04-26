@@ -4,6 +4,7 @@ import uuid
 from database import get_db
 from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate
 import json
+from .push import send_push_notification
 
 router = APIRouter()
 
@@ -55,7 +56,7 @@ async def create_order(order: OrderCreate):
         # Obtener detalles del negocio para la notificación
         business_info = None
         if order.business_id:
-            cursor.execute("SELECT name, address, emoji FROM businesses WHERE id = %s", (order.business_id,))
+            cursor.execute("SELECT name, address, emoji, owner_id FROM businesses WHERE id = %s", (order.business_id,))
             business_info = cursor.fetchone()
 
         if websocket_manager:
@@ -98,9 +99,27 @@ async def create_order(order: OrderCreate):
                 await websocket_manager.notify_couriers(notification_data)
 
             # Always notify the specific business (each store needs to know about its own order)
-            if order.business_id:
+            if order.business_id and business_info and business_info.get('owner_id'):
                 biz_notif = {**notification_data, "order_id": order_id}  # business always gets real order_id
                 await websocket_manager.notify_business(order.business_id, biz_notif)
+                
+                # Push Notification for Business Owner
+                send_push_notification(business_info['owner_id'], {
+                    "title": "¡Nuevo Pedido!",
+                    "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
+                    "url": "/negocio/pedidos"
+                })
+
+            if should_notify_couriers:
+                # Notify online couriers via Push
+                cursor.execute("SELECT user_id FROM couriers WHERE status = 'online'")
+                online_couriers = cursor.fetchall()
+                for courier in online_couriers:
+                    send_push_notification(courier['user_id'], {
+                        "title": "¡Nuevo Pedido Disponible!",
+                        "body": f"Hay un nuevo pedido de {notification_data['business_name']}.",
+                        "url": "/domiciliario"
+                    })
 
         db.close()
         return {"id": order_id, "message": "Order created successfully"}
@@ -262,6 +281,20 @@ async def update_order_status(order_id: str, status_data: dict):
                     "order_id": real_id,
                     "status": new_status
                 })
+                
+                # Push Notification for Client
+                status_messages = {
+                    "preparing": "Tu pedido está siendo preparado 👨‍🍳",
+                    "shipped": "Tu pedido va en camino 🛵",
+                    "delivered": "¡Tu pedido ha sido entregado! 🎉",
+                    "cancelled": "Tu pedido ha sido cancelado ❌"
+                }
+                if new_status in status_messages:
+                    send_push_notification(user_id, {
+                        "title": "Actualización de Pedido",
+                        "body": status_messages[new_status],
+                        "url": f"/rastreo/{real_id}"
+                    })
             
         db.commit()
         db.close()
