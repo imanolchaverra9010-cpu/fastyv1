@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/DeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
-import { getWebSocketUrl } from "@/lib/ws";
+import { getWebSocketUrl } from "@/lib/utils";
 
 interface OrderLog {
   status: string;

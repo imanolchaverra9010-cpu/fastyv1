@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { CourierSidebar } from "@/components/CourierSidebar";
-import { getWebSocketUrl } from "@/lib/ws";
+import { getWebSocketUrl } from "@/lib/utils";
 
 // Bogotá-ish coordinates for demo
 const PICKUP = { lat: 4.6533, lng: -74.0836, label: "Negocio" };

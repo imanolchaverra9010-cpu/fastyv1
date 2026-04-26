@@ -8,7 +8,7 @@ import { BusinessSidebar } from "@/components/BusinessSidebar";
 
 import { Business, MenuItem, Promotion, Order, BusinessStats, NewOrderNotification, BusinessContextType } from "@/types/business";
 import { Outlet } from "react-router-dom";
-import { getWebSocketUrl } from "@/lib/ws";
+import { getWebSocketUrl } from "@/lib/utils";
 
 const BusinessPanel = () => {
   const { user } = useAuth();
