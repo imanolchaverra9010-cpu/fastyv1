@@ -112,7 +112,7 @@ const Login = () => {
           <Utensils className="h-6 w-6 text-primary-foreground" />
         </span>
         <span className="font-display font-bold text-2xl tracking-tight">
-          Rapidito<span className="text-primary">.</span>
+          Fasty<span className="text-primary">.</span>
         </span>
       </Link>
 

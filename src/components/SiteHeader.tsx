@@ -50,7 +50,7 @@ const SiteHeader = () => {
       <div className="container flex h-20 items-center justify-between gap-8">
         <div className="flex items-center gap-8 flex-1">
           <Link to="/" className="flex items-center gap-2 group shrink-0">
-            <img src={logo} alt="Rapidito Logo" className="h-11 w-auto transition-transform group-hover:scale-105" />
+            <img src={logo} alt="Fasty Logo" className="h-11 w-auto transition-transform group-hover:scale-105" />
           </Link>
 
           {!isInternalRole && (
@@ -125,8 +125,8 @@ const SiteHeader = () => {
               <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
                 <SheetHeader className="p-6 border-b text-left">
                   <SheetTitle className="flex items-center gap-2">
-                    <img src={logo} alt="Rapidito Logo" className="h-8 w-auto" />
-                    <span className="font-bold text-xl bg-gradient-hero bg-clip-text text-transparent">Rapidito</span>
+                    <img src={logo} alt="Fasty Logo" className="h-8 w-auto" />
+                    <span className="font-bold text-xl bg-gradient-hero bg-clip-text text-transparent">Fasty</span>
                   </SheetTitle>
                 </SheetHeader>
                 

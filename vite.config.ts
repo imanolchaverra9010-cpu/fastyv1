@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Rapidito Delivery',
-        short_name: 'Rapidito',
+        name: 'Fasty Delivery',
+        short_name: 'Fasty',
         description: 'La mejor app de domicilios rápidos',
         theme_color: '#f97316',
         background_color: '#ffffff',

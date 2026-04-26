@@ -29,7 +29,7 @@ const PrivacyPolicy = () => {
                 <Lock className="h-5 w-5 text-primary" /> 1. Introducción
               </h2>
               <p>
-                En <strong>Rapidito</strong>, valoramos su privacidad y estamos comprometidos con la protección de sus datos personales. Esta política explica cómo recopilamos, usamos y protegemos su información cuando utiliza nuestra plataforma de domicilios.
+                En <strong>Fasty</strong>, valoramos su privacidad y estamos comprometidos con la protección de sus datos personales. Esta política explica cómo recopilamos, usamos y protegemos su información cuando utiliza nuestra plataforma de domicilios.
               </p>
             </section>
 
