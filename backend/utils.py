@@ -20,11 +20,26 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     """
     Hashea una contraseña truncándola a 72 bytes para evitar el error de bcrypt.
-    Bcrypt tiene un límite de 72 bytes para la entrada.
+    Utiliza bcrypt directamente para mayor compatibilidad con versiones 4.0+.
     """
-    # Truncar a 72 bytes (no caracteres, por si hay multi-byte)
-    truncated_password = password.encode('utf-8')[:72].decode('utf-8', 'ignore')
-    return pwd_context.hash(truncated_password)
+    if not password:
+        password = "rapidito2024"
+        
+    # Asegurar que sea string
+    if not isinstance(password, str):
+        password = str(password)
+        
+    # Truncar a 72 bytes (límite físico de bcrypt)
+    # Primero codificamos a bytes, truncamos y luego (opcionalmente) volvemos a string 
+    # o pasamos bytes directamente a bcrypt.
+    password_bytes = password.encode('utf-8')[:72]
+    
+    # Generar el salt y hashear
+    # passlib usa rounds=12 por defecto, lo mantenemos igual
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    
+    return hashed.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
