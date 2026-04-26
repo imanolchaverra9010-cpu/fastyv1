@@ -8,6 +8,7 @@ import { BusinessSidebar } from "@/components/BusinessSidebar";
 
 import { Business, MenuItem, Promotion, Order, BusinessStats, NewOrderNotification, BusinessContextType } from "@/types/business";
 import { Outlet } from "react-router-dom";
+import { getWebSocketUrl } from "@/lib/ws";
 
 const BusinessPanel = () => {
   const { user } = useAuth();
@@ -118,7 +119,10 @@ const BusinessPanel = () => {
     if (!businessId) return;
 
     const connect = () => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/business/${businessId}`);
+      const url = getWebSocketUrl(`/ws/business/${businessId}`);
+      if (!url) return;
+
+      const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => console.log("WebSocket connected");

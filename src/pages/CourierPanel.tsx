@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { CourierSidebar } from "@/components/CourierSidebar";
+import { getWebSocketUrl } from "@/lib/ws";
 
 // Bogotá-ish coordinates for demo
 const PICKUP = { lat: 4.6533, lng: -74.0836, label: "Negocio" };
@@ -226,7 +227,10 @@ const CourierPanel = () => {
     if (!user?.id) return;
 
     const connect = () => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/courier/${user.id}`);
+      const url = getWebSocketUrl(`/ws/courier/${user.id}`);
+      if (!url) return;
+
+      const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => console.log("WebSocket connected");

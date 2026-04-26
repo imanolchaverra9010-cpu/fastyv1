@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/DeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
+import { getWebSocketUrl } from "@/lib/ws";
 
 interface OrderLog {
   status: string;
@@ -104,7 +105,10 @@ const OrderTracking = () => {
     if (!order?.user_id) return;
 
     const connect = () => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/user/${order.user_id}`);
+      const url = getWebSocketUrl(`/ws/user/${order.user_id}`);
+      if (!url) return;
+
+      const ws = new WebSocket(url);
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
