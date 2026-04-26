@@ -156,7 +156,10 @@ const AdminBusinesses = () => {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground text-xs max-w-[150px] truncate">
-                          {b.address || 'Sin dirección'}
+                          <p>{b.address || 'Sin dirección'}</p>
+                          {b.latitude && b.longitude && (
+                            <p className="text-[10px] text-primary/70">{b.latitude.toFixed(4)}, {b.longitude.toFixed(4)}</p>
+                          )}
                         </td>
                         <td className="px-5 py-4 text-center font-bold">
                           {b.rating.toFixed(1)} ⭐

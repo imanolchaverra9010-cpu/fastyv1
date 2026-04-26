@@ -25,7 +25,9 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
     emoji: "🏪",
     image_url: "",
     delivery_fee: 0,
-    eta: "20-30 min"
+    eta: "20-30 min",
+    latitude: 0,
+    longitude: 0
   });
 
   useEffect(() => {
@@ -40,14 +42,34 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
         emoji: business.emoji || "🏪",
         image_url: business.image_url || "",
         delivery_fee: business.delivery_fee || 0,
-        eta: business.eta || "20-30 min"
+        eta: business.eta || "20-30 min",
+        latitude: business.latitude || 0,
+        longitude: business.longitude || 0
       });
     }
   }, [business]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: name === "delivery_fee" ? parseInt(value) || 0 : value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: (name === "delivery_fee" || name === "latitude" || name === "longitude") 
+        ? parseFloat(value) || 0 
+        : value 
+    }));
+  };
+
+  const getCoords = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setFormData(prev => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }));
+        toast({ title: "Coordenadas obtenidas", description: "Lat/Lng actualizados correctamente." });
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,6 +193,19 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
             <div className="space-y-2">
               <Label htmlFor="eta" className="flex items-center gap-2"><Clock className="h-4 w-4" /> Tiempo Estimado</Label>
               <Input id="eta" name="eta" placeholder="ej: 25-35 min" required value={formData.eta} onChange={handleChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitud</Label>
+              <Input id="latitude" name="latitude" type="number" step="any" value={formData.latitude} onChange={handleChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitud</Label>
+              <Input id="longitude" name="longitude" type="number" step="any" value={formData.longitude} onChange={handleChange} />
+            </div>
+            <div className="md:col-span-2">
+              <Button type="button" variant="outline" size="sm" onClick={getCoords} className="w-full">
+                <MapPin className="h-4 w-4 mr-2" /> Detectar mi ubicación actual para este negocio
+              </Button>
             </div>
           </div>
 

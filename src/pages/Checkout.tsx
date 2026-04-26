@@ -12,6 +12,27 @@ import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import MultiReceipt from "@/components/MultiReceipt";
 
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radio de la tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const getDeliveryFeeByDistance = (distance: number) => {
+  if (distance <= 2) return 5000;
+  if (distance <= 4) return 8000;
+  if (distance <= 6) return 10000;
+  if (distance <= 8) return 12000;
+  if (distance <= 10) return 15000;
+  return Math.ceil(distance * 1500);
+};
+
 const Checkout = () => {
   const { lines, subtotal, clear, promo } = useCart();
   const { user } = useAuth();
@@ -21,6 +42,7 @@ const Checkout = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [businessCoords, setBusinessCoords] = useState<Record<string, {lat: number, lng: number}>>({});
   const navigate = useNavigate();
 
   const [initialData, setInitialData] = useState({
@@ -56,8 +78,54 @@ const Checkout = () => {
     fetchLastOrder();
   }, [user]);
 
+  useEffect(() => {
+    const fetchBusinessCoords = async () => {
+      const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
+      const idMap: Record<string, string> = {
+        "b1": "1", "b2": "3", "b3": "2", "b4": "4", "b5": "5", "b6": "6", "b7": "7", "b8": "8"
+      };
+      
+      const newCoords: Record<string, {lat: number, lng: number}> = {};
+      
+      for (const bId of uniqueBusinessIds) {
+        const mappedId = idMap[bId] || bId;
+        try {
+          const res = await fetch(`/api/businesses/${mappedId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.latitude && data.longitude) {
+              newCoords[bId] = { lat: data.latitude, lng: data.longitude };
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching business coords:", e);
+        }
+      }
+      setBusinessCoords(newCoords);
+    };
+    if (lines.length > 0) fetchBusinessCoords();
+  }, [lines]);
+
+  const calculateTotalFee = () => {
+    if (lines.length === 0) return 0;
+    const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
+    let totalFee = 0;
+
+    uniqueBusinessIds.forEach(bId => {
+      const coords = businessCoords[bId];
+      if (coords && latitude && longitude) {
+        const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
+        totalFee += getDeliveryFeeByDistance(distance);
+      } else {
+        // Tarifa base si no hay ubicación
+        totalFee += 5000;
+      }
+    });
+    return totalFee;
+  };
+
+  const fee = calculateTotalFee();
   const numBusinesses = new Set(lines.map(l => String(l.businessId))).size;
-  const fee = lines.length > 0 ? 4500 * numBusinesses : 0;
   const discount = promo ? (subtotal * promo.discount / 100) : 0;
   const total = subtotal + fee - discount;
 
@@ -157,8 +225,17 @@ const Checkout = () => {
       const summaries: any[] = [];
 
       const orderPromises = Object.entries(linesByBusiness).map(async ([businessId, bLines]) => {
+        const businessIdString = String(businessId);
+        const coords = businessCoords[businessIdString];
+        let bFee = 5000;
+        let distance = 0;
+        
+        if (coords && latitude && longitude) {
+          distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
+          bFee = getDeliveryFeeByDistance(distance);
+        }
+
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
-        const bFee = 4500;
         const bDiscount = promo ? (bSubtotal * promo.discount / 100) : 0;
         const bTotal = bSubtotal + bFee - bDiscount;
 
@@ -370,6 +447,11 @@ const Checkout = () => {
                 <div className="flex justify-between text-success font-medium">
                   <span>Descuento ({promo.code})</span>
                   <span>-{formatCOP(discount)}</span>
+                </div>
+              )}
+              {latitude && longitude && (
+                <div className="text-[10px] text-muted-foreground italic text-right mt-1">
+                  * Tarifa calculada según distancia.
                 </div>
               )}
               <div className="flex justify-between font-display font-bold text-xl pt-2"><span>Total</span><span>{formatCOP(total)}</span></div>
