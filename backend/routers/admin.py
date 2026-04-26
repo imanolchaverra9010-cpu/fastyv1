@@ -36,9 +36,12 @@ def get_admin_stats():
         cursor.execute("SELECT status, COUNT(*) as count FROM businesses GROUP BY status")
         biz_stats = {row['status']: row['count'] for row in cursor.fetchall()}
         
-        # 4. Domiciliarios (Mock o reales si existiera tabla)
-        online_couriers = 14 # Mock por ahora ya que no hay tabla couriers completa
-        total_couriers = 25
+        # 4. Domiciliarios (Reales)
+        cursor.execute("SELECT COUNT(*) as total FROM couriers")
+        total_couriers = cursor.fetchone()['total'] or 0
+        
+        cursor.execute("SELECT COUNT(*) as online FROM couriers WHERE status = 'online'")
+        online_couriers = cursor.fetchone()['online'] or 0
 
         stats = {
             "total_revenue": float(revenue_data['total_revenue'] or 0),

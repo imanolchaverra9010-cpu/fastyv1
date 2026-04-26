@@ -37,7 +37,6 @@ const adminNav = [
   { icon: Package, label: "Pedidos", to: "/admin/pedidos" },
   { icon: Store, label: "Negocios", to: "/admin/negocios" },
   { icon: Users, label: "Domiciliarios", to: "/admin/domiciliarios" },
-  { icon: Settings, label: "Configuración", to: "/admin/settings" },
 ];
 
 export function AdminSidebar() {
