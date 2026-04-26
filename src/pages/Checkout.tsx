@@ -28,6 +28,7 @@ const Checkout = () => {
     phone: "",
     address: ""
   });
+  const [addressValue, setAddressValue] = useState("");
 
   useEffect(() => {
     const fetchLastOrder = async () => {
@@ -43,6 +44,7 @@ const Checkout = () => {
               phone: lastOrder.customer_phone || "",
               address: lastOrder.delivery_address || ""
             });
+            setAddressValue(lastOrder.delivery_address || "");
           } else {
             setInitialData(prev => ({ ...prev, name: user.username || "" }));
           }
@@ -63,11 +65,38 @@ const Checkout = () => {
     if (navigator.geolocation) {
       setLocationLoading(true);
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
-          setLocationLoading(false);
-          toast({ title: "Ubicación obtenida", description: "Latitud y longitud actualizadas." });
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lon);
+          
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+              {
+                headers: {
+                  'Accept-Language': 'es'
+                }
+              }
+            );
+            if (response.ok) {
+              const data = await response.json();
+              if (data.display_name) {
+                // Nominatim returns a very long display_name. We can try to simplify it.
+                // display_name: "Calle 123, Barrio, Ciudad, Departamento, Código Postal, País"
+                setAddressValue(data.display_name);
+                toast({ title: "Ubicación obtenida", description: "Dirección actualizada automáticamente." });
+              } else {
+                toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+              }
+            }
+          } catch (err) {
+            console.error("Error in reverse geocoding:", err);
+            toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas (no se pudo obtener la dirección)." });
+          } finally {
+            setLocationLoading(false);
+          }
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -256,7 +285,14 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address">Dirección</Label>
-                  <Input key={initialData.address} id="address" name="address" required defaultValue={initialData.address} />
+                  <Input 
+                    id="address" 
+                    name="address" 
+                    required 
+                    value={addressValue} 
+                    onChange={(e) => setAddressValue(e.target.value)}
+                    placeholder="Calle 123 #45-67, Ciudad"
+                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Button
