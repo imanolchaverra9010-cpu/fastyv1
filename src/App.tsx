@@ -27,6 +27,7 @@ import Checkout from "./pages/Checkout.tsx";
 import OpenOrder from "./pages/OpenOrder.tsx";
 import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
 
@@ -60,6 +61,7 @@ const AppContent = () => {
         <Route path="/perfil" element={<ProtectedRoute allowedRoles={['customer']}><UserProfile /></ProtectedRoute>} />
         <Route path="/rastreo" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/rastreo/:orderId" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
+        <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
 
         {/* Protected Routes */}
         <Route
