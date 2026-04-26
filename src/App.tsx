@@ -21,7 +21,7 @@ import { ProfileTab } from "@/components/business/ProfileTab";
 import OrderTracking from "./pages/OrderTracking.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
-import AdminBusinesses from "./pages/AdminBusinessess.tsx";
+import AdminBusinesses from "./pages/AdminBusinesses.tsx";
 import AdminRequests from "./pages/AdminRequests.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import OpenOrder from "./pages/OpenOrder.tsx";
