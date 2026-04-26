@@ -6,7 +6,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from database import get_db
 from schemas import UserCreate, UserLogin, Token, SocialAuth
-from utils import pwd_context, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils import pwd_context, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, hash_password
 import bcrypt
 
 router = APIRouter()
@@ -26,7 +26,7 @@ def register(user: UserCreate):
         raise HTTPException(status_code=400, detail="User already exists")
     
     # Hashear password
-    hashed_password = pwd_context.hash(user.password)
+    hashed_password = hash_password(user.password)
     
     # Insertar
     try:
@@ -72,12 +72,15 @@ def login(user_login: UserLogin):
         if check_hash.startswith('$2b$'):
             check_hash = '$2a$' + check_hash[4:]
         
+        # Truncar la contraseña de entrada para que coincida con el hash truncado
+        password_bytes = user_login.password.encode('utf-8')[:72]
+        
         # Intentar con el hash original primero
         try:
-            is_valid = bcrypt.checkpw(user_login.password.encode('utf-8'), stored_hash.encode('utf-8'))
+            is_valid = bcrypt.checkpw(password_bytes, stored_hash.encode('utf-8'))
         except ValueError:
             # Si falla, intentar con el truco del prefijo $2a$
-            is_valid = bcrypt.checkpw(user_login.password.encode('utf-8'), check_hash.encode('utf-8'))
+            is_valid = bcrypt.checkpw(password_bytes, check_hash.encode('utf-8'))
             
     except Exception as e:
         h_len = len(str(user.get("password_hash", "")))

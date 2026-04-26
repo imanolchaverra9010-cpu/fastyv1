@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional
 from database import get_db
 from schemas import BusinessRequestCreate, BusinessRequestResponse
-from utils import pwd_context
+from utils import pwd_context, hash_password
 import json
 import uuid
 
@@ -120,7 +120,7 @@ def approve_business_request(request_id: int):
             raise HTTPException(status_code=400, detail="El email o nombre de usuario ya está registrado por otro negocio o usuario.")
 
         user_password = req['password'] if req['password'] else "rapidito2024"
-        hashed_password = pwd_context.hash(user_password)
+        hashed_password = hash_password(user_password)
         
         cursor.execute(
             "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",

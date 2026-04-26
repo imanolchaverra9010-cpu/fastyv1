@@ -21,7 +21,7 @@ import { ProfileTab } from "@/components/business/ProfileTab";
 import OrderTracking from "./pages/OrderTracking.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
-import AdminBusinesses from "./pages/AdminBusinesses.tsx";
+import AdminBusinesses from "./pages/AdminBusinessess.tsx";
 import AdminRequests from "./pages/AdminRequests.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import OpenOrder from "./pages/OpenOrder.tsx";
@@ -39,9 +39,9 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { pathname } = useLocation();
-  const hideHeader = ["/login", "/register"].includes(pathname) || 
-                     pathname.startsWith("/admin") || 
-                     pathname.startsWith("/domiciliario");
+  const hideHeader = ["/login", "/register"].includes(pathname) ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/domiciliario");
 
   return (
     <>
@@ -60,23 +60,23 @@ const AppContent = () => {
         <Route path="/perfil" element={<ProtectedRoute allowedRoles={['customer']}><UserProfile /></ProtectedRoute>} />
         <Route path="/rastreo" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/rastreo/:orderId" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
-        
+
         {/* Protected Routes */}
-        <Route 
-          path="/domiciliario" 
+        <Route
+          path="/domiciliario"
           element={
             <ProtectedRoute allowedRoles={['courier', 'admin']}>
               <CourierPanel />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/negocio" 
+        <Route
+          path="/negocio"
           element={
             <ProtectedRoute allowedRoles={['business', 'admin']}>
               <BusinessPanel />
             </ProtectedRoute>
-          } 
+          }
         >
           <Route index element={<Navigate to="pedidos" replace />} />
           <Route path="pedidos" element={<OrdersTab />} />
@@ -85,45 +85,45 @@ const AppContent = () => {
           <Route path="estadisticas" element={<StatsTab />} />
           <Route path="perfil" element={<ProfileTab />} />
         </Route>
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminPanel />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/pedidos" 
+        <Route
+          path="/admin/pedidos"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Pedidos />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/solicitudes" 
+        <Route
+          path="/admin/solicitudes"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminRequests />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/negocios" 
+        <Route
+          path="/admin/negocios"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminBusinesses />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin/domiciliarios" 
+        <Route
+          path="/admin/domiciliarios"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminCouriers />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

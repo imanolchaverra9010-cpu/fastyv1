@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from utils import pwd_context
+from utils import pwd_context, hash_password
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -227,7 +227,7 @@ def create_courier(courier_data: CourierCreateRequest):
             db.close()
             raise HTTPException(status_code=400, detail=f"El correo electrónico '{email}' ya está registrado")
         
-        hashed_password = pwd_context.hash(password)
+        hashed_password = hash_password(password)
         
         cursor.execute(
             "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",
@@ -292,7 +292,7 @@ def update_courier(courier_id: int, courier_data: dict):
             if len(password) < 6:
                 raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres")
             
-            hashed_password = pwd_context.hash(password)
+            hashed_password = hash_password(password)
             user_updates.append("password_hash = %s")
             user_params.append(hashed_password)
             
