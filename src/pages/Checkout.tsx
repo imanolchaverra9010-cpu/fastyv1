@@ -478,20 +478,20 @@ const Checkout = () => {
                             applyPromo("", 0);
                           } else {
                             applyPromo(benefit.code, benefit.discount);
-                            toast({ title: "Cupón aplicado", description: \`Se aplicó \${benefit.discount}% de descuento en el domicilio.\` });
+                            toast({ title: "Cupón aplicado", description: `Se aplicó ${benefit.discount}% de descuento en el domicilio.` });
                           }
                         }}
-                        className={\`w-full text-left p-3 rounded-xl border text-sm transition-all \${
+                        className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                           isSelected
                             ? "bg-primary/10 border-primary text-primary"
                             : "bg-muted/50 border-transparent hover:border-border"
-                        }\`}
+                        }`}
                       >
                         <div className="flex justify-between items-center mb-1">
                           <span className="font-bold">{benefit.code}</span>
                           <span className="font-bold text-xs">{benefit.discount}% OFF</span>
                         </div>
-                        <p className={\`text-xs \${isSelected ? "text-primary/80" : "text-muted-foreground"}\`}>
+                        <p className={`text-xs ${isSelected ? "text-primary/80" : "text-muted-foreground"}`}>
                           {benefit.description}
                         </p>
                       </button>
