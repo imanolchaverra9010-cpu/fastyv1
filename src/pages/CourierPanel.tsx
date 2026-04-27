@@ -222,7 +222,7 @@ const CourierPanel = () => {
     // Auto-set online status on load if not already set
     if (user?.id) toggleOnline(true);
     
-    const interval = setInterval(() => fetchData(false), 10000);
+    const interval = setInterval(() => fetchData(false), 30000); // 30s para ahorrar conexiones DB
     return () => clearInterval(interval);
   }, [user?.id]);
 

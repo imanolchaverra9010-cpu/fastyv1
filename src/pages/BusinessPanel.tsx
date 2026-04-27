@@ -108,7 +108,7 @@ const BusinessPanel = () => {
   useEffect(() => {
     if (businessId) {
       fetchData();
-      const interval = setInterval(fetchData, 10000);
+      const interval = setInterval(fetchData, 30000); // 30s
       return () => clearInterval(interval);
     } else if (!user?.id) {
       setLoading(false);

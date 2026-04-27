@@ -95,7 +95,7 @@ const OrderTracking = () => {
   useEffect(() => {
     if (urlOrderId) {
       fetchOrder(urlOrderId);
-      const interval = setInterval(() => fetchOrder(urlOrderId), 10000);
+      const interval = setInterval(() => fetchOrder(urlOrderId), 30000); // 30s
       return () => clearInterval(interval);
     }
   }, [urlOrderId]);

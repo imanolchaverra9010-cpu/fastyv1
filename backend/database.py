@@ -14,31 +14,37 @@ db_config = {
     "port": int(os.getenv("DATABASE_PORT") or "3306"),
 }
 
-# Crear el pool de conexiones
+# Crear el pool de conexiones - Reducido al mínimo para Vercel
 try:
     pool = pooling.MySQLConnectionPool(
         pool_name="fasty_pool",
-        pool_size=5, # Vercel serverless no necesita un pool gigante por cada instancia
+        pool_size=1, # Solo 1 conexión por instancia de Lambda para no agotar el límite de 500/hora
         pool_reset_session=True,
         **db_config
     )
-    print("Conexión Pool establecida")
+    print("Conexión Pool establecida (Size 1)")
 except Exception as e:
     print(f"Error al crear el pool: {e}")
     pool = None
 
 def get_db():
     if not pool:
-        # Fallback a conexión única si el pool falla
+        try:
+            import mysql.connector
+            return mysql.connector.connect(**db_config)
+        except Exception as e:
+            print(f"Error en conexión directa: {e}")
+            return None
+            
+    try:
+        # Intentar obtener conexión con un timeout corto
+        conn = pool.get_connection()
+        return conn
+    except Exception as err:
+        print(f"Error obteniendo conexión del pool: {err}")
+        # Si el pool está lleno o falla, intentar conexión directa
         try:
             import mysql.connector
             return mysql.connector.connect(**db_config)
         except:
             return None
-            
-    try:
-        conn = pool.get_connection()
-        return conn
-    except Exception as err:
-        print(f"Error obteniendo conexión del pool: {err}")
-        return None

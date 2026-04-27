@@ -48,10 +48,12 @@ def login(user_login: UserLogin):
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE email = %s", (user_login.email,))
-    user = cursor.fetchone()
-    db.close()
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (user_login.email,))
+        user = cursor.fetchone()
+    finally:
+        db.close()
     
     if not user:
         raise HTTPException(
