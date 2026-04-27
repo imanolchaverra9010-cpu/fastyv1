@@ -16,7 +16,7 @@ router = APIRouter()
 def register(request: Request, user: UserCreate):
     db = get_db()
     if not db:
-        raise HTTPException(status_code=500, detail="Database connection failed")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
     
     cursor = db.cursor(dictionary=True)
     
@@ -24,7 +24,7 @@ def register(request: Request, user: UserCreate):
     cursor.execute("SELECT id FROM users WHERE email = %s OR username = %s", (user.email, user.username))
     if cursor.fetchone():
         db.close()
-        raise HTTPException(status_code=400, detail="User already exists")
+        raise HTTPException(status_code=400, detail="El usuario ya existe")
     
     # Hashear password
     hashed_password = hash_password(user.password)
@@ -37,7 +37,7 @@ def register(request: Request, user: UserCreate):
         )
         db.commit()
         db.close()
-        return {"message": "User created successfully"}
+        return {"message": "Usuario creado exitosamente"}
     except Exception as e:
         db.rollback()
         db.close()
@@ -48,7 +48,7 @@ def register(request: Request, user: UserCreate):
 def login(request: Request, user_login: UserLogin):
     db = get_db()
     if not db:
-        raise HTTPException(status_code=500, detail="Database connection failed")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
     
     try:
         cursor = db.cursor(dictionary=True)
@@ -60,7 +60,7 @@ def login(request: Request, user_login: UserLogin):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Correo o contraseña incorrectos",
         )
 
     stored_hash = user.get("password_hash")
@@ -75,7 +75,7 @@ def login(request: Request, user_login: UserLogin):
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+                detail="Correo o contraseña incorrectos",
             )
 
     try:
@@ -109,7 +109,7 @@ def login(request: Request, user_login: UserLogin):
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Correo o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -155,21 +155,21 @@ def social_login(request: Request, social_user: SocialAuth):
                 google_url = f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={token}"
                 response = requests.get(google_url)
                 if response.status_code != 200:
-                    raise HTTPException(status_code=400, detail="Invalid Google token")
+                    raise HTTPException(status_code=400, detail="Token de Google inválido")
                 data = response.json()
                 email = data.get("email")
                 username = data.get("name")
                 provider_id = data.get("sub")
                 avatar_url = data.get("picture")
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid Google token: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Token de Google inválido: {str(e)}")
     elif provider == "facebook":
         try:
             # Verifica el access_token usando la Graph API de Facebook
             fb_url = f"https://graph.facebook.com/me?fields=id,name,email,picture&access_token={token}"
             response = requests.get(fb_url)
             if response.status_code != 200:
-                raise HTTPException(status_code=400, detail="Invalid Facebook token")
+                raise HTTPException(status_code=400, detail="Token de Facebook inválido")
             data = response.json()
             email = data.get("email")
             username = data.get("name")
@@ -183,16 +183,16 @@ def social_login(request: Request, social_user: SocialAuth):
                 email = f"{provider_id}@facebook.dummy"
                 
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error validating Facebook token: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Error validando el token de Facebook: {str(e)}")
     else:
-        raise HTTPException(status_code=400, detail="Unsupported provider")
+        raise HTTPException(status_code=400, detail="Proveedor no soportado")
 
     if not provider_id or not email:
-        raise HTTPException(status_code=400, detail="Failed to retrieve necessary user info from provider")
+        raise HTTPException(status_code=400, detail="No se pudo obtener la información necesaria del proveedor")
 
     db = get_db()
     if not db:
-        raise HTTPException(status_code=500, detail="Database connection failed")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
     
     cursor = db.cursor(dictionary=True)
     try:
@@ -236,7 +236,7 @@ def social_login(request: Request, social_user: SocialAuth):
         db.close()
         
         if not user:
-            raise HTTPException(status_code=500, detail="Failed to retrieve user after login/creation")
+            raise HTTPException(status_code=500, detail="No se pudo recuperar el usuario después del inicio de sesión/creación")
 
         # Generar token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

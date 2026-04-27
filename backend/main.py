@@ -11,14 +11,20 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users
 from utils import limiter
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
+
+def spanish_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Has realizado demasiados intentos. Por favor, espera un minuto antes de intentar de nuevo."}
+    )
 
 app = FastAPI(title="Rapidito API")
 
 # Configurar Rate Limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, spanish_rate_limit_exceeded_handler)
 
 # Directorio estático para fotos de perfil
 try:

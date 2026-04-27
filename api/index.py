@@ -16,6 +16,14 @@ import traceback
 from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from utils import limiter
+from slowapi.errors import RateLimitExceeded
+
+def spanish_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Has realizado demasiados intentos. Por favor, espera un minuto antes de intentar de nuevo."}
+    )
 
 # Importar los routers del backend
 try:
@@ -52,6 +60,10 @@ app = FastAPI(
     title="Fasty API",
     description="API para la plataforma de domicilios Fasty"
 )
+
+# Configurar Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, spanish_rate_limit_exceeded_handler)
 
 # Exception handler para debug
 @app.exception_handler(Exception)
