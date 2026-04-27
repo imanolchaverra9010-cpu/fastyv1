@@ -178,7 +178,7 @@ const AdminRequests = () => {
                               <div className="flex items-center gap-3 mt-1">
                                 {selectedRequest.image_url && (
                                   <div className="h-12 w-12 rounded-lg overflow-hidden border border-border">
-                                    <img src={selectedRequest.image_url} alt="Logo" className="h-full w-full object-cover" />
+                                    <img src={selectedRequest.image_url.startsWith("http") ? selectedRequest.image_url : (selectedRequest.image_url.startsWith("/api") ? selectedRequest.image_url : `/api${selectedRequest.image_url}`)} alt="Logo" className="h-full w-full object-cover" />
                                   </div>
                                 )}
                                 <div>
