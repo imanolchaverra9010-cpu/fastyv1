@@ -352,56 +352,54 @@ const OrderTracking = () => {
                 {/* Courier Info Section */}
                 {order.courier_id && (
                   <div className="pt-6 border-t animate-in fade-in slide-in-from-top-2 duration-500">
-                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Tu Domiciliario</h3>
-                    <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Tu Domiciliario Fasty</h3>
+                    <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-2xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-all">
                       <div className="relative">
                         {order.courier_image ? (
                           <img
                             src={order.courier_image}
                             alt={order.courier_name}
-                            className="h-14 w-14 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+                            className="h-16 w-16 rounded-full object-cover border-2 border-primary/40 shadow-sm"
                           />
                         ) : (
-                          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20 shadow-sm">
-                            <Bike className="h-7 w-7" />
+                          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40 shadow-sm">
+                            <Bike className="h-8 w-8" />
                           </div>
                         )}
-                        <div className="absolute -bottom-1 -right-1 bg-success h-4 w-4 rounded-full border-2 border-card" title="En línea" />
+                        <div className="absolute -bottom-1 -right-1 bg-success h-4 w-4 rounded-full border-2 border-card animate-pulse" title="En línea" />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-bold text-lg truncate">{order.courier_name || "Domiciliario asignado"}</p>
+                          <p className="font-bold text-xl truncate">{order.courier_name || "Domiciliario asignado"}</p>
                           {order.courier_rating && (
-                            <div className="flex items-center gap-1 bg-yellow-400/10 text-yellow-600 px-2 py-0.5 rounded-lg text-xs font-bold">
-                              <Star className="h-3 w-3 fill-yellow-600" />
+                            <div className="flex items-center gap-1 bg-yellow-400/20 text-yellow-700 px-2 py-1 rounded-lg text-xs font-bold border border-yellow-400/30">
+                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
                               {Number(order.courier_rating).toFixed(1)}
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                            <Bike className="h-3 w-3" /> {order.courier_vehicle || "Vehículo"}
-                          </span>
-                          {order.courier_phone && (
-                            <div className="flex items-center gap-3">
-                              <a
-                                href={`tel:${order.courier_phone}`}
-                                className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                              >
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-2">
+                          <Bike className="h-3 w-3" /> {order.courier_vehicle || "Vehículo de entrega"}
+                        </p>
+                        {order.courier_phone && (
+                          <div className="flex gap-2">
+                            <Button variant="hero" size="sm" className="h-8 px-3 text-[10px] gap-1 rounded-lg" asChild>
+                              <a href={`tel:${order.courier_phone}`}>
                                 <Phone className="h-3 w-3" /> Llamar
                               </a>
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-8 px-3 text-[10px] gap-1 rounded-lg border-success/30 text-success hover:bg-success/5" asChild>
                               <a
-                                href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Rapidito, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
+                                href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs font-bold text-success hover:underline flex items-center gap-1"
                               >
                                 <MessageCircle className="h-3 w-3" /> WhatsApp
                               </a>
-                            </div>
-                          )}
-                        </div>
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
