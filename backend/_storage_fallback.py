@@ -27,8 +27,8 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
             if url:
                 return url
         except Exception as e:
-            print(f"Cloudinary failed: {e}. Falling back to local storage.")
-            # Continuamos al fallback local
+            print(f"Cloudinary failed: {e}")
+            raise Exception(f"Cloudinary Error: {str(e)}")
 
 
     # 2. Fallback /tmp
