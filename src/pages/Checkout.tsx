@@ -68,6 +68,12 @@ const Checkout = () => {
               address: lastOrder.delivery_address || ""
             });
             setAddressValue(lastOrder.delivery_address || "");
+            
+            // Set coordinates from the last order so distance fee is calculated automatically
+            if (lastOrder.latitude && lastOrder.longitude) {
+              setLatitude(lastOrder.latitude);
+              setLongitude(lastOrder.longitude);
+            }
           } else {
             setInitialData(prev => ({ ...prev, name: user.username || "" }));
           }
