@@ -18,7 +18,7 @@ const Index = () => {
   const { data: businesses, isLoading: isLoadingBusinesses, error: errorBusinesses } = useQuery<any[]>({
     queryKey: ["featuredBusinesses"],
     queryFn: async () => {
-      const response = await fetch("http://localhost:8000/businesses?status_filter=active");
+      const response = await fetch("/api/businesses?status_filter=active");
       if (!response.ok) {
         throw new Error("Error fetching featured businesses");
       }
@@ -30,7 +30,7 @@ const Index = () => {
   const { data: promotions, isLoading: isLoadingPromos } = useQuery<any[]>({
     queryKey: ["activePromotions"],
     queryFn: async () => {
-      const response = await fetch("http://localhost:8000/promotions/");
+      const response = await fetch("/api/promotions/");
       if (!response.ok) {
         throw new Error("Error fetching promotions");
       }
@@ -198,7 +198,7 @@ const Index = () => {
               >
                 <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-2 border-border/40 shadow-card flex items-center justify-center group-hover:shadow-glow group-hover:border-primary group-hover:scale-105 transition-all p-2">
                   {b.image_url ? (
-                    <img src={b.image_url.startsWith("http") ? b.image_url : `http://localhost:8000${b.image_url}`} alt={b.name} className="h-full w-full object-contain rounded-full" />
+                    <img src={b.image_url.startsWith("http") ? b.image_url : `/api${b.image_url}`} alt={b.name} className="h-full w-full object-contain rounded-full" />
                   ) : (
                     <div className="h-full w-full bg-gradient-hero flex items-center justify-center text-white rounded-full">
                       <Store className="h-16 w-16" />
