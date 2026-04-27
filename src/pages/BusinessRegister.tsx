@@ -35,7 +35,22 @@ const BusinessRegister = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          setGettingLocation(false);
+          
+          // Reverse geocoding to get address
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.coords.latitude}&lon=${position.coords.longitude}`, {
+            headers: { 'Accept-Language': 'es' }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.display_name) {
+              const addressInput = document.getElementById("address") as HTMLInputElement;
+              if (addressInput) addressInput.value = data.display_name;
+              toast({ title: "Dirección obtenida", description: "Se ha actualizado la dirección automáticamente." });
+            }
+          })
+          .catch(err => console.error("Reverse geocoding error:", err))
+          .finally(() => setGettingLocation(false));
+          
           toast({ title: "Ubicación obtenida", description: "Las coordenadas se han guardado correctamente." });
         },
         (error) => {
@@ -245,8 +260,8 @@ const BusinessRegister = () => {
                 <Textarea id="description" name="description" placeholder="Cuéntanos qué hace especial a tu negocio" />
               </div>
               
-              <div className="space-y-4 md:col-span-2 border-t border-border/40 pt-4 mt-2">
-                <div className="flex items-center justify-between">
+            <div className="space-y-4 md:col-span-2 border-t border-border/40 pt-4 mt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <Label className="font-bold">Ubicación del negocio</Label>
                   <Button 
                     type="button" 
@@ -254,7 +269,7 @@ const BusinessRegister = () => {
                     size="sm" 
                     onClick={getCurrentLocation}
                     disabled={gettingLocation}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto justify-center rounded-xl"
                   >
                     {gettingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
                     {gettingLocation ? "Obteniendo..." : "Obtener mi ubicación actual"}
@@ -262,7 +277,7 @@ const BusinessRegister = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">Esto es necesario para calcular las tarifas de envío por distancia.</p>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="latitude">Latitud</Label>
                     <Input 
@@ -272,6 +287,7 @@ const BusinessRegister = () => {
                       placeholder="0.000000" 
                       value={coords.lat || ""} 
                       onChange={(e) => setCoords(prev => ({ ...prev, lat: parseFloat(e.target.value) || null }))}
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
@@ -283,6 +299,7 @@ const BusinessRegister = () => {
                       placeholder="0.000000" 
                       value={coords.lng || ""} 
                       onChange={(e) => setCoords(prev => ({ ...prev, lng: parseFloat(e.target.value) || null }))}
+                      className="rounded-xl h-11"
                     />
                   </div>
                 </div>
@@ -300,13 +317,17 @@ const BusinessRegister = () => {
 
             <div className="space-y-3">
               {items.map((it, i) => (
-                <div key={i} className="grid md:grid-cols-[1fr_120px_2fr_auto] gap-3 items-start p-4 rounded-xl bg-muted/40">
-                  <Input placeholder="Nombre" value={it.name} onChange={(e) => update(i, "name", e.target.value)} />
-                  <Input placeholder="Precio" inputMode="numeric" value={it.price} onChange={(e) => update(i, "price", e.target.value)} />
-                  <Input placeholder="Descripción" value={it.desc} onChange={(e) => update(i, "desc", e.target.value)} />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))} disabled={items.length === 1}>
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+                <div key={i} className="flex flex-col gap-3 p-4 rounded-xl bg-muted/40 relative">
+                  <div className="grid sm:grid-cols-[1fr_120px] gap-3">
+                    <Input placeholder="Nombre" value={it.name} onChange={(e) => update(i, "name", e.target.value)} className="rounded-lg h-10" />
+                    <Input placeholder="Precio" inputMode="numeric" value={it.price} onChange={(e) => update(i, "price", e.target.value)} className="rounded-lg h-10" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder="Descripción" value={it.desc} onChange={(e) => update(i, "desc", e.target.value)} className="flex-1 rounded-lg h-10" />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))} disabled={items.length === 1} className="shrink-0 h-10 w-10 text-destructive hover:bg-destructive/10 rounded-lg">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
