@@ -19,7 +19,7 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
             
             file_obj.seek(0)
             result = cloudinary.uploader.upload(
-                file_obj, 
+                file_obj.file, 
                 folder=f"fasty/{folder}",
                 public_id=f"{uuid.uuid4().hex[:8]}"
             )
