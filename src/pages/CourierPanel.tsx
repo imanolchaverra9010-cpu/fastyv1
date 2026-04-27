@@ -194,7 +194,7 @@ const CourierPanel = () => {
         // Detectar nuevos pedidos para notificar (si no estamos usando WebSockets)
         if (!initialLoad && !wsRef.current) {
           const newOrders = newAvailable.filter((order: any) => 
-            !availableOrders.some(existing => existing.id === order.id)
+            !(availableOrders || []).some((existing: any) => existing.id === order.id)
           );
           
           if (newOrders.length > 0) {

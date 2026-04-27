@@ -139,7 +139,7 @@ const AdminBusinesses = () => {
                   <tbody className="divide-y divide-border/60">
                     {loading ? (
                       <tr><td colSpan={6} className="px-5 py-10 text-center animate-pulse">Cargando aliados...</td></tr>
-                    ) : filteredBusinesses.map((b) => (
+                    ) : (filteredBusinesses || []).map((b) => (
                       <tr key={b.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
