@@ -309,7 +309,7 @@ const OrderTracking = () => {
                 <div>
                   <h3 className="font-bold text-lg mb-4">Resumen</h3>
                   <div className="space-y-3">
-                    {order.items.map((item, idx) => (
+                    {order.items?.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center text-sm">
                         <span className="flex items-center gap-2">
                           <span className="text-xl">{item.emoji}</span>
@@ -488,11 +488,15 @@ const OrderTracking = () => {
             <div className="bg-card border rounded-3xl p-6 shadow-card">
               <h3 className="font-bold text-lg mb-4">Historial</h3>
               <div className="space-y-4">
-                {order.logs.map((log, idx) => (
+                {order.logs?.map((log, idx) => (
                   <div key={idx} className="flex items-center gap-4">
                     <div className="h-2 w-2 rounded-full bg-primary" />
                     <div className="flex-1">
-                      <p className="text-sm font-bold capitalize">Estado: {log.status}</p>
+                      <p className="text-sm font-bold capitalize">Estado: {log.status === 'pending' ? 'Pendiente' : 
+                         log.status === 'preparing' ? 'Preparando' :
+                         log.status === 'shipped' ? 'En camino' :
+                         log.status === 'delivered' ? 'Entregado' :
+                         log.status === 'cancelled' ? 'Cancelado' : log.status}</p>
                       <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleString()}</p>
                     </div>
                   </div>

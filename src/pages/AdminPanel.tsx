@@ -55,7 +55,7 @@ const AdminPanel = () => {
             <SidebarTrigger className="-ml-1" />
             <div className="h-4 w-px bg-border/60 mx-2" />
             <h2 className="text-sm font-semibold text-muted-foreground capitalize">
-              Dashboard
+              Resumen
             </h2>
           </header>
 
@@ -63,7 +63,7 @@ const AdminPanel = () => {
             <div className="mb-8">
               <p className="text-sm text-primary font-semibold">Administración</p>
               <h1 className="text-4xl font-display font-bold tracking-tight">Panel de control</h1>
-              <p className="text-muted-foreground mt-1">Visión completa de la operación de Rapidito.</p>
+              <p className="text-muted-foreground mt-1">Visión completa de la operación de Fasty.</p>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

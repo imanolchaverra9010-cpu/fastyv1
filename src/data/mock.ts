@@ -35,6 +35,8 @@ export type Courier = {
 export type OrderStatus =
   | "pending"
   | "preparing"
+  | "shipped"
+  | "in_transit"
   | "ready"
   | "on_route"
   | "delivered"
@@ -130,6 +132,8 @@ export const formatCOP = (n: number) =>
 export const statusLabel: Record<OrderStatus, string> = {
   pending: "Pendiente",
   preparing: "Preparando",
+  shipped: "En camino",
+  in_transit: "Cerca de ti",
   ready: "Listo para recoger",
   on_route: "En camino",
   delivered: "Entregado",
@@ -139,6 +143,8 @@ export const statusLabel: Record<OrderStatus, string> = {
 export const statusTone: Record<OrderStatus, string> = {
   pending: "bg-muted text-muted-foreground",
   preparing: "bg-warning/15 text-warning-foreground border border-warning/30",
+  shipped: "bg-accent/10 text-accent border border-accent/20",
+  in_transit: "bg-primary/10 text-primary border border-primary/20",
   ready: "bg-primary/10 text-primary border border-primary/20",
   on_route: "bg-accent/10 text-accent border border-accent/20",
   delivered: "bg-success/10 text-success border border-success/20",

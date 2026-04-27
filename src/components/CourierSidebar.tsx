@@ -137,7 +137,9 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
                         {user?.username}
                       </span>
                       <span className="text-xs text-muted-foreground capitalize">
-                        {user?.role === 'courier' ? 'Domiciliario' : (user?.role === 'admin' ? 'Administrador' : user?.role)}
+                        {user?.role === 'courier' ? 'Domiciliario' : 
+                         user?.role === 'admin' ? 'Administrador' : 
+                         user?.role === 'business' ? 'Negocio' : user?.role}
                       </span>
                     </div>
                     <ChevronUp className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />

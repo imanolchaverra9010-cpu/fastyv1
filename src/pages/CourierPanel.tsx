@@ -104,10 +104,10 @@ const CourierPanel = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const assigned = myOrders.filter((o) => ["pending", "preparing"].includes(o.status));
-  const mine = myOrders.filter((o) => o.status === "shipped");
-  const inTransit = myOrders.filter((o) => o.status === "in_transit");
-  const history = myOrders.filter((o) => o.status === "delivered");
+  const assigned = (myOrders || []).filter((o) => ["pending", "preparing"].includes(o.status));
+  const mine = (myOrders || []).filter((o) => o.status === "shipped");
+  const inTransit = (myOrders || []).filter((o) => o.status === "in_transit");
+  const history = (myOrders || []).filter((o) => o.status === "delivered");
 
   // Geolocation tracking
   const startTracking = () => {
@@ -1008,7 +1008,11 @@ const CourierPanel = () => {
                         />
                       </div>
                       <h2 className="text-xl font-bold">{profileData?.name || user?.username}</h2>
-                      <p className="text-sm text-muted-foreground mb-4 capitalize">{user?.role === 'courier' ? 'Domiciliario' : user?.role}</p>
+                      <p className="text-sm text-muted-foreground mb-4 capitalize">
+                        {user?.role === 'courier' ? 'Domiciliario' : 
+                         user?.role === 'admin' ? 'Administrador' : 
+                         user?.role === 'business' ? 'Negocio' : user?.role}
+                      </p>
 
                       <div className="w-full pt-4 border-t border-border/40 space-y-3 text-left">
                         <div className="flex items-center gap-3 text-sm">

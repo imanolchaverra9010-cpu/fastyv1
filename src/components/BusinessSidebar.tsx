@@ -26,7 +26,7 @@ export function BusinessSidebar() {
           <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">
             🏪
           </div>
-          <span className="font-bold text-sm">Rapidito</span>
+          <span className="font-bold text-sm">Fasty</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

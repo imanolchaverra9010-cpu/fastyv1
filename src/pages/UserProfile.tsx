@@ -207,7 +207,7 @@ const UserProfile = () => {
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Pedidos</p>
             </div>
             <div className="bg-orange-500/5 rounded-2xl p-4 text-center border border-orange-500/10">
-              <p className="text-2xl font-bold text-orange-600">{benefitsData?.benefits.length || 0}</p>
+              <p className="text-2xl font-bold text-orange-600">{benefitsData?.benefits?.length || 0}</p>
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Beneficios</p>
             </div>
             <div className="bg-success/5 rounded-2xl p-4 text-center border border-success/10">
@@ -241,7 +241,7 @@ const UserProfile = () => {
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-32 bg-card/50 animate-pulse rounded-3xl border border-border/40" />
               ))
-            ) : orders && orders.length > 0 ? (
+            ) : Array.isArray(orders) && orders.length > 0 ? (
               orders.map((order) => (
                 <div key={order.id} className="bg-card/50 backdrop-blur-md border border-border/40 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                   <div className="flex items-start justify-between relative z-10">
@@ -264,7 +264,11 @@ const UserProfile = () => {
                           order.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
                             'bg-primary/10 text-primary border-primary/20'
                         }`}>
-                        {order.status}
+                        {order.status === 'pending' ? 'Pendiente' : 
+                         order.status === 'preparing' ? 'Preparando' :
+                         order.status === 'shipped' ? 'En camino' :
+                         order.status === 'delivered' ? 'Entregado' :
+                         order.status === 'cancelled' ? 'Cancelado' : order.status}
                       </span>
                     </div>
                   </div>
@@ -335,7 +339,7 @@ const UserProfile = () => {
                 Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-40 bg-card/50 animate-pulse rounded-3xl border border-border/40" />
                 ))
-              ) : benefitsData && benefitsData.benefits.length > 0 ? (
+              ) : benefitsData && benefitsData.benefits?.length > 0 ? (
                 benefitsData.benefits.map((benefit) => (
                   <div key={benefit.code} className="bg-white dark:bg-zinc-900 border-2 border-primary/20 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
                     <div className="relative z-10">

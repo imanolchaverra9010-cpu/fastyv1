@@ -122,9 +122,9 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                 <div className="pt-3 border-t border-border/60 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Método de Pago</span>
-                    <span className="font-medium flex items-center gap-1 capitalize">
-                      <CreditCard className="h-3 w-3" /> {order.payment_method}
-                    </span>
+                      <CreditCard className="h-3 w-3" /> {order.payment_method === 'cash' ? 'Efectivo 💵' : 
+                                                           order.payment_method === 'card' ? 'Tarjeta 💳' : 
+                                                           order.payment_method === 'wallet' ? 'Billetera 📱' : order.payment_method}
                   </div>
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
@@ -164,7 +164,14 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                       )}
                       <div className={`mt-1.5 h-3 w-3 rounded-full shrink-0 ${i === (order.logs?.length || 0) - 1 ? 'bg-primary animate-pulse' : 'bg-border'}`} />
                       <div className="flex-1 pb-4">
-                        <p className="text-sm font-bold capitalize">{log.status}</p>
+                        <p className="text-sm font-bold capitalize">{
+                          log.status === 'pending' ? 'Pendiente' : 
+                          log.status === 'preparing' ? 'Preparando' :
+                          log.status === 'shipped' ? 'En camino' :
+                          log.status === 'in_transit' ? 'Cerca de ti' :
+                          log.status === 'delivered' ? 'Entregado' :
+                          log.status === 'cancelled' ? 'Cancelado' : log.status
+                        }</p>
                         <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleTimeString()}</p>
                       </div>
                     </div>

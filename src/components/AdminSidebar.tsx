@@ -32,7 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import logo from "@/assets/logo.png"; // Importar el logo
 
 const adminNav = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/admin" },
+  { icon: LayoutDashboard, label: "Panel Principal", to: "/admin" },
   { icon: Utensils, label: "Solicitudes", to: "/admin/solicitudes" },
   { icon: Package, label: "Pedidos", to: "/admin/pedidos" },
   { icon: Store, label: "Negocios", to: "/admin/negocios" },
@@ -95,7 +95,9 @@ export function AdminSidebar() {
                         {user?.username}
                       </span>
                       <span className="text-xs text-muted-foreground capitalize">
-                        {user?.role === 'admin' ? 'Administrador' : user?.role}
+                        {user?.role === 'admin' ? 'Administrador' : 
+                         user?.role === 'courier' ? 'Domiciliario' : 
+                         user?.role === 'business' ? 'Negocio' : user?.role}
                       </span>
                     </div>
                     <ChevronUp className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />

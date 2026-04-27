@@ -118,7 +118,7 @@ const AdminRequests = () => {
           <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
             <div className="mb-8">
               <h1 className="text-4xl font-display font-bold tracking-tight">Solicitudes</h1>
-              <p className="text-muted-foreground mt-1">Nuevos negocios esperando aprobación para unirse a Rapidito.</p>
+              <p className="text-muted-foreground mt-1">Nuevos negocios esperando aprobación para unirse a Fasty.</p>
             </div>
 
             {loading ? (
@@ -154,7 +154,9 @@ const AdminRequests = () => {
                           </div>
                           <div className="flex items-center gap-3">
                             <Badge variant={req.status === 'pending' ? 'outline' : 'secondary'} className="capitalize">
-                              {req.status === 'pending' ? 'Pendiente' : req.status}
+                              {req.status === 'pending' ? 'Pendiente' : 
+                               req.status === 'approved' ? 'Aprobado' : 
+                               req.status === 'rejected' ? 'Rechazado' : req.status}
                             </Badge>
                             <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 ${selectedRequest?.id === req.id ? 'rotate-90 md:rotate-0' : ''}`} />
                           </div>
