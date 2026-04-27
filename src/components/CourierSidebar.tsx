@@ -60,7 +60,7 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
     <Sidebar collapsible="icon" className="border-r border-border/60">
       <SidebarHeader className="h-16 flex items-center px-4 border-b border-border/60">
         <Link to="/" className="flex items-center gap-2 group">
-          <img src={logo} alt="Rapidito Logo" className="h-8" />
+          <img src={logo} alt="Fasty Logo" className="h-8" />
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -137,7 +137,7 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
                         {user?.username}
                       </span>
                       <span className="text-xs text-muted-foreground capitalize">
-                        {user?.role}
+                        {user?.role === 'courier' ? 'Domiciliario' : (user?.role === 'admin' ? 'Administrador' : user?.role)}
                       </span>
                     </div>
                     <ChevronUp className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />

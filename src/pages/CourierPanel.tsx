@@ -92,6 +92,9 @@ const CourierPanel = () => {
   const [realCourierPos, setRealCourierPos] = useState<{ lat: number; lng: number } | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", phone: "", vehicle: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -180,7 +183,15 @@ const CourierPanel = () => {
       if (statsRes.ok) setStats(await statsRes.json());
       if (myOrdersRes.ok) setMyOrders(await myOrdersRes.json());
       if (availableRes.ok) setAvailableOrders(await availableRes.json());
-      if (profileRes.ok) setProfileData(await profileRes.json());
+      if (profileRes.ok) {
+        const data = await profileRes.json();
+        setProfileData(data);
+        setEditForm({
+          name: data.name || "",
+          phone: data.phone || "",
+          vehicle: data.vehicle || ""
+        });
+      }
 
     } catch (error) {
       console.error("Error fetching courier data:", error);
@@ -214,6 +225,32 @@ const CourierPanel = () => {
       toast({ title: "Error", description: "No se pudo subir la foto.", variant: "destructive" });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    setSavingProfile(true);
+    try {
+      const res = await fetch(`/api/couriers/${user.id}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        setProfileData((prev: any) => ({ ...prev, ...editForm }));
+        setEditingProfile(false);
+        toast({ title: "Perfil actualizado", description: "Tus datos han sido guardados." });
+      } else {
+        throw new Error("Error al actualizar perfil");
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudieron guardar los cambios.", variant: "destructive" });
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -944,28 +981,44 @@ const CourierPanel = () => {
                         />
                       </div>
                       <h2 className="text-xl font-bold">{profileData?.name || user?.username}</h2>
-                      <p className="text-sm text-muted-foreground mb-4 capitalize">{user?.role}</p>
+                      <p className="text-sm text-muted-foreground mb-4 capitalize">{user?.role === 'courier' ? 'Domiciliario' : user?.role}</p>
 
                       <div className="w-full pt-4 border-t border-border/40 space-y-3 text-left">
                         <div className="flex items-center gap-3 text-sm">
                           <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
                             <User className="h-4 w-4" />
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Nombre de usuario</p>
-                            <p className="font-medium">{user?.username}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Usuario</p>
+                            <p className="font-medium truncate">{user?.username}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 text-sm">
                           <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
                             <Bike className="h-4 w-4" />
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Estado</p>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success">Activo</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Vehículo</p>
+                            <p className="font-medium truncate">{profileData?.vehicle || "No registrado"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                            <Phone className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Teléfono</p>
+                            <p className="font-medium truncate">{profileData?.phone || "No registrado"}</p>
                           </div>
                         </div>
                       </div>
+
+                      <Button 
+                        className="w-full mt-6 rounded-xl gap-2 font-bold" 
+                        onClick={() => setEditingProfile(true)}
+                      >
+                        <Settings className="h-4 w-4" /> Editar Datos
+                      </Button>
                     </div>
 
                     <Button variant="outline" className="w-full rounded-xl gap-2 text-destructive border-destructive/20 hover:bg-destructive/10" onClick={logout}>
@@ -973,7 +1026,7 @@ const CourierPanel = () => {
                     </Button>
                   </div>
 
-                  {/* Stats Card */}
+                  {/* Stats and Edit Form */}
                   <div className="md:col-span-2 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 shadow-sm">
@@ -999,38 +1052,88 @@ const CourierPanel = () => {
                       </div>
                     </div>
 
-                    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
-                      <h3 className="font-bold text-lg mb-4">Configuración de Cuenta</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
-                              <Settings className="h-4 w-4" />
+                    {editingProfile ? (
+                      <div className="bg-card border-2 border-primary/20 rounded-2xl p-6 shadow-glow animate-in zoom-in-95">
+                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                          <User className="h-5 w-5 text-primary" /> Editar Información Personal
+                        </h3>
+                        <form onSubmit={handleUpdateProfile} className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nombre Completo</label>
+                            <Input 
+                              value={editForm.name} 
+                              onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="Tu nombre real"
+                              className="rounded-xl h-11"
+                              required
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Teléfono</label>
+                              <Input 
+                                value={editForm.phone} 
+                                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="310 123 4567"
+                                className="rounded-xl h-11"
+                                required
+                              />
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">Notificaciones</p>
-                              <p className="text-xs text-muted-foreground">Gestionar alertas de nuevos pedidos</p>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vehículo</label>
+                              <Input 
+                                value={editForm.vehicle} 
+                                onChange={(e) => setEditForm(prev => ({ ...prev, vehicle: e.target.value }))}
+                                placeholder="Moto / Bicicleta"
+                                className="rounded-xl h-11"
+                                required
+                              />
                             </div>
                           </div>
-                          <div className="h-5 w-8 rounded-full bg-primary relative p-1">
-                            <div className="h-3 w-3 rounded-full bg-white absolute right-1"></div>
+                          <div className="flex gap-3 pt-2">
+                            <Button type="submit" variant="hero" className="flex-1 rounded-xl font-bold" disabled={savingProfile}>
+                              {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar Cambios"}
+                            </Button>
+                            <Button type="button" variant="outline" className="flex-1 rounded-xl font-bold" onClick={() => setEditingProfile(false)}>
+                              Cancelar
+                            </Button>
                           </div>
-                        </div>
+                        </form>
+                      </div>
+                    ) : (
+                      <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
+                        <h3 className="font-bold text-lg mb-4">Configuración de Cuenta</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
+                                <Settings className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">Notificaciones</p>
+                                <p className="text-xs text-muted-foreground">Gestionar alertas de nuevos pedidos</p>
+                              </div>
+                            </div>
+                            <div className="h-5 w-8 rounded-full bg-primary relative p-1">
+                              <div className="h-3 w-3 rounded-full bg-white absolute right-1"></div>
+                            </div>
+                          </div>
 
-                        <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
-                              <MapPin className="h-4 w-4" />
+                          <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
+                                <MapPin className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">Zona de Trabajo</p>
+                                <p className="text-xs text-muted-foreground">Cambiar tu radio de operación</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">Zona de Trabajo</p>
-                              <p className="text-xs text-muted-foreground">Cambiar tu radio de operación</p>
-                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

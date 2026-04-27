@@ -66,6 +66,49 @@ def get_courier_profile(user_id: int):
         cursor.close()
         db.close()
 
+@router.patch("/{user_id}/profile")
+def update_courier_profile(user_id: int, profile_data: dict):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    cursor = db.cursor(dictionary=True)
+    try:
+        # Check if courier exists
+        cursor.execute("SELECT id FROM couriers WHERE user_id = %s", (user_id,))
+        courier = cursor.fetchone()
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier not found")
+
+        # Prepare update fields
+        fields = []
+        values = []
+        if "name" in profile_data:
+            fields.append("name = %s")
+            values.append(profile_data["name"])
+        if "phone" in profile_data:
+            fields.append("phone = %s")
+            values.append(profile_data["phone"])
+        if "vehicle" in profile_data:
+            fields.append("vehicle = %s")
+            values.append(profile_data["vehicle"])
+        
+        if not fields:
+            return {"message": "No changes provided"}
+            
+        values.append(user_id)
+        query = f"UPDATE couriers SET {', '.join(fields)} WHERE user_id = %s"
+        cursor.execute(query, tuple(values))
+        db.commit()
+        
+        return {"message": "Profile updated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
 @router.get("/{user_id}/stats")
 def get_courier_stats(user_id: int):
     db = get_db()

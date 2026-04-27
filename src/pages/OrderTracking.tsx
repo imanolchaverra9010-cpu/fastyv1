@@ -371,7 +371,10 @@ const OrderTracking = () => {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-bold text-xl truncate">{order.courier_name || "Domiciliario asignado"}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-xl truncate">{order.courier_name || "Domiciliario asignado"}</p>
+                            <CheckCircle2 className="h-5 w-5 text-success fill-success/20" title="Domiciliario Verificado" />
+                          </div>
                           {order.courier_rating && (
                             <div className="flex items-center gap-1 bg-yellow-400/20 text-yellow-700 px-2 py-1 rounded-lg text-xs font-bold border border-yellow-400/30">
                               <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
@@ -415,7 +418,7 @@ const OrderTracking = () => {
                     <Star className="h-8 w-8 text-primary fill-primary" />
                   </div>
                   <h2 className="text-2xl font-display font-bold">¡Danos tu opinión!</h2>
-                  <p className="text-muted-foreground">Tu calificación nos ayuda a mejorar la experiencia Rapidito.</p>
+                  <p className="text-muted-foreground">Tu calificación nos ayuda a mejorar la experiencia Fasty.</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-8">
