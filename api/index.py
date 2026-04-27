@@ -151,41 +151,6 @@ def debug_db():
             return {"status": "success", "config": safe_config}
         else:
             return {"status": "failed", "config": safe_config, "message": "Connection returned None"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-# Diagnóstico de Cloudinary
-@app.get(f"{API_PREFIX}/debug-cloudinary")
-def debug_cloudinary():
-    try:
-        import os
-        import cloudinary
-        import cloudinary.uploader
-        
-        url = os.getenv("CLOUDINARY_URL")
-        if not url:
-            return {"status": "error", "message": "No se encontró la variable CLOUDINARY_URL en Vercel"}
-            
-        cloudinary.config(from_url=url, secure=True)
-        
-        # Intentamos una subida de prueba con una imagen pequeña
-        result = cloudinary.uploader.upload(
-            "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
-            folder="debug_vercel"
-        )
-        
-        return {
-            "status": "success",
-            "message": "Cloudinary está configurado correctamente en Vercel",
-            "secure_url": result.get("secure_url")
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e),
-            "hint": "Verifica que el Cloud Name, API Key y API Secret sean correctos en las variables de entorno de Vercel"
-        }
-
 # Ruta personalizada para servir archivos estáticos (incluyendo /tmp en Vercel)
 @app.get(f"{API_PREFIX}/static/{{path:path}}")
 async def get_static_file(path: str):
