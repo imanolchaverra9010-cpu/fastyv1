@@ -151,6 +151,9 @@ def debug_db():
             return {"status": "success", "config": safe_config}
         else:
             return {"status": "failed", "config": safe_config, "message": "Connection returned None"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # Ruta personalizada para servir archivos estáticos (incluyendo /tmp en Vercel)
 @app.get(f"{API_PREFIX}/static/{{path:path}}")
 async def get_static_file(path: str):
