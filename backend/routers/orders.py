@@ -59,67 +59,66 @@ async def create_order(order: OrderCreate):
             cursor.execute("SELECT name, address, emoji, owner_id FROM businesses WHERE id = %s", (order.business_id,))
             business_info = cursor.fetchone()
 
+        # Logic for notifications
+        # For batch orders: only send ONE courier notification (for the first order in the batch)
+        should_notify_couriers = True
+        if order.batch_id:
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM orders WHERE batch_id = %s AND id != %s",
+                (order.batch_id, order_id)
+            )
+            row = cursor.fetchone()
+            already_in_batch = row["cnt"] if row else 0
+            if already_in_batch > 0:
+                should_notify_couriers = False
+
+        action_id = order.batch_id if order.batch_id else order_id
+
+        notification_data = {
+            "type": "new_order",
+            "order_id": action_id,
+            "real_order_id": order_id,
+            "batch_id": order.batch_id,
+            "is_batch": bool(order.batch_id and str(order.batch_id).strip()),
+            "order_type": order.order_type,
+            "business_name": business_info['name'] if business_info else (order.origin_name if order.order_type == "open" else "Negocio"),
+            "business_address": business_info['address'] if business_info else (order.origin_address if order.order_type == "open" else ""),
+            "business_emoji": business_info['emoji'] if business_info else ("🛍️" if order.order_type == "open" else "🏪"),
+            "customer_name": order.customer_name,
+            "delivery_address": order.delivery_address,
+            "total": order.total,
+            "items": [item.dict() for item in order.items],
+            "description": order.open_order_description
+        }
+
+        # 1. WebSocket Notifications (if manager exists)
         if websocket_manager:
-            # For batch orders: only send ONE courier notification (for the first order in the batch)
-            # subsequent orders in the same batch are silently skipped for couriers.
-            should_notify_couriers = True
-            if order.batch_id:
-                cursor.execute(
-                    "SELECT COUNT(*) as cnt FROM orders WHERE batch_id = %s AND id != %s",
-                    (order.batch_id, order_id)
-                )
-                row = cursor.fetchone()
-                # row is a dict because cursor(dictionary=True)
-                already_in_batch = row["cnt"] if row else 0
-                if already_in_batch > 0:
-                    should_notify_couriers = False  # sibling orders already triggered the notification
-
-            # Determine the action_id couriers should use to accept/reject:
-            # If it's part of a batch, use the batch_id so all orders get assigned at once.
-            action_id = order.batch_id if order.batch_id else order_id
-
-            notification_data = {
-                "type": "new_order",
-                "order_id": action_id,          # batch_id when batch, order_id otherwise
-                "real_order_id": order_id,
-                "batch_id": order.batch_id,
-                "is_batch": bool(order.batch_id and str(order.batch_id).strip()),
-                "order_type": order.order_type,
-                "business_name": business_info['name'] if business_info else (order.origin_name if order.order_type == "open" else "Negocio"),
-                "business_address": business_info['address'] if business_info else (order.origin_address if order.order_type == "open" else ""),
-                "business_emoji": business_info['emoji'] if business_info else ("🛍️" if order.order_type == "open" else "🏪"),
-                "customer_name": order.customer_name,
-                "delivery_address": order.delivery_address,
-                "total": order.total,
-                "items": [item.dict() for item in order.items],
-                "description": order.open_order_description
-            }
-
             if should_notify_couriers:
                 await websocket_manager.notify_couriers(notification_data)
 
-            # Always notify the specific business (each store needs to know about its own order)
             if order.business_id and business_info and business_info.get('owner_id'):
-                biz_notif = {**notification_data, "order_id": order_id}  # business always gets real order_id
+                biz_notif = {**notification_data, "order_id": order_id}
                 await websocket_manager.notify_business(order.business_id, biz_notif)
-                
-                # Push Notification for Business Owner
-                send_push_notification(business_info['owner_id'], {
-                    "title": "¡Nuevo Pedido!",
-                    "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
-                    "url": "/negocio/pedidos"
-                })
 
-            if should_notify_couriers:
-                # Notify online couriers via Push
-                cursor.execute("SELECT user_id FROM couriers WHERE status = 'online'")
-                online_couriers = cursor.fetchall()
-                for courier in online_couriers:
-                    send_push_notification(courier['user_id'], {
-                        "title": "¡Nuevo Pedido Disponible!",
-                        "body": f"Hay un nuevo pedido de {notification_data['business_name']}.",
-                        "url": "/domiciliario"
-                    })
+        # 2. Push Notifications (Always try)
+        # Notify Business Owner
+        if order.business_id and business_info and business_info.get('owner_id'):
+            send_push_notification(business_info['owner_id'], {
+                "title": "¡Nuevo Pedido!",
+                "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
+                "url": "/negocio/pedidos"
+            })
+
+        # Notify Couriers
+        if should_notify_couriers:
+            cursor.execute("SELECT user_id FROM couriers WHERE status = 'online'")
+            online_couriers = cursor.fetchall()
+            for courier in online_couriers:
+                send_push_notification(courier['user_id'], {
+                    "title": "¡Nuevo Pedido Disponible!",
+                    "body": f"Hay un nuevo pedido de {notification_data['business_name']}.",
+                    "url": "/domiciliario"
+                })
 
         db.close()
         return {"id": order_id, "message": "Order created successfully"}

@@ -219,6 +219,9 @@ const CourierPanel = () => {
 
   useEffect(() => {
     fetchData(true);
+    // Auto-set online status on load if not already set
+    if (user?.id) toggleOnline(true);
+    
     const interval = setInterval(() => fetchData(false), 10000);
     return () => clearInterval(interval);
   }, [user?.id]);
