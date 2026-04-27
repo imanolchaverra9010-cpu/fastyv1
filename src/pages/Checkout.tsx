@@ -113,7 +113,7 @@ const Checkout = () => {
       const coords = businessCoords[bId];
       if (coords && latitude && longitude) {
         const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-        if (distance > maxDistance) {
+        if (!isNaN(distance) && distance > maxDistance) {
           maxDistance = distance;
           baseFee = getDeliveryFeeByDistance(distance);
         }

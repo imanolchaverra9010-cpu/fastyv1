@@ -182,17 +182,52 @@ const CourierPanel = () => {
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
-      if (myOrdersRes.ok) setMyOrders(await myOrdersRes.json());
-      if (availableRes.ok) setAvailableOrders(await availableRes.json());
+      
+      if (myOrdersRes.ok) {
+        const newMyOrders = await myOrdersRes.json();
+        setMyOrders(newMyOrders);
+      }
+
+      if (availableRes.ok) {
+        const newAvailable = await availableRes.json();
+        
+        // Detectar nuevos pedidos para notificar (si no estamos usando WebSockets)
+        if (!initialLoad && !wsRef.current) {
+          const newOrders = newAvailable.filter((order: any) => 
+            !availableOrders.some(existing => existing.id === order.id)
+          );
+          
+          if (newOrders.length > 0) {
+            const latest = newOrders[0];
+            setCurrentNotification({
+              type: "new_order",
+              order_id: latest.id,
+              business_name: latest.business_name || latest.origin_name || "Negocio",
+              business_address: latest.business_address || latest.origin_address || "",
+              business_emoji: latest.business_emoji || "🏪",
+              customer_name: latest.customer_name,
+              delivery_address: latest.delivery_address,
+              total: latest.total,
+              items: latest.items || []
+            });
+            playNotificationSound();
+          }
+        }
+        
+        setAvailableOrders(newAvailable);
+      }
+
       if (profileRes.ok) {
         const data = await profileRes.json();
         setProfileData(data);
-        setEditForm({
-          name: data.name || "",
-          phone: data.phone || "",
-          vehicle: data.vehicle || "",
-          password: ""
-        });
+        if (initialLoad) {
+          setEditForm({
+            name: data.name || "",
+            phone: data.phone || "",
+            vehicle: data.vehicle || "",
+            password: ""
+          });
+        }
       }
 
     } catch (error) {
@@ -286,7 +321,7 @@ const CourierPanel = () => {
     // Auto-set online status on load if not already set
     if (user?.id) toggleOnline(true);
     
-    const interval = setInterval(() => fetchData(false), 30000); // 30s para ahorrar conexiones DB
+    const interval = setInterval(() => fetchData(false), 10000); // 10s para mejor respuesta en Vercel
     return () => clearInterval(interval);
   }, [user?.id]);
 
