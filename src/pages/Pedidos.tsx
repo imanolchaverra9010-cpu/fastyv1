@@ -150,7 +150,7 @@ const Pedidos = () => {
                           </div>
                         </td>
                       </tr>
-                    ) : orders.map((o) => (
+                    ) : (orders || []).map((o) => (
                       <tr key={o.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-3 font-mono text-xs font-bold text-primary">#{o.id}</td>
                         <td className="px-5 py-3 font-medium">{o.businessName || 'Negocio'}</td>

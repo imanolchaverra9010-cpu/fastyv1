@@ -241,8 +241,8 @@ const UserProfile = () => {
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-32 bg-card/50 animate-pulse rounded-3xl border border-border/40" />
               ))
-            ) : Array.isArray(orders) && orders.length > 0 ? (
-              orders.map((order) => (
+            ) : (orders || []).length > 0 ? (
+              (orders || []).map((order) => (
                 <div key={order.id} className="bg-card/50 backdrop-blur-md border border-border/40 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                   <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-4">
@@ -339,8 +339,8 @@ const UserProfile = () => {
                 Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-40 bg-card/50 animate-pulse rounded-3xl border border-border/40" />
                 ))
-              ) : benefitsData && benefitsData.benefits?.length > 0 ? (
-                benefitsData.benefits.map((benefit) => (
+              ) : benefitsData && (benefitsData.benefits || []).length > 0 ? (
+                (benefitsData.benefits || []).map((benefit) => (
                   <div key={benefit.code} className="bg-white dark:bg-zinc-900 border-2 border-primary/20 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-4">

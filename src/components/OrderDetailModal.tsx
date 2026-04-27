@@ -206,7 +206,7 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                         onChange={(e) => setSelectedCourierId(e.target.value)}
                       >
                         <option value="">Seleccionar domiciliario...</option>
-                        {couriers.map(c => (
+                        {(couriers || []).map(c => (
                           <option key={c.id} value={c.id}>{c.name} ({c.vehicle})</option>
                         ))}
                       </select>
