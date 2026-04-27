@@ -395,7 +395,7 @@ const Index = () => {
         </div>
       </section>
       
-      <PromoModal />
+      <PromoModal promotions={promotions || []} />
     </div>
   );
 };

@@ -19,7 +19,7 @@ interface PromoModalProps {
   promotions: Promotion[];
 }
 
-const PromoModal = ({ promotions }: PromoModalProps) => {
+const PromoModal = ({ promotions = [] }: PromoModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { applyPromo } = useCart();
