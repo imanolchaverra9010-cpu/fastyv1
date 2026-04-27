@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store } from "lucide-react";
+import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,7 @@ const getDeliveryFeeByDistance = (distance: number) => {
 };
 
 const Checkout = () => {
-  const { lines, subtotal, clear, promo } = useCart();
+  const { lines, subtotal, clear, promo, applyPromo } = useCart();
   const { user } = useAuth();
   const [done, setDone] = useState<boolean>(false);
   const [orderSummaries, setOrderSummaries] = useState<any[]>([]);
@@ -102,6 +103,16 @@ const Checkout = () => {
     if (lines.length > 0) fetchBusinessCoords();
   }, [lines]);
 
+  const { data: benefitsData } = useQuery({
+    queryKey: ["userBenefits", user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user?.id}/benefits`);
+      if (!res.ok) throw new Error("Error fetching benefits");
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const calculateTotalFee = () => {
     if (lines.length === 0) return 0;
     const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
@@ -126,7 +137,8 @@ const Checkout = () => {
 
   const fee = calculateTotalFee();
   const numBusinesses = new Set(lines.map(l => String(l.businessId))).size;
-  const discount = promo ? (subtotal * promo.discount / 100) : 0;
+  const rawDiscount = promo ? (fee * promo.discount / 100) : 0;
+  const discount = Math.min(fee, rawDiscount);
   const total = subtotal + fee - discount;
 
   const getCurrentLocation = () => {
@@ -244,7 +256,8 @@ const Checkout = () => {
         }
 
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
-        const bDiscount = promo ? (bSubtotal * promo.discount / 100) : 0;
+        const rawBDiscount = promo ? (bFee * promo.discount / 100) : 0;
+        const bDiscount = Math.min(bFee, rawBDiscount);
         const bTotal = bSubtotal + bFee - bDiscount;
 
         const orderData = {
@@ -259,6 +272,7 @@ const Checkout = () => {
           latitude: latitude ? parseFloat(latitude.toFixed(8)) : null,
           longitude: longitude ? parseFloat(longitude.toFixed(8)) : null,
           batch_id: batchId,
+          promo_code: promo?.code,
           items: bLines.map(l => ({
             name: String(l.item.name),
             price: Math.round(l.item.price),
@@ -446,6 +460,47 @@ const Checkout = () => {
                 );
               })}
             </div>
+
+            {benefitsData && benefitsData.benefits && benefitsData.benefits.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-border/60">
+                <p className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <Ticket className="h-4 w-4 text-primary" /> Cupones Disponibles
+                </p>
+                <div className="space-y-2">
+                  {benefitsData.benefits.map((benefit: any) => {
+                    const isSelected = promo?.code === benefit.code;
+                    return (
+                      <button
+                        key={benefit.code}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            applyPromo("", 0);
+                          } else {
+                            applyPromo(benefit.code, benefit.discount);
+                            toast({ title: "Cupón aplicado", description: \`Se aplicó \${benefit.discount}% de descuento en el domicilio.\` });
+                          }
+                        }}
+                        className={\`w-full text-left p-3 rounded-xl border text-sm transition-all \${
+                          isSelected
+                            ? "bg-primary/10 border-primary text-primary"
+                            : "bg-muted/50 border-transparent hover:border-border"
+                        }\`}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold">{benefit.code}</span>
+                          <span className="font-bold text-xs">{benefit.discount}% OFF</span>
+                        </div>
+                        <p className={\`text-xs \${isSelected ? "text-primary/80" : "text-muted-foreground"}\`}>
+                          {benefit.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="mt-5 pt-4 border-t border-border space-y-2 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{formatCOP(subtotal)}</span></div>
               <div className="flex justify-between text-muted-foreground"><span>Envío</span><span>{formatCOP(fee)}</span></div>

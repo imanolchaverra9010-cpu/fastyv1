@@ -62,6 +62,7 @@ class OrderCreate(BaseModel):
     origin_address: Optional[str] = None
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
+    promo_code: Optional[str] = None
 
 class OrderResponse(BaseModel):
     id: str

@@ -51,6 +51,13 @@ async def create_order(order: OrderCreate):
                 (order_id, item.name, item.price, item.quantity, item.emoji)
             )
             
+        # Registrar uso del cupón
+        if order.promo_code and order.user_id:
+            cursor.execute(
+                "INSERT IGNORE INTO used_coupons (user_id, code) VALUES (%s, %s)",
+                (order.user_id, order.promo_code)
+            )
+            
         db.commit()
 
         # Obtener detalles del negocio para la notificación

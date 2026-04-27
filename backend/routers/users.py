@@ -68,33 +68,44 @@ def get_user_benefits(user_id: int):
         
         benefits = []
         
+        # Fetch used coupons
+        cursor.execute("SELECT code FROM used_coupons WHERE user_id = %s", (user_id,))
+        used_coupons_rows = cursor.fetchall()
+        used_codes = {row['code'] for row in used_coupons_rows}
+
         # Generar sufijo único usando el user_id para evitar que se compartan
         unique_suffix = f"-U{user_id}X{(user_id * 73) % 99}"
         
         # Lógica de beneficios
         if count >= 1:
-            benefits.append({
-                "code": f"BIENVENIDO10{unique_suffix}",
-                "description": "10% de descuento en tu próximo pedido por ser nuevo.",
-                "discount": 10,
-                "type": "welcome"
-            })
+            code = f"BIENVENIDO10{unique_suffix}"
+            if code not in used_codes:
+                benefits.append({
+                    "code": code,
+                    "description": "10% de descuento en tu próximo pedido por ser nuevo.",
+                    "discount": 10,
+                    "type": "welcome"
+                })
             
         if count >= 5:
-            benefits.append({
-                "code": f"LEAL20{unique_suffix}",
-                "description": "20% de descuento por tus primeros 5 pedidos.",
-                "discount": 20,
-                "type": "loyalty"
-            })
+            code = f"LEAL20{unique_suffix}"
+            if code not in used_codes:
+                benefits.append({
+                    "code": code,
+                    "description": "20% de descuento por tus primeros 5 pedidos.",
+                    "discount": 20,
+                    "type": "loyalty"
+                })
             
         if count >= 10:
-            benefits.append({
-                "code": f"PREMIUM50{unique_suffix}",
-                "description": "¡WOW! 50% de descuento en tu próximo domicilio.",
-                "discount": 50,
-                "type": "premium"
-            })
+            code = f"PREMIUM50{unique_suffix}"
+            if code not in used_codes:
+                benefits.append({
+                    "code": code,
+                    "description": "¡WOW! 50% de descuento en tu próximo domicilio.",
+                    "discount": 50,
+                    "type": "premium"
+                })
             
         return {
             "order_count": count,
