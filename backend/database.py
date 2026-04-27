@@ -1,50 +1,36 @@
 from mysql.connector import pooling
+import mysql.connector
 import os
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Base de datos - Usar variables de entorno o valores por defecto
+# Base de datos - TiDB Cloud (o Hostinger como fallback)
 db_config = {
-    "host": os.getenv("DATABASE_HOST", "82.197.82.29"),
-    "user": os.getenv("DATABASE_USER", "u659323332_fasty"),
-    "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
-    "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
-    "port": int(os.getenv("DATABASE_PORT") or "3306"),
+    "host": os.getenv("DATABASE_HOST", "gateway01.us-east-1.prod.aws.tidbcloud.com"),
+    "user": os.getenv("DATABASE_USER", "1gRTnVV5VRD9GSJ.root"),
+    "password": os.getenv("DATABASE_PASSWORD", "gTt2g6czLahRYgqY"),
+    "database": os.getenv("DATABASE_NAME", "fasty"),
+    "port": int(os.getenv("DATABASE_PORT") or "4000"),
 }
 
-# Crear el pool de conexiones - Reducido al mínimo para Vercel
-try:
-    pool = pooling.MySQLConnectionPool(
-        pool_name="fasty_pool",
-        pool_size=1, # Solo 1 conexión por instancia de Lambda para no agotar el límite de 500/hora
-        pool_reset_session=True,
-        **db_config
-    )
-    print("Conexión Pool establecida (Size 1)")
-except Exception as e:
-    print(f"Error al crear el pool: {e}")
-    pool = None
+# TiDB Cloud requiere SSL
+ssl_config = {
+    "ssl_disabled": False
+}
 
 def get_db():
-    if not pool:
-        try:
-            import mysql.connector
-            return mysql.connector.connect(**db_config)
-        except Exception as e:
-            print(f"Error en conexión directa: {e}")
-            return None
-            
+    """Obtener una conexión directa a la base de datos."""
     try:
-        # Intentar obtener conexión con un timeout corto
-        conn = pool.get_connection()
+        conn = mysql.connector.connect(**db_config, **ssl_config)
         return conn
-    except Exception as err:
-        print(f"Error obteniendo conexión del pool: {err}")
-        # Si el pool está lleno o falla, intentar conexión directa
+    except Exception as e:
+        print(f"Error conectando a DB: {e}")
+        # Intentar sin SSL (por si es desarrollo local)
         try:
-            import mysql.connector
-            return mysql.connector.connect(**db_config)
-        except:
+            conn = mysql.connector.connect(**db_config, ssl_disabled=True)
+            return conn
+        except Exception as e2:
+            print(f"Error sin SSL: {e2}")
             return None

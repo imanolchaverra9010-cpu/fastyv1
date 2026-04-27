@@ -81,16 +81,12 @@ const Checkout = () => {
   useEffect(() => {
     const fetchBusinessCoords = async () => {
       const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
-      const idMap: Record<string, string> = {
-        "b1": "1", "b2": "3", "b3": "2", "b4": "4", "b5": "5", "b6": "6", "b7": "7", "b8": "8"
-      };
       
       const newCoords: Record<string, {lat: number, lng: number}> = {};
       
       for (const bId of uniqueBusinessIds) {
-        const mappedId = idMap[bId] || bId;
         try {
-          const res = await fetch(`/api/businesses/${mappedId}`);
+          const res = await fetch(`/api/businesses/${bId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.latitude && data.longitude) {
@@ -201,17 +197,6 @@ const Checkout = () => {
     const paymentMethod = formData.get("paymentMethod") as string;
     const notes = formData.get("notes") as string;
 
-    const idMap: Record<string, string> = {
-      "b1": "1",
-      "b2": "3",
-      "b3": "2",
-      "b4": "4",
-      "b5": "5",
-      "b6": "6",
-      "b7": "7",
-      "b8": "8"
-    };
-
     const linesByBusiness: Record<string, typeof lines> = {};
     lines.forEach(l => {
       const bId = String(l.businessId);
@@ -262,11 +247,9 @@ const Checkout = () => {
         const bDiscount = promo ? (bSubtotal * promo.discount / 100) : 0;
         const bTotal = bSubtotal + bFee - bDiscount;
 
-        const mappedBusinessId = idMap[businessId] || businessId;
-
         const orderData = {
           user_id: user?.id,
-          business_id: mappedBusinessId,
+          business_id: businessId,
           customer_name: customerName,
           customer_phone: customerPhone,
           delivery_address: deliveryAddress,

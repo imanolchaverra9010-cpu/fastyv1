@@ -150,7 +150,10 @@ def delete_menu_item(business_id: str, item_id: int):
 
 @router.post("/{business_id}/menu/{item_id}/image")
 async def upload_menu_item_image(business_id: str, item_id: int, file: UploadFile = File(...)):
-    from lib.storage import upload_file
+    try:
+        from lib.storage import upload_file
+    except ImportError:
+        from _storage_fallback import upload_file
     allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Formato de imagen no permitido.")

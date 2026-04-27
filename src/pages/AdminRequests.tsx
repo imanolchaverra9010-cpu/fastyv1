@@ -27,6 +27,7 @@ interface BusinessRequest {
   category: string;
   description: string;
   menu_json: any[];
+  image_url?: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
@@ -172,10 +173,19 @@ const AdminRequests = () => {
                         <section className="space-y-4">
                           <div className="flex items-start gap-3">
                             <Store className="h-5 w-5 text-primary mt-0.5" />
-                            <div>
+                            <div className="flex-1">
                               <p className="text-xs font-bold text-muted-foreground uppercase">Negocio</p>
-                              <p className="font-semibold">{selectedRequest.name}</p>
-                              <p className="text-sm text-muted-foreground">{selectedRequest.category}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                {selectedRequest.image_url && (
+                                  <div className="h-12 w-12 rounded-lg overflow-hidden border border-border">
+                                    <img src={selectedRequest.image_url} alt="Logo" className="h-full w-full object-cover" />
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-semibold">{selectedRequest.name}</p>
+                                  <p className="text-sm text-muted-foreground">{selectedRequest.category}</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
 

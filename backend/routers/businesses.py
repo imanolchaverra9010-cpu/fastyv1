@@ -234,7 +234,10 @@ def update_business(business_id: str, business_update: BusinessUpdate):
 
 @router.post("/{business_id}/image")
 async def upload_business_image(business_id: str, file: UploadFile = File(...)):
-    from lib.storage import upload_file
+    try:
+        from lib.storage import upload_file
+    except ImportError:
+        from _storage_fallback import upload_file
     
     allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
     if file.content_type not in allowed_types:

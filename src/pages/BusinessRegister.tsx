@@ -21,6 +21,34 @@ const BusinessRegister = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/businesses/requests/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Error al subir la imagen");
+      
+      const data = await response.json();
+      setImageUrl(data.image_url);
+      toast({ title: "Imagen subida", description: "La imagen se ha cargado correctamente." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +65,7 @@ const BusinessRegister = () => {
       email: formData.get("email"),
       password: formData.get("password"),
       description: formData.get("description"),
+      image_url: imageUrl,
       menu_json: items.filter(it => it.name && it.price)
     };
 
@@ -137,6 +166,26 @@ const BusinessRegister = () => {
                     <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="business_image">Imagen del negocio</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="business_image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage}
+                    className="cursor-pointer"
+                  />
+                  {imageUrl && (
+                    <div className="h-12 w-12 rounded-lg overflow-hidden border border-border shrink-0">
+                      <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  {uploadingImage && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                </div>
+                <p className="text-xs text-muted-foreground">Sube una foto de tu fachada o logo (JPG, PNG o WebP).</p>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="address">Dirección</Label>

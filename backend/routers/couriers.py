@@ -16,7 +16,10 @@ def set_websocket_manager(manager):
 
 @router.post("/{user_id}/photo")
 async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
-    from lib.storage import upload_file
+    try:
+        from lib.storage import upload_file
+    except ImportError:
+        from _storage_fallback import upload_file
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

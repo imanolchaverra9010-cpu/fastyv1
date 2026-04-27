@@ -174,6 +174,7 @@ class BusinessRequestCreate(BaseModel):
     category: str
     password: str
     description: Optional[str] = None
+    image_url: Optional[str] = None
     menu_json: Optional[List[dict]] = None
 
 class BusinessRequestResponse(BaseModel):
@@ -185,6 +186,7 @@ class BusinessRequestResponse(BaseModel):
     category: str
     password: Optional[str] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
     menu_json: Optional[List[dict]] = None
     status: str
     created_at: datetime
