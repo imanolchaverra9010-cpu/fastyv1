@@ -234,25 +234,14 @@ def update_business(business_id: str, business_update: BusinessUpdate):
 
 @router.post("/{business_id}/image")
 async def upload_business_image(business_id: str, file: UploadFile = File(...)):
-    UPLOAD_DIR = "static/business_images"
-    try:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-    except OSError:
-        UPLOAD_DIR = "/tmp/business_images"
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-
+    from lib.storage import upload_file
+    
     allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Formato de imagen no permitido. Usa JPG, PNG o WebP.")
 
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    filename = f"{business_id}_{uuid.uuid4().hex[:8]}.{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    image_url = f"/static/business_images/{filename}"
+    # Upload to cloud (Cloudinary/Vercel Blob) or fallback to /tmp
+    image_url = upload_file(file, folder="business_images")
 
     db = get_db()
     if not db:

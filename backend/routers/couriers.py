@@ -14,23 +14,9 @@ def set_websocket_manager(manager):
     global websocket_manager
     websocket_manager = manager
 
-# Directory for profile pictures
-UPLOAD_DIR = "static/profiles"
-try:
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-except OSError:
-    # On Vercel the file system is read-only. 
-    # For production, a cloud storage service should be used.
-    UPLOAD_DIR = "/tmp/profiles"
-    if not os.path.exists(UPLOAD_DIR):
-        try:
-            os.makedirs(UPLOAD_DIR)
-        except OSError:
-            pass
-
 @router.post("/{user_id}/photo")
 async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
+    from lib.storage import upload_file
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -43,16 +29,8 @@ async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
         if not courier:
             raise HTTPException(status_code=404, detail="Courier not found")
 
-        # Save file
-        file_extension = file.filename.split(".")[-1]
-        filename = f"courier_{user_id}.{file_extension}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # Public URL (assuming static files are served)
-        photo_url = f"/api/static/profiles/{filename}"
+        # Upload to cloud (Cloudinary/Vercel Blob) or fallback to /tmp
+        photo_url = upload_file(file, folder="profiles")
         
         # Update courier record
         cursor.execute("UPDATE couriers SET image_url = %s WHERE user_id = %s", (photo_url, user_id))

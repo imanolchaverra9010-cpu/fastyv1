@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from typing import List, Optional
 from database import get_db
 from schemas import MenuItemCreate, MenuItemUpdate, MenuItemResponse
@@ -137,16 +137,36 @@ def delete_menu_item(business_id: str, item_id: int):
     try:
         cursor.execute("DELETE FROM menu_items WHERE business_id = %s AND id = %s", (business_id, item_id))
         db.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
-            
         db.close()
         return {"message": "Menu item deleted successfully"}
     except mysql.connector.Error as err:
         db.rollback()
         db.close()
         raise HTTPException(status_code=500, detail=f"Database error: {err}")
+    except Exception as e:
+        db.rollback()
+        db.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{business_id}/menu/{item_id}/image")
+async def upload_menu_item_image(business_id: str, item_id: int, file: UploadFile = File(...)):
+    from lib.storage import upload_file
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Formato de imagen no permitido.")
+
+    # Upload to cloud
+    image_url = upload_file(file, folder="menu_items")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("UPDATE menu_items SET image_url = %s WHERE id = %s AND business_id = %s", (image_url, item_id, business_id))
+        db.commit()
+        db.close()
+        return {"image_url": image_url}
     except Exception as e:
         db.rollback()
         db.close()

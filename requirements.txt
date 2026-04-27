@@ -11,3 +11,4 @@ google-auth==2.25.2
 requests==2.31.0
 python-dotenv==1.0.0
 pymysql==1.1.0
+cloudinary==1.36.0
