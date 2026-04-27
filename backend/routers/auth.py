@@ -61,15 +61,27 @@ def login(user_login: UserLogin):
             detail="Incorrect email or password",
         )
 
+    stored_hash = user.get("password_hash")
+    
+    if not stored_hash or stored_hash == "None":
+        provider = user.get("provider")
+        if provider:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Esta cuenta está vinculada a {provider.capitalize()}. Por favor, usa el botón de 'Continuar con {provider.capitalize()}' para iniciar sesión."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+            )
+
     try:
-        # Preparar el hash (asegurar string y limpiar espacios)
-        stored_hash = user["password_hash"]
         if isinstance(stored_hash, bytes):
             stored_hash = stored_hash.decode('utf-8')
-        stored_hash = stored_hash.strip()
+        stored_hash = str(stored_hash).strip()
         
         # Truco de compatibilidad: algunos sistemas viejos prefieren $2a$ en lugar de $2b$
-        # (son el mismo algoritmo, solo cambia el identificador)
         check_hash = stored_hash
         if check_hash.startswith('$2b$'):
             check_hash = '$2a$' + check_hash[4:]
