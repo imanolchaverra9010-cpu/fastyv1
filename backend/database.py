@@ -29,18 +29,34 @@ except Exception as e:
     db_pool = None
 
 def get_db():
-    """Obtener una conexión del pool."""
+    """Obtener una conexión del pool asegurando que esté viva."""
+    global db_pool
     if db_pool is None:
         print("El pool de base de datos no está inicializado.")
         return None
         
+    for attempt in range(3):
+        try:
+            conn = db_pool.get_connection()
+            # Hacer ping para asegurar que la conexión no fue cerrada por el servidor (común en Hostinger)
+            conn.ping(reconnect=True, attempts=1, delay=0)
+            if conn.is_connected():
+                return conn
+        except mysql.connector.errors.PoolError as e:
+            print(f"Error del pool (Pool exhausto): {e}")
+            break
+        except Exception as e:
+            print(f"Conexión muerta en el pool, reintentando... ({e})")
+            # Devolver al pool la conexión rota para que la descarte y genere una nueva
+            try:
+                conn.close()
+            except:
+                pass
+            
+    # Fallback si el pool falla por completo
     try:
-        conn = db_pool.get_connection()
-        if conn.is_connected():
-            return conn
-    except mysql.connector.errors.PoolError as e:
-        print(f"Error del pool (Pool exhausto o conexión fallida): {e}")
-        return None
+        print("Fallback: intentando conexión directa...")
+        return mysql.connector.connect(**db_config)
     except Exception as e:
-        print(f"Error crítico conectando a DB desde el pool: {e}")
+        print(f"Error crítico conectando a DB: {e}")
         return None
