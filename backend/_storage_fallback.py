@@ -17,9 +17,9 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
             # Forzar configuración
             cloudinary.config(from_url=cloudinary_url)
             
-            file_obj.file.seek(0)
+            file_obj.seek(0)
             result = cloudinary.uploader.upload(
-                file_obj.file, 
+                file_obj, 
                 folder=f"fasty/{folder}",
                 public_id=f"{uuid.uuid4().hex[:8]}"
             )
@@ -27,8 +27,9 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
             if url:
                 return url
         except Exception as e:
-            print(f"Cloudinary failed: {e}")
-            raise Exception(f"Cloudinary Error: {str(e)}")
+            print(f"Cloudinary failed: {e}. Falling back to local storage.")
+            # Continuamos al fallback local
+
 
     # 2. Fallback /tmp
     try:
@@ -39,7 +40,7 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
             ext = file_obj.filename.split(".")[-1]
         filename = f"{uuid.uuid4().hex[:8]}.{ext}"
         file_path = os.path.join(local_dir, filename)
-        file_obj.file.seek(0)
+        file_obj.seek(0)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file_obj.file, buffer)
         return f"/static/{folder}/{filename}"
