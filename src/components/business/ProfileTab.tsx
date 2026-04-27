@@ -127,7 +127,7 @@ export const ProfileTab = () => {
       <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted h-52 group">
         {form.image_url ? (
           <img
-            src={form.image_url.startsWith("http") ? form.image_url : `/api${form.image_url}`}
+            src={form.image_url.startsWith("http") ? form.image_url : (form.image_url.startsWith("/api") ? form.image_url : `/api${form.image_url}`)}
             alt={business.name}
             className="w-full h-full object-cover"
           />

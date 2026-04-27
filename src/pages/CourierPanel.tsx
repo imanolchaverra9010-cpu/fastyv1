@@ -923,7 +923,7 @@ const CourierPanel = () => {
                       <div className="relative group">
                         <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold mb-4 border-4 border-background shadow-sm overflow-hidden">
                           {profileData?.image_url ? (
-                            <img src={profileData.image_url} alt="Profile" className="h-full w-full object-cover" />
+                            <img src={profileData.image_url.startsWith("http") ? profileData.image_url : (profileData.image_url.startsWith("/api") ? profileData.image_url : `/api${profileData.image_url}`)} alt="Profile" className="h-full w-full object-cover" />
                           ) : (
                             user?.username?.charAt(0).toUpperCase()
                           )}

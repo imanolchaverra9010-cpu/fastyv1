@@ -180,7 +180,7 @@ const BusinessRegister = () => {
                   />
                   {imageUrl && (
                     <div className="h-12 w-12 rounded-lg overflow-hidden border border-border shrink-0">
-                      <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                      <img src={imageUrl.startsWith("http") ? imageUrl : (imageUrl.startsWith("/api") ? imageUrl : `/api${imageUrl}`)} alt="Preview" className="h-full w-full object-cover" />
                     </div>
                   )}
                   {uploadingImage && <Loader2 className="h-5 w-5 animate-spin text-primary" />}

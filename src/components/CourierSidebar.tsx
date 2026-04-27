@@ -127,7 +127,7 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
                   <div className="flex items-center gap-3 w-full">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0 overflow-hidden">
                       {profileImage ? (
-                        <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
+                        <img src={profileImage.startsWith("http") ? profileImage : (profileImage.startsWith("/api") ? profileImage : `/api${profileImage}`)} alt="Profile" className="h-full w-full object-cover" />
                       ) : (
                         user?.username?.charAt(0).toUpperCase()
                       )}
