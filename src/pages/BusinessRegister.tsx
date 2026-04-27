@@ -23,6 +23,33 @@ const BusinessRegister = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  const [gettingLocation, setGettingLocation] = useState(false);
+  
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setGettingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setGettingLocation(false);
+          toast({ title: "Ubicación obtenida", description: "Las coordenadas se han guardado correctamente." });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setGettingLocation(false);
+          toast({ 
+            title: "Error de ubicación", 
+            description: "No se pudo obtener la ubicación. Por favor, ingrésala manualmente o inténtalo de nuevo.",
+            variant: "destructive"
+          });
+        }
+      );
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,6 +93,8 @@ const BusinessRegister = () => {
       password: formData.get("password"),
       description: formData.get("description"),
       image_url: imageUrl,
+      latitude: coords.lat,
+      longitude: coords.lng,
       menu_json: items.filter(it => it.name && it.price)
     };
 
@@ -214,6 +243,49 @@ const BusinessRegister = () => {
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="description">Descripción</Label>
                 <Textarea id="description" name="description" placeholder="Cuéntanos qué hace especial a tu negocio" />
+              </div>
+              
+              <div className="space-y-4 md:col-span-2 border-t border-border/40 pt-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold">Ubicación del negocio</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={getCurrentLocation}
+                    disabled={gettingLocation}
+                    className="gap-2"
+                  >
+                    {gettingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+                    {gettingLocation ? "Obteniendo..." : "Obtener mi ubicación actual"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Esto es necesario para calcular las tarifas de envío por distancia.</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="latitude">Latitud</Label>
+                    <Input 
+                      id="latitude" 
+                      type="number" 
+                      step="any" 
+                      placeholder="0.000000" 
+                      value={coords.lat || ""} 
+                      onChange={(e) => setCoords(prev => ({ ...prev, lat: parseFloat(e.target.value) || null }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="longitude">Longitud</Label>
+                    <Input 
+                      id="longitude" 
+                      type="number" 
+                      step="any" 
+                      placeholder="0.000000" 
+                      value={coords.lng || ""} 
+                      onChange={(e) => setCoords(prev => ({ ...prev, lng: parseFloat(e.target.value) || null }))}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </section>

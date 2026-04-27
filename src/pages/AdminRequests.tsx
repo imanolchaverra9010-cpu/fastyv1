@@ -27,7 +27,8 @@ interface BusinessRequest {
   category: string;
   description: string;
   menu_json: any[];
-  image_url?: string;
+  latitude?: number;
+  longitude?: number;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
@@ -194,8 +195,13 @@ const AdminRequests = () => {
                           <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-xs font-bold text-muted-foreground uppercase">Dirección</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase">Dirección y Coordenadas</p>
                               <p className="text-sm">{selectedRequest.address}</p>
+                              {selectedRequest.latitude && selectedRequest.longitude && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  GPS: {selectedRequest.latitude}, {selectedRequest.longitude}
+                                </p>
+                              )}
                             </div>
                           </div>
 

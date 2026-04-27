@@ -188,6 +188,8 @@ class BusinessRequestResponse(BaseModel):
     password: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     menu_json: Optional[List[dict]] = None
     status: str
     created_at: datetime

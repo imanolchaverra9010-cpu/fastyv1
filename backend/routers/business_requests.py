@@ -62,10 +62,11 @@ def create_business_request(request: BusinessRequestCreate):
         menu_json_str = json.dumps(request.menu_json) if request.menu_json else "[]"
         
         cursor.execute(
-            """INSERT INTO business_requests (name, email, phone, address, category, password, description, image_url, menu_json) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            """INSERT INTO business_requests (name, email, phone, address, category, password, description, image_url, latitude, longitude, menu_json) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (request.name, request.email, request.phone, request.address, 
-             request.category, request.password, request.description, request.image_url, menu_json_str)
+             request.category, request.password, request.description, request.image_url, 
+             request.latitude, request.longitude, menu_json_str)
         )
         db.commit()
         
@@ -148,10 +149,11 @@ def approve_business_request(request_id: int):
         # 3. Crear el Negocio
         biz_id = str(uuid.uuid4())[:8]
         cursor.execute(
-            """INSERT INTO businesses (id, owner_id, name, description, category, address, phone, emoji, image_url, status) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            """INSERT INTO businesses (id, owner_id, name, description, category, address, phone, emoji, image_url, latitude, longitude, status) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (biz_id, owner_id, req['name'], req['description'], req['category'], 
-             req['address'], req['phone'], '🏪', req.get('image_url'), 'active')
+             req['address'], req['phone'], '🏪', req.get('image_url'), 
+             req.get('latitude'), req.get('longitude'), 'active')
         )
 
         # 4. Crear los Menu Items
