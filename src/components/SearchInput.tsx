@@ -42,13 +42,13 @@ const SearchInput = ({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className={`${isCompact ? "pl-11 pr-4 h-10 text-sm rounded-xl" : "pl-12 pr-4 h-14 text-lg rounded-2xl"} border-border/60 bg-card/50 backdrop-blur-sm shadow-card hover:shadow-glow focus:shadow-glow focus:ring-primary/20 transition-all`}
+        className={`${isCompact ? "pl-11 pr-4 h-10 text-sm rounded-xl" : "pl-11 sm:pl-12 pr-24 sm:pr-32 h-12 sm:h-14 text-sm sm:text-lg rounded-2xl"} border-border/60 bg-card/50 backdrop-blur-sm shadow-card hover:shadow-glow focus:shadow-glow focus:ring-primary/20 transition-all`}
       />
       {!isCompact && (
         <div className="absolute inset-y-1.5 right-1.5 flex items-center">
           <button 
             type="submit"
-            className="h-full px-6 rounded-xl bg-gradient-hero text-primary-foreground font-semibold shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="h-full px-4 sm:px-6 rounded-xl bg-gradient-hero text-primary-foreground font-semibold text-sm sm:text-base shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Buscar
           </button>
