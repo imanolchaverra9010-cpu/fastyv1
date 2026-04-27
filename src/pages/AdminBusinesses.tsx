@@ -71,7 +71,7 @@ const AdminBusinesses = () => {
     }
   };
 
-  const filteredBusinesses = businesses.filter(b =>
+  const filteredBusinesses = (businesses || []).filter(b =>
     b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );

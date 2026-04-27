@@ -176,7 +176,7 @@ const BusinessDetail = () => {
         <h2 className="mt-10 mb-4 text-2xl font-display font-bold">Menú</h2>
         {isLoadingMenuItems ? (
           <p className="text-muted-foreground">Cargando menú...</p>
-        ) : menuItems && menuItems.length > 0 ? (
+        ) : (menuItems || []).length > 0 ? (
           <div className="grid md:grid-cols-2 gap-4">
             {menuItems.map((m) => (
               <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex items-center gap-4">

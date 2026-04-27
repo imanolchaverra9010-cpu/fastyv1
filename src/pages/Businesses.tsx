@@ -101,7 +101,7 @@ const Businesses = () => {
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
             <p className="text-muted-foreground font-medium">Buscando los mejores sabores...</p>
           </div>
-        ) : businesses.length === 0 ? (
+        ) : (businesses || []).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
               <Store className="h-10 w-10 text-muted-foreground" />
@@ -114,7 +114,7 @@ const Businesses = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {businesses.map((b) => (
+            {(businesses || []).map((b) => (
               <Link
                 to={`/negocios/${b.id}`}
                 key={b.id}

@@ -85,7 +85,7 @@ const Pedidos = () => {
               <div>
                 <p className="text-sm text-primary font-semibold">Administración</p>
                 <h1 className="text-4xl font-display font-bold tracking-tight">Pedidos</h1>
-                <p className="text-muted-foreground mt-1">Monitorea y gestiona el flujo de vida de las órdenes.</p>
+                <p className="text-muted-foreground mt-1">{(orders || []).length} pedidos encontrados. Monitorea el flujo de vida de las órdenes.</p>
               </div>
               <div className="flex items-center gap-3">
                 <select
@@ -114,7 +114,7 @@ const Pedidos = () => {
                   Lista de Pedidos {filter !== 'all' && <span className="text-muted-foreground font-normal">({filter})</span>}
                 </h3>
                 <span className="text-xs font-medium text-muted-foreground">
-                  {orders.length} pedidos encontrados
+                  {(orders || []).length} pedidos encontrados
                 </span>
               </div>
               <div className="overflow-x-auto">
@@ -188,7 +188,7 @@ const Pedidos = () => {
                         </td>
                       </tr>
                     ))}
-                    {orders.length === 0 && (
+                    {(orders || []).length === 0 && (
                       <tr>
                         <td colSpan={7} className="px-5 py-10 text-center text-muted-foreground italic">
                           No se encontraron pedidos en esta categoría.

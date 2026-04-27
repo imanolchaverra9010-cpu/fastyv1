@@ -47,7 +47,7 @@ const AdminCouriers = () => {
     }
   };
 
-  const filteredCouriers = couriers.filter(c =>
+  const filteredCouriers = (couriers || []).filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.vehicle.toLowerCase().includes(searchTerm.toLowerCase())
   );

@@ -128,7 +128,7 @@ const AdminRequests = () => {
             ) : (
               <div className="grid lg:grid-cols-[1fr_400px] gap-8">
                 <div className="space-y-4">
-                  {requests.length === 0 ? (
+                  {(requests || []).length === 0 ? (
                     <div className="bg-card border border-border/60 rounded-2xl p-12 text-center">
                       <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                       <p className="text-muted-foreground">No hay solicitudes pendientes.</p>
@@ -219,7 +219,7 @@ const AdminRequests = () => {
                         <section className="bg-muted/30 rounded-2xl p-4">
                           <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Menú inicial</p>
                           <div className="space-y-2">
-                            {selectedRequest.menu_json.map((item: any, idx: number) => (
+                            {(selectedRequest.menu_json || []).map((item: any, idx: number) => (
                               <div key={idx} className="flex justify-between items-center text-sm bg-background border border-border/40 p-2 rounded-lg">
                                 <span className="font-medium">{item.name}</span>
                                 <span className="text-primary font-bold">${item.price}</span>
