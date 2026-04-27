@@ -171,7 +171,7 @@ export const MenuTab = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {menuItems.map((item) => (
+        {(menuItems || []).map((item) => (
           <MenuItemCard
             key={item.id}
             item={item}
@@ -192,7 +192,7 @@ export const MenuTab = () => {
         ))}
       </div>
 
-      {menuItems.length === 0 && (
+      {(!menuItems || menuItems.length === 0) && (
         <div className="text-center py-12">
           <Menu className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground">No hay productos en el menú</p>

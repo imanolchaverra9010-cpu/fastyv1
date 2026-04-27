@@ -135,7 +135,7 @@ const AdminRequests = () => {
                       <p className="text-muted-foreground">No hay solicitudes pendientes.</p>
                     </div>
                   ) : (
-                    requests.map((req) => (
+                    (requests || []).map((req) => (
                       <div
                         key={req.id}
                         onClick={() => setSelectedRequest(req)}

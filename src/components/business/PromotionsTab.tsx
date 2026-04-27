@@ -178,7 +178,7 @@ export const PromotionsTab = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {promotions.map((promo) => (
+        {(promotions || []).map((promo) => (
           <PromotionCard
             key={promo.id}
             promo={promo}
@@ -200,7 +200,7 @@ export const PromotionsTab = () => {
         ))}
       </div>
 
-      {promotions.length === 0 && (
+      {(!promotions || promotions.length === 0) && (
         <div className="text-center py-12">
           <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground">No hay promociones activas</p>

@@ -19,7 +19,7 @@ export const RevenueChart = ({ data }: { data: any[] }) => (
     </div>
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+        <AreaChart data={data || []} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
@@ -49,7 +49,7 @@ export const HoursChart = ({ data }: { data: any[] }) => (
     </div>
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+        <BarChart data={data || []} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
@@ -75,7 +75,7 @@ export const TopBusinessesChart = ({ data }: { data: any[] }) => (
     </div>
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+        <BarChart data={data || []} layout="vertical" margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
           <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
           <YAxis type="category" dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} width={110} />

@@ -197,8 +197,13 @@ export const OrdersTab = () => {
   const shippedOrders   = orders.filter(o => o.status === "shipped" || o.status === "in_transit");
   const deliveredOrders = orders.filter(o => o.status === "delivered");
 
-  if (orders.length === 0) {
-    return null;
+  if ((orders || []).length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+        <p className="text-muted-foreground">No tienes pedidos activos en este momento.</p>
+      </div>
+    );
   }
 
   const Section = ({ title, icon, orders: sectionOrders }: { title: string; icon: React.ReactNode; orders: Order[] }) => (

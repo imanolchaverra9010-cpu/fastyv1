@@ -157,7 +157,7 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
           ) : (
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-bold text-muted-foreground flex items-center gap-2">
-                Productos ({items.length})
+                Productos ({(items || []).length})
               </h3>
               <Button variant="soft" className="rounded-xl gap-2 h-10 px-5" onClick={() => setIsAdding(true)}>
                 <Plus className="h-4 w-4" /> Agregar Producto
@@ -167,14 +167,14 @@ export function MenuManagerModal({ businessId, businessName, onClose }: MenuMana
 
           {loading ? (
             <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-          ) : items.length === 0 && !isAdding ? (
+          ) : (items || []).length === 0 && !isAdding ? (
             <div className="text-center py-10 bg-muted/20 rounded-2xl border-2 border-dashed border-border/40">
               <Utensils className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground font-medium">No hay productos en el menú.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map(item => (
+              {(items || []).map(item => (
                 <div key={item.id} className="group p-4 rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-card transition-all flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <span className="text-3xl h-12 w-12 rounded-xl bg-muted flex items-center justify-center shrink-0">{item.emoji}</span>
