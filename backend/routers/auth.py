@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from datetime import timedelta
 import os
 import requests
@@ -6,13 +6,14 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from database import get_db
 from schemas import UserCreate, UserLogin, Token, SocialAuth
-from utils import pwd_context, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, hash_password
+from utils import pwd_context, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, hash_password, limiter
 import bcrypt
 
 router = APIRouter()
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user: UserCreate):
+@limiter.limit("3/minute")
+def register(request: Request, user: UserCreate):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -43,7 +44,8 @@ def register(user: UserCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login", response_model=Token)
-def login(user_login: UserLogin):
+@limiter.limit("5/minute")
+def login(request: Request, user_login: UserLogin):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -130,7 +132,8 @@ def login(user_login: UserLogin):
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "tu-client-id-aqui")
 
 @router.post("/social-login", response_model=Token)
-def social_login(social_user: SocialAuth):
+@limiter.limit("5/minute")
+def social_login(request: Request, social_user: SocialAuth):
     provider = social_user.provider
     token = social_user.token
     email = None

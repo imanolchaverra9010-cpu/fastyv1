@@ -10,8 +10,15 @@ from typing import Dict
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users
+from utils import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 app = FastAPI(title="Rapidito API")
+
+# Configurar Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Directorio estático para fotos de perfil
 try:

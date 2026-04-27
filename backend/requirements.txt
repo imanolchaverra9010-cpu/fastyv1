@@ -11,3 +11,4 @@ google-auth
 requests
 pymysql
 pywebpush
+slowapi

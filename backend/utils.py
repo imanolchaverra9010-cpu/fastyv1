@@ -9,8 +9,11 @@ from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # Configuración
+limiter = Limiter(key_func=get_remote_address)
 SECRET_KEY = "your-secret-key-change-it-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
