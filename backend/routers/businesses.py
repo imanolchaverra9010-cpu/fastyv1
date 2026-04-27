@@ -244,7 +244,10 @@ async def upload_business_image(business_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Formato de imagen no permitido. Usa JPG, PNG o WebP.")
 
     # Upload to cloud (Cloudinary/Vercel Blob) or fallback to /tmp
-    image_url = upload_file(file, folder="business_images")
+    try:
+        image_url = upload_file(file, folder="business_images")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
 
     db = get_db()
     if not db:

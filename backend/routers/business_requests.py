@@ -19,7 +19,10 @@ async def upload_request_image(file: UploadFile = File(...)):
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Formato de imagen no permitido. Usa JPG, PNG o WebP.")
 
-    image_url = upload_file(file, folder="business_requests")
+    try:
+        image_url = upload_file(file, folder="business_requests")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
     return {"image_url": image_url}
 
 @router.post("/requests", response_model=BusinessRequestResponse, status_code=status.HTTP_201_CREATED)

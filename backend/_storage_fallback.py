@@ -42,6 +42,6 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
         file_obj.file.seek(0)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file_obj.file, buffer)
-        return f"/api/static/{folder}/{filename}"
+        return f"/static/{folder}/{filename}"
     except Exception as e:
         raise Exception(f"Upload failed: {e}")
