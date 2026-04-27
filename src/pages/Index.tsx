@@ -281,7 +281,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-      <PromoModal promotions={promotions || []} />
     </div>
   );
 };
