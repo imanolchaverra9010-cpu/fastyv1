@@ -26,6 +26,10 @@ def update_user(user_id: int, user_data: UserUpdate):
         if user_data.avatar_url:
             updates.append("avatar_url = %s")
             params.append(user_data.avatar_url)
+        if user_data.password:
+            from utils import hash_password
+            updates.append("password_hash = %s")
+            params.append(hash_password(user_data.password))
             
         if not updates:
             raise HTTPException(status_code=400, detail="No updates provided")

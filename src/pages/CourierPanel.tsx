@@ -94,7 +94,7 @@ const CourierPanel = () => {
   const watchIdRef = useRef<number | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", vehicle: "" });
+  const [editForm, setEditForm] = useState({ name: "", phone: "", vehicle: "", password: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -190,7 +190,8 @@ const CourierPanel = () => {
         setEditForm({
           name: data.name || "",
           phone: data.phone || "",
-          vehicle: data.vehicle || ""
+          vehicle: data.vehicle || "",
+          password: ""
         });
       }
 
@@ -235,21 +236,46 @@ const CourierPanel = () => {
 
     setSavingProfile(true);
     try {
-      const res = await fetch(`/api/couriers/${user.id}/profile`, {
+      // 1. Update courier-specific info (name, phone, vehicle)
+      const courierRes = await fetch(`/api/couriers/${user.id}/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          name: editForm.name,
+          phone: editForm.phone,
+          vehicle: editForm.vehicle
+        }),
       });
 
-      if (res.ok) {
-        setProfileData((prev: any) => ({ ...prev, ...editForm }));
+      // 2. Update user info (password) if provided
+      if (editForm.password) {
+        const userRes = await fetch(`/api/users/${user.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: editForm.password }),
+        });
+        if (!userRes.ok) throw new Error("Error al actualizar la contraseña");
+      }
+
+      if (courierRes.ok) {
+        setProfileData((prev: any) => ({ 
+          ...prev, 
+          name: editForm.name,
+          phone: editForm.phone,
+          vehicle: editForm.vehicle
+        }));
         setEditingProfile(false);
+        setEditForm(prev => ({ ...prev, password: "" }));
         toast({ title: "Perfil actualizado", description: "Tus datos han sido guardados." });
       } else {
         throw new Error("Error al actualizar perfil");
       }
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudieron guardar los cambios.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "No se pudieron guardar los cambios.", 
+        variant: "destructive" 
+      });
     } finally {
       setSavingProfile(false);
     }
@@ -1090,6 +1116,16 @@ const CourierPanel = () => {
                                 required
                               />
                             </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nueva Contraseña (opcional)</label>
+                            <Input 
+                              type="password"
+                              value={editForm.password} 
+                              onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                              placeholder="Déjalo en blanco para mantener la actual"
+                              className="rounded-xl h-11"
+                            />
                           </div>
                           <div className="flex gap-3 pt-2">
                             <Button type="submit" variant="hero" className="flex-1 rounded-xl font-bold" disabled={savingProfile}>

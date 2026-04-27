@@ -31,6 +31,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     avatar_url: Optional[str] = None
+    password: Optional[str] = None
 
 # Order Schemas
 class OrderRatingCreate(BaseModel):
