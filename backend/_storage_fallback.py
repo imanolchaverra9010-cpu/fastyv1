@@ -13,6 +13,10 @@ def upload_file(file_obj, folder: str = "fasty") -> str:
         try:
             import cloudinary
             import cloudinary.uploader
+            
+            # Forzar configuración
+            cloudinary.config(from_url=cloudinary_url)
+            
             file_obj.file.seek(0)
             result = cloudinary.uploader.upload(
                 file_obj.file, 

@@ -125,7 +125,7 @@ const Businesses = () => {
                 <div className="absolute inset-0 w-full h-full p-6 pb-20 bg-white">
                   {b.image_url ? (
                     <img
-                      src={b.image_url.startsWith("http") ? b.image_url : `/api${b.image_url}`}
+                      src={b.image_url.startsWith("http") ? b.image_url : (b.image_url.startsWith("/api") ? b.image_url : `/api${b.image_url}`)}
                       alt={b.name}
                       className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
