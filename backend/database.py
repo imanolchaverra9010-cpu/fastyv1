@@ -13,19 +13,34 @@ db_config = {
     "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
     "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
     "port": int(os.getenv("DATABASE_PORT") or "3306"),
+    "ssl_disabled": True
 }
 
+# Configurar el pool de conexiones
+try:
+    db_pool = pooling.MySQLConnectionPool(
+        pool_name="mypool",
+        pool_size=10,
+        pool_reset_session=True,
+        **db_config
+    )
+except Exception as e:
+    print(f"Error inicializando el pool de base de datos: {e}")
+    db_pool = None
+
 def get_db():
-    """Obtener una conexión directa a la base de datos."""
+    """Obtener una conexión del pool."""
+    if db_pool is None:
+        print("El pool de base de datos no está inicializado.")
+        return None
+        
     try:
-        # Intentar conexión con SSL primero (algunos servicios lo requieren)
-        try:
-            conn = mysql.connector.connect(**db_config, ssl_disabled=False)
+        conn = db_pool.get_connection()
+        if conn.is_connected():
             return conn
-        except:
-            # Fallback a conexión sin SSL (común en Hostinger)
-            conn = mysql.connector.connect(**db_config, ssl_disabled=True)
-            return conn
+    except mysql.connector.errors.PoolError as e:
+        print(f"Error del pool (Pool exhausto o conexión fallida): {e}")
+        return None
     except Exception as e:
-        print(f"Error crítico conectando a DB: {e}")
+        print(f"Error crítico conectando a DB desde el pool: {e}")
         return None
