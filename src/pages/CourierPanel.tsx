@@ -1045,10 +1045,11 @@ const CourierPanel = () => {
                       </div>
 
                       <Button 
-                        className="w-full mt-6 rounded-xl gap-2 font-bold" 
+                        variant="hero"
+                        className="w-full mt-6 rounded-xl gap-2 font-bold shadow-glow" 
                         onClick={() => setEditingProfile(true)}
                       >
-                        <Settings className="h-4 w-4" /> Editar Datos
+                        <Settings className="h-4 w-4" /> Editar Perfil
                       </Button>
                     </div>
 
@@ -1145,6 +1146,21 @@ const CourierPanel = () => {
                       <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
                         <h3 className="font-bold text-lg mb-4">Configuración de Cuenta</h3>
                         <div className="space-y-4">
+                          <div 
+                            className="flex items-center justify-between p-3 rounded-xl hover:bg-primary/5 transition-colors cursor-pointer border border-transparent hover:border-primary/20 group/btn"
+                            onClick={() => setEditingProfile(true)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover/btn:scale-110 transition-transform">
+                                <Settings className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm">Editar Perfil</p>
+                                <p className="text-xs text-muted-foreground">Cambiar nombre, teléfono, vehículo o contraseña</p>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover/btn:translate-x-1 transition-transform" />
+                          </div>
                           <div className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/60">
                             <div className="flex items-center gap-3">
                               <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
