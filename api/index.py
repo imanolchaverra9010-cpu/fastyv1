@@ -13,7 +13,7 @@ backend_path = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 import traceback
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,8 +37,9 @@ try:
             print(f"Módulo routers.{name} importado")
         except Exception as e:
             print(f"Error importando routers.{name}: {e}")
-            # Crear un objeto dummy con atributo router vacío para evitar errores posteriores
-            class Dummy: router = APIRouter()
+            class Dummy: 
+                def __init__(self):
+                    self.router = APIRouter()
             globals()[name] = Dummy()
 except Exception as e:
     print(f"Error crítico cargando routers: {e}")
