@@ -4,6 +4,7 @@ import StatCard from "@/components/StatCard";
 import DeliveryMap from "@/components/DeliveryMap";
 import MultiStopMap from "@/components/MultiStopMap";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
