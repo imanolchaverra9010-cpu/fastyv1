@@ -120,12 +120,12 @@ async def create_order(order: OrderCreate):
                     "url": "/domiciliario"
                 })
 
-        db.close()
         return {"id": order_id, "message": "Order created successfully"}
     except Exception as e:
         db.rollback()
-        db.close()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
 
 @router.get("", response_model=List[OrderResponse])
 def get_orders(status_filter: Optional[str] = None):
