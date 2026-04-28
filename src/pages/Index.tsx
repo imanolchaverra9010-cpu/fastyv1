@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bike, Clock, MapPin, Search, ShieldCheck, Sparkles, Star, Store, Loader2, ChevronLeft, ChevronRight, Percent, Tag, Gift, TrendingUp, Plus, ShoppingCart } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -266,7 +266,7 @@ const Index = () => {
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col items-center md:items-start gap-2">
-              <p className="font-display font-bold text-2xl tracking-tight">Rapidito<span className="text-white/80">.</span></p>
+              <p className="font-display font-bold text-2xl tracking-tight">Fasty<span className="text-white/80">.</span></p>
               <p className="text-orange-50/90 text-sm">Tu ciudad a un clic de distancia.</p>
             </div>
             <div className="flex gap-8 text-sm font-medium">
@@ -276,7 +276,7 @@ const Index = () => {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-orange-100/60">
-            <p>© {new Date().getFullYear()} Rapidito · Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} Fasty · Todos los derechos reservados.</p>
             <p>Hecho con 🧡 para barrios hambrientos.</p>
           </div>
         </div>
