@@ -6,14 +6,16 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-# Base de datos - Hostinger (Default)
+# Base de datos - Railway
 db_config = {
-    "host": os.getenv("DATABASE_HOST", "82.197.82.29"),
-    "user": os.getenv("DATABASE_USER", "u659323332_fasty"),
-    "password": os.getenv("DATABASE_PASSWORD", "Fasty2026*"),
-    "database": os.getenv("DATABASE_NAME", "u659323332_fasty"),
+    "host": os.getenv("DATABASE_HOST", "mysql.railway.internal"),  # Cambiar por host público si el backend NO está en Railway
+    "user": os.getenv("DATABASE_USER", "root"),
+    "password": os.getenv("DATABASE_PASSWORD", "OyDRGvdWqQwOLiknRFLmFFdhPOVuwgws"),
+    "database": os.getenv("DATABASE_NAME", "railway"),
     "port": int(os.getenv("DATABASE_PORT") or "3306"),
-    "ssl_disabled": True
+    "ssl_disabled": True,
+    "connect_timeout": 10,
+    "connection_timeout": 10,
 }
 
 # Configurar el pool de conexiones
