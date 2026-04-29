@@ -184,39 +184,56 @@ const BusinessDetail = () => {
           </div>
         </div>
 
-        <h2 className="mt-10 mb-4 text-2xl font-display font-bold">Menú</h2>
+        <h2 className="mt-10 mb-6 text-3xl font-display font-bold">Menú</h2>
         {isLoadingMenuItems ? (
           <p className="text-muted-foreground">Cargando menú...</p>
         ) : (menuItems || []).length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-4">
-            {menuItems.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex flex-col gap-2">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold">{m.name}</h3>
-                    <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {m.description && (
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 rounded-full"
-                        onClick={() => toggleItem(m.id)}
-                      >
-                        {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
-                      </Button>
-                    )}
-                    <Button size="icon" variant="hero" onClick={() => handleAdd(m)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+          <div className="space-y-10">
+            {Object.entries(
+              (menuItems || []).reduce((acc: any, item) => {
+                const cat = item.category || "General";
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(item);
+                return acc;
+              }, {})
+            ).map(([category, items]: [string, any]) => (
+              <div key={category} className="space-y-4">
+                <h3 className="text-xl font-bold border-b border-border/60 pb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+                  {category}
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {items.map((m: any) => (
+                    <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex flex-col gap-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold">{m.name}</h3>
+                          <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {m.description && (
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-8 w-8 rounded-full"
+                              onClick={() => toggleItem(m.id)}
+                            >
+                              {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
+                            </Button>
+                          )}
+                          <Button size="icon" variant="hero" onClick={() => handleAdd(m)}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {m.description && expandedItems.has(m.id) && (
+                        <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+                          {m.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {m.description && expandedItems.has(m.id) && (
-                  <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
-                    {m.description}
-                  </div>
-                )}
               </div>
             ))}
           </div>

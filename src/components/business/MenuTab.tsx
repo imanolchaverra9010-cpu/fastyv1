@@ -16,7 +16,9 @@ const MenuItemCard = ({ item, onEdit, onToggle, onDelete }: MenuItemCardProps) =
   return (
     <div className={`bg-card border border-border/60 rounded-xl p-4 transition-all ${!item.is_active ? 'opacity-50' : ''}`}>
       <div className="flex items-start justify-between mb-3">
-        <div className="text-3xl">{item.emoji}</div>
+        <div className="text-sm font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg">
+          {item.category || "General"}
+        </div>
         <div className="flex gap-1">
           <button 
             onClick={onToggle}
@@ -53,35 +55,33 @@ interface MenuFormCardProps {
   onSubmit: () => void;
   onCancel: () => void;
   isEditing: boolean;
+  existingCategories: string[];
 }
 
-const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing }: MenuFormCardProps) => {
+const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCategories }: MenuFormCardProps) => {
   return (
     <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
       <h3 className="font-bold text-lg">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase">Emoji</label>
-          <Input 
-            value={form.emoji}
-            onChange={(e) => setForm({ ...form, emoji: e.target.value })}
-            className="mt-2 h-11 rounded-xl"
-            maxLength={2}
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-4">
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase">Categoría</label>
-          <select 
+          <Input 
+            list="categories-list"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="mt-2 w-full h-11 rounded-xl border border-input bg-background px-3 text-sm shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option>Platos Principales</option>
-            <option>Bebidas</option>
-            <option>Postres</option>
-            <option>Acompañamientos</option>
-          </select>
+            className="mt-2 h-11 rounded-xl"
+            placeholder="Escribe o selecciona una categoría"
+          />
+          <datalist id="categories-list">
+            {existingCategories.map(cat => (
+              <option key={cat} value={cat} />
+            ))}
+            <option value="Platos Principales" />
+            <option value="Bebidas" />
+            <option value="Postres" />
+          </datalist>
+          <p className="text-[10px] text-muted-foreground mt-1">Puedes crear una categoría nueva escribiéndola.</p>
         </div>
       </div>
 
@@ -140,6 +140,8 @@ export const MenuTab = () => {
     handleDeleteMenuItem
   } = useOutletContext<BusinessContextType>();
 
+  const existingCategories = Array.from(new Set((menuItems || []).map(item => item.category).filter(Boolean)));
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -167,6 +169,7 @@ export const MenuTab = () => {
             setEditingItem(null);
           }}
           isEditing={!!editingItem}
+          existingCategories={existingCategories}
         />
       )}
 
@@ -180,7 +183,6 @@ export const MenuTab = () => {
               setNewItemForm({
                 name: item.name,
                 price: String(item.price),
-                emoji: item.emoji || "🍔",
                 description: item.description || "",
                 category: item.category || "Platos Principales"
               });
