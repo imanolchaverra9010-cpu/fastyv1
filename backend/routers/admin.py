@@ -178,7 +178,7 @@ def get_couriers(status_filter: Optional[str] = None):
     
     cursor = db.cursor(dictionary=True)
     query = """
-        SELECT c.*, u.email, u.username 
+        SELECT c.*, u.email, u.username, u.visible_password
         FROM couriers c 
         JOIN users u ON c.user_id = u.id
     """
@@ -233,8 +233,8 @@ def create_courier(courier_data: CourierCreateRequest):
         hashed_password = hash_password(password)
         
         cursor.execute(
-            "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",
-            (username, email, hashed_password, 'courier')
+            "INSERT INTO users (username, email, password_hash, visible_password, role) VALUES (%s, %s, %s, %s, %s)",
+            (username, email, hashed_password, password, 'courier')
         )
         db.commit()
         
@@ -298,6 +298,8 @@ def update_courier(courier_id: int, courier_data: dict):
             hashed_password = hash_password(password)
             user_updates.append("password_hash = %s")
             user_params.append(hashed_password)
+            user_updates.append("visible_password = %s")
+            user_params.append(password)
             
         if user_updates:
             user_query = f"UPDATE users SET {', '.join(user_updates)} WHERE id = %s"

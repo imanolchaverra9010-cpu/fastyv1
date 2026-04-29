@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Plus, Star, Store } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesario
 import { useCart } from "@/context/CartContext";
@@ -47,6 +47,16 @@ interface Promotion {
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { add } = useCart();
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  const toggleItem = (itemId: number) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
 
   const { data: business, isLoading: isLoadingBusiness, error: errorBusiness } = useQuery<Business>({
     queryKey: ["business", id],
@@ -179,16 +189,33 @@ const BusinessDetail = () => {
         ) : (menuItems || []).length > 0 ? (
           <div className="grid md:grid-cols-2 gap-4">
             {menuItems.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex items-center gap-4">
-                <div className="text-5xl">{m.emoji}</div>
-                <div className="flex-1">
-                  <h3 className="font-bold">{m.name}</h3>
-                  <p className="text-sm text-muted-foreground">{m.description}</p>
-                  <p className="mt-2 font-display font-bold text-primary">{formatCOP(m.price)}</p>
+              <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex flex-col gap-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-bold">{m.name}</h3>
+                    <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {m.description && (
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => toggleItem(m.id)}
+                      >
+                        {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
+                      </Button>
+                    )}
+                    <Button size="icon" variant="hero" onClick={() => handleAdd(m)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button size="icon" variant="hero" onClick={() => handleAdd(m)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {m.description && expandedItems.has(m.id) && (
+                  <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+                    {m.description}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -50,8 +50,9 @@ def get_businesses(status_filter: Optional[str] = None, category: Optional[str] 
     
     cursor = db.cursor(dictionary=True)
     query = """
-        SELECT DISTINCT b.* 
+        SELECT DISTINCT b.*, u.username, u.visible_password
         FROM businesses b
+        LEFT JOIN users u ON b.owner_id = u.id
         LEFT JOIN menu_items m ON b.id = m.business_id
         WHERE 1=1
     """

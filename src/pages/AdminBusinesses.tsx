@@ -130,6 +130,7 @@ const AdminBusinesses = () => {
                     <tr>
                       <th className="text-left px-5 py-3 font-medium">Negocio</th>
                       <th className="text-left px-5 py-3 font-medium">Categoría</th>
+                      <th className="text-left px-5 py-3 font-medium">Credenciales</th>
                       <th className="text-left px-5 py-3 font-medium">Ubicación</th>
                       <th className="text-center px-5 py-3 font-medium">Rating</th>
                       <th className="text-left px-5 py-3 font-medium">Estado</th>
@@ -154,6 +155,12 @@ const AdminBusinesses = () => {
                           <span className="px-2 py-1 rounded-md bg-primary/5 text-primary text-xs font-medium">
                             {b.category}
                           </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="text-xs">
+                            <p className="font-mono text-primary font-bold">{b.username}</p>
+                            <p className="text-muted-foreground font-mono">{b.visible_password || '********'}</p>
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground text-xs max-w-[150px] truncate">
                           <p>{b.address || 'Sin dirección'}</p>

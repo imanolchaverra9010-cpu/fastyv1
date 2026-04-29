@@ -94,6 +94,7 @@ const AdminCouriers = () => {
                     <tr>
                       <th className="text-left px-5 py-3 font-medium">Domiciliario</th>
                       <th className="text-left px-5 py-3 font-medium">Vehículo</th>
+                      <th className="text-left px-5 py-3 font-medium">Credenciales</th>
                       <th className="text-left px-5 py-3 font-medium">Estado</th>
                       <th className="text-right px-5 py-3 font-medium">Entregas</th>
                       <th className="text-right px-5 py-3 font-medium">Calificación</th>
@@ -121,6 +122,12 @@ const AdminCouriers = () => {
                           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             <Bike className="h-3.5 w-3.5" /> {c.vehicle}
                           </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="text-xs">
+                            <p className="font-mono text-primary font-bold">{c.username}</p>
+                            <p className="text-muted-foreground font-mono">{c.visible_password || '********'}</p>
+                          </div>
                         </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status === "online" ? "bg-success/10 text-success" :

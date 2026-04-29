@@ -141,8 +141,8 @@ def approve_business_request(request_id: int):
         hashed_password = hash_password(user_password)
         
         cursor.execute(
-            "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",
-            (username, req['email'], hashed_password, 'business')
+            "INSERT INTO users (username, email, password_hash, visible_password, role) VALUES (%s, %s, %s, %s, %s)",
+            (username, req['email'], hashed_password, user_password, 'business')
         )
         owner_id = cursor.lastrowid
 
