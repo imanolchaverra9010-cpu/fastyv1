@@ -61,14 +61,38 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
 
   const getCoords = () => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
+      toast({ title: "Detectando ubicación...", description: "Por favor espera un momento." });
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        
         setFormData(prev => ({
           ...prev,
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude
+          latitude,
+          longitude
         }));
-        toast({ title: "Coordenadas obtenidas", description: "Lat/Lng actualizados correctamente." });
+
+        try {
+          // Intento de reverse geocoding gratuito con Nominatim (OpenStreetMap)
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.display_name) {
+              setFormData(prev => ({
+                ...prev,
+                address: data.display_name
+              }));
+              toast({ title: "Ubicación detectada", description: "Dirección y coordenadas actualizadas." });
+            }
+          }
+        } catch (error) {
+          console.error("Error en geocoding:", error);
+          toast({ title: "Coordenadas obtenidas", description: "No se pudo obtener la dirección exacta, pero las coordenadas se actualizaron." });
+        }
+      }, (error) => {
+        toast({ title: "Error de ubicación", description: "Asegúrate de dar permisos de GPS.", variant: "destructive" });
       });
+    } else {
+      toast({ title: "Error", description: "Tu navegador no soporta geolocalización.", variant: "destructive" });
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Utensils, ArrowRight, Loader2, Mail, Facebook } from "lucide-react";
+import { Utensils, ArrowRight, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useGoogleLogin } from '@react-oauth/google';
-import FacebookLogin from "@greatsumini/react-facebook-login";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -97,13 +96,7 @@ const Login = () => {
     onError: () => toast({ title: "Error", description: "El login de Google falló", variant: "destructive" }),
   });
 
-  const handleFacebookResponse = (response: any) => {
-    if (response.accessToken) {
-      handleRealSocialLogin('facebook', response.accessToken);
-    } else {
-      toast({ title: "Error", description: "El login de Facebook fue cancelado", variant: "destructive" });
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-warm flex flex-col items-center justify-center p-4">
@@ -174,29 +167,16 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="w-full">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl h-11 font-semibold"
+                className="w-full rounded-xl h-11 font-semibold"
                 onClick={() => loginGoogle()}
                 disabled={isLoading}
               >
                 <Mail className="mr-2 h-4 w-4 text-red-500" />
-                Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl h-11 font-semibold"
-                onClick={() => toast({
-                  title: "Próximamente",
-                  description: "Estamos trabajando en la funcionalidad de inicio de sesión con Facebook.",
-                })}
-                disabled={isLoading}
-              >
-                <Facebook className="mr-2 h-4 w-4 text-blue-600" />
-                Facebook
+                Iniciar sesión con Google
               </Button>
             </div>
 
