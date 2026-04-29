@@ -117,9 +117,9 @@ const AdminRequests = () => {
           </header>
 
           <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-            <div className="mb-8">
-              <h1 className="text-4xl font-display font-bold tracking-tight">Solicitudes</h1>
-              <p className="text-muted-foreground mt-1">Nuevos negocios esperando aprobación para unirse a Fasty.</p>
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Solicitudes</h1>
+              <p className="text-sm text-muted-foreground mt-1">Nuevos negocios esperando aprobación para unirse a Fasty.</p>
             </div>
 
             {loading ? (

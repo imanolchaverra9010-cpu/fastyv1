@@ -88,13 +88,13 @@ const AdminBusinesses = () => {
           </header>
 
           <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-primary font-semibold">Administración</p>
-                <h1 className="text-4xl font-display font-bold tracking-tight">Negocios</h1>
-                <p className="text-muted-foreground mt-1">Controla los aliados y establecimientos de la plataforma.</p>
+                <p className="text-xs md:text-sm text-primary font-semibold">Administración</p>
+                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Negocios</h1>
+                <p className="text-sm text-muted-foreground mt-1">Controla los aliados y establecimientos de la plataforma.</p>
               </div>
-              <Button variant="hero" className="h-11 rounded-xl gap-2" onClick={() => setIsModalOpen(true)}>
+              <Button variant="hero" className="h-11 rounded-xl gap-2 w-full md:w-auto" onClick={() => setIsModalOpen(true)}>
                 <Plus className="h-5 w-5" /> Nuevo Negocio
               </Button>
             </div>
@@ -168,7 +168,7 @@ const AdminBusinesses = () => {
                           <StatusBadge status={b.status} />
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               size="icon"
                               variant="ghost"

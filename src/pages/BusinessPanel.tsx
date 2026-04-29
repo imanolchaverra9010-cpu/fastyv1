@@ -371,10 +371,10 @@ const BusinessPanel = () => {
             </header>
 
             <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-              <div className="mb-8">
-                <p className="text-sm text-primary font-semibold">Operación</p>
-                <h1 className="text-4xl font-display font-bold tracking-tight">¡Hola, {user?.username}! 👋</h1>
-                <p className="text-muted-foreground mt-1">Gestiona tu negocio en tiempo real.</p>
+              <div className="mb-6 md:mb-8">
+                <p className="text-xs md:text-sm text-primary font-semibold">Operación</p>
+                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">¡Hola, {user?.username}! 👋</h1>
+                <p className="text-sm text-muted-foreground mt-1">Gestiona tu negocio en tiempo real.</p>
               </div>
 
 
