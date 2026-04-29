@@ -58,28 +58,40 @@ export const CouriersTab = () => {
             <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
           ))
         ) : filteredCouriers.map((c) => (
-          <div key={c.id} className="bg-card border border-border/60 rounded-2xl p-5 shadow-card hover:shadow-glow transition-all group">
+          <div key={c.id} className="bg-card border border-border/60 rounded-2xl p-5 shadow-card hover:shadow-glow transition-all group relative overflow-hidden">
             <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-lg shadow-soft shrink-0">
-                {c.name.split(" ").map((n: any) => n[0]).join("").slice(0, 2)}
+              <div className="h-16 w-16 rounded-2xl bg-gradient-hero flex items-center justify-center text-white font-bold text-xl shadow-soft shrink-0 overflow-hidden">
+                {c.image_url ? (
+                  <img 
+                    src={c.image_url.startsWith("http") ? c.image_url : `/api${c.image_url}`} 
+                    alt={c.name} 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  c.name.split(" ").map((n: any) => n[0]).join("").slice(0, 2)
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-bold truncate">{c.name}</h3>
+                  <h3 className="font-bold truncate text-base">{c.name}</h3>
                   <div className="flex items-center gap-1 bg-warning/10 text-warning px-2 py-0.5 rounded-full text-[10px] font-bold">
                     <Star className="h-3 w-3 fill-warning" />
                     {c.rating?.toFixed(1) || "5.0"}
                   </div>
                 </div>
                 
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Bike className="h-3.5 w-3.5" /> {c.vehicle}
+                    <Bike className="h-3.5 w-3.5 text-primary" /> {c.vehicle}
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" /> {c.phone}
+                    <Package className="h-3.5 w-3.5 text-primary" /> {c.deliveries || 0} entregas
                   </p>
                 </div>
+                
+                <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-primary" /> {c.phone}
+                </p>
 
                 <div className="mt-4 flex items-center justify-between">
                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
