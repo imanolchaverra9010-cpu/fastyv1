@@ -38,7 +38,7 @@ const SiteHeader = () => {
 
   const handleProfileClick = () => {
     if (user?.role === "customer") navigate("/perfil");
-    else if (user?.role === "business") navigate("/admin-negocio"); // Asumiendo que existe o se creará
+    else if (user?.role === "business") navigate("/negocio"); 
     else if (user?.role === "courier") navigate("/domiciliario");
     else if (user?.role === "admin") navigate("/admin");
   };
