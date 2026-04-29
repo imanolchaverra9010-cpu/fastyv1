@@ -8,12 +8,14 @@ load_dotenv()
 
 # Base de datos - Railway
 db_config = {
-    "host": os.getenv("DATABASE_HOST", "mysql.railway.internal"),  # Cambiar por host público si el backend NO está en Railway
+    "host": os.getenv("DATABASE_HOST", "switchback.proxy.rlwy.net"),
     "user": os.getenv("DATABASE_USER", "root"),
     "password": os.getenv("DATABASE_PASSWORD", "OyDRGvdWqQwOLiknRFLmFFdhPOVuwgws"),
     "database": os.getenv("DATABASE_NAME", "railway"),
-    "port": int(os.getenv("DATABASE_PORT") or "3306"),
-    "ssl_disabled": True,
+    "port": int(os.getenv("DATABASE_PORT") or "46587"),
+    "ssl_disabled": False,
+    "ssl_verify_cert": False,
+    "ssl_verify_identity": False,
     "connect_timeout": 10,
     "connection_timeout": 10,
 }
