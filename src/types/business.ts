@@ -75,7 +75,6 @@ export interface BusinessContextType {
   fetchBusinessData: () => void;
   orders: Order[];
   menuItems: MenuItem[];
-  promotions: Promotion[];
   stats: BusinessStats | null;
   expandedOrder: string | null;
   setExpandedOrder: (id: string | null) => void;
@@ -89,13 +88,4 @@ export interface BusinessContextType {
   handleAddMenuItem: () => void;
   handleToggleMenuItem: (id: number, isActive: boolean) => void;
   handleDeleteMenuItem: (id: number) => void;
-  showPromoForm: boolean;
-  setShowPromoForm: (show: boolean) => void;
-  newPromoForm: any;
-  setNewPromoForm: (form: any) => void;
-  editingPromo: Promotion | null;
-  setEditingPromo: (promo: Promotion | null) => void;
-  handleAddPromotion: () => void;
-  handleTogglePromotion: (id: number, isActive: boolean) => void;
-  handleDeletePromotion: (id: number) => void;
 }

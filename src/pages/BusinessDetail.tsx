@@ -35,15 +35,7 @@ interface MenuItem {
   is_active: boolean;
 }
 
-interface Promotion {
-  id: number;
-  business_id: string;
-  title: string;
-  description: string;
-  discount_percent: number;
-  promo_code: string;
-  emoji: string;
-}
+
 
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,17 +75,7 @@ const BusinessDetail = () => {
     enabled: !!id,
   });
 
-  const { data: promotions, isLoading: isLoadingPromos } = useQuery<Promotion[]>({
-    queryKey: ["promotions", id],
-    queryFn: async () => {
-      const response = await fetch(`/api/promotions/${id}`);
-      if (!response.ok) {
-        throw new Error("Error fetching promotions");
-      }
-      return response.json();
-    },
-    enabled: !!id,
-  });
+
 
   const handleAdd = (item: MenuItem) => {
     if (!business) return;

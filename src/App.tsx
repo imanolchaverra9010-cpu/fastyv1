@@ -85,7 +85,6 @@ const AppContent = () => {
           <Route index element={<Navigate to="pedidos" replace />} />
           <Route path="pedidos" element={<OrdersTab />} />
           <Route path="menu" element={<MenuTab />} />
-          <Route path="promociones" element={<PromotionsTab />} />
           <Route path="estadisticas" element={<StatsTab />} />
           <Route path="perfil" element={<ProfileTab />} />
         </Route>

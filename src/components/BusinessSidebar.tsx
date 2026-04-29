@@ -47,14 +47,7 @@ export function BusinessSidebar() {
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/negocio/promociones" className={({ isActive }) => `flex items-center gap-2 ${isActive ? 'text-primary font-bold bg-primary/10' : ''}`}>
-                <TrendingUp className="h-4 w-4" />
-                <span>Promociones</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <NavLink to="/negocio/estadisticas" className={({ isActive }) => `flex items-center gap-2 ${isActive ? 'text-primary font-bold bg-primary/10' : ''}`}>

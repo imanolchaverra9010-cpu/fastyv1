@@ -15,13 +15,10 @@ const BusinessPanel = () => {
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentNotification, setCurrentNotification] = useState<NewOrderNotification | null>(null);
   const [showMenuForm, setShowMenuForm] = useState(false);
-  const [showPromoForm, setShowPromoForm] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   const [newItemForm, setNewItemForm] = useState({
@@ -32,14 +29,7 @@ const BusinessPanel = () => {
     category: "Platos Principales"
   });
 
-  const [newPromoForm, setNewPromoForm] = useState({
-    title: "",
-    description: "",
-    discount_percent: "",
-    promo_code: "",
-    emoji: "📢",
-    expires_at: ""
-  });
+
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
 
@@ -83,17 +73,15 @@ const BusinessPanel = () => {
       return;
     }
     try {
-      const [statsRes, ordersRes, menuRes, promoRes] = await Promise.all([
+      const [statsRes, ordersRes, menuRes] = await Promise.all([
         fetch(`/api/businesses/${user.id}/stats`),
         fetch(`/api/businesses/${businessId}/orders`),
-        fetch(`/api/businesses/${businessId}/menu`),
-        fetch(`/api/promotions/${businessId}?only_active=false`)
+        fetch(`/api/businesses/${businessId}/menu`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (ordersRes.ok) setOrders(await ordersRes.json());
       if (menuRes.ok) setMenuItems(await menuRes.json());
-      if (promoRes.ok) setPromotions(await promoRes.json());
     } catch (error) {
       console.error("Error fetching business data:", error);
     } finally {
@@ -231,73 +219,7 @@ const BusinessPanel = () => {
     }
   };
 
-  const handleAddPromotion = async () => {
-    if (!newPromoForm.title) {
-      toast({ title: "Error", description: "El título es requerido", variant: "destructive" });
-      return;
-    }
 
-    try {
-      const method = editingPromo ? "PUT" : "POST";
-      const url = editingPromo
-        ? `/api/promotions/${editingPromo.id}`
-        : `/api/promotions/?business_id=${businessId}`;
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newPromoForm.title,
-          description: newPromoForm.description,
-          discount_percent: newPromoForm.discount_percent ? parseInt(newPromoForm.discount_percent) : null,
-          promo_code: newPromoForm.promo_code || null,
-          emoji: newPromoForm.emoji,
-          expires_at: newPromoForm.expires_at || null,
-          is_active: true
-        })
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Éxito",
-          description: `Promoción ${editingPromo ? 'actualizada' : 'agregada'} correctamente.`
-        });
-        setNewPromoForm({ title: "", description: "", discount_percent: "", promo_code: "", emoji: "📢", expires_at: "" });
-        setShowPromoForm(false);
-        setEditingPromo(null);
-        fetchData();
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudo procesar la promoción", variant: "destructive" });
-    }
-  };
-
-  const handleTogglePromotion = async (promoId: number, isActive: boolean) => {
-    try {
-      await fetch(`/api/promotions/${promoId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: !isActive })
-      });
-      toast({ title: "Actualizado", description: `Promoción ${!isActive ? "activada" : "desactivada"}` });
-      fetchData();
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudo actualizar la promoción", variant: "destructive" });
-    }
-  };
-
-  const handleDeletePromotion = async (promoId: number) => {
-    if (!confirm("¿Eliminar esta promoción?")) return;
-    try {
-      await fetch(`/api/promotions/${promoId}`, {
-        method: "DELETE"
-      });
-      toast({ title: "Promoción eliminada" });
-      fetchData();
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudo eliminar la promoción", variant: "destructive" });
-    }
-  };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -398,16 +320,8 @@ const BusinessPanel = () => {
                   setEditingItem,
                   handleAddMenuItem,
                   handleToggleMenuItem,
-                  handleDeleteMenuItem,
-                  showPromoForm,
-                  setShowPromoForm,
-                  newPromoForm,
-                  setNewPromoForm,
-                  editingPromo,
-                  setEditingPromo,
-                  handleAddPromotion,
-                  handleTogglePromotion,
-                  handleDeletePromotion
+                  handleToggleMenuItem,
+                  handleDeleteMenuItem
                 } satisfies BusinessContextType}
               />
 
