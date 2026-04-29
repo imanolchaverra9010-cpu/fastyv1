@@ -90,15 +90,31 @@ const SiteHeader = () => {
             {!isInternalRole && <CartButton />}
             
             {user ? (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 hover:bg-primary/5 hover:text-primary transition-colors" onClick={handleProfileClick}>
-                  <div className="h-9 w-9 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-sm">
-                    {user.username[0].toUpperCase()}
+              <div className="flex items-center gap-3 bg-muted/40 p-1 pr-3 rounded-full border border-border/40">
+                <Button 
+                  variant="ghost" 
+                  className="p-0 h-9 w-auto flex items-center gap-2 hover:bg-transparent" 
+                  onClick={handleProfileClick}
+                >
+                  <div className="h-8 w-8 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-xs shadow-soft shrink-0 overflow-hidden">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `/api${user.avatar_url}`} alt={user.username} className="h-full w-full object-cover" />
+                    ) : (
+                      user.username[0].toUpperCase()
+                    )}
                   </div>
+                  <span className="text-sm font-bold hidden md:inline-block pr-1">
+                    {user.username}
+                  </span>
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" onClick={logout}>
-                  <LogOut className="h-5 w-5" />
-                </Button>
+                <div className="h-4 w-px bg-border/60" />
+                <button 
+                  className="text-muted-foreground hover:text-destructive transition-colors p-1" 
+                  onClick={logout}
+                  title="Cerrar sesión"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             ) : (
               <Button asChild variant="hero" size="lg" className="rounded-2xl px-6 h-12 shadow-glow">

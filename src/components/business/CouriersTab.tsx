@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Bike, Phone, Star, User } from "lucide-react";
+import { Search, Bike, Phone, Star, User, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 
