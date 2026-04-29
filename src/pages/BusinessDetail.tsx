@@ -176,9 +176,6 @@ const BusinessDetail = () => {
                   <Clock className="h-4 w-4" />
                   {business.eta}
                 </span>
-                <span className="bg-primary/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-soft font-bold">
-                  Envío {formatCOP(business.delivery_fee)}
-                </span>
               </div>
             </div>
           </div>
