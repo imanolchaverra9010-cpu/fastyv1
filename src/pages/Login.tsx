@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Utensils, ArrowRight, Loader2, Mail } from "lucide-react";
+import { Utensils, ArrowRight, Loader2, Mail, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -167,16 +167,25 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="w-full">
+            <div className="w-full grid grid-cols-2 gap-3">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-xl h-11 font-semibold"
+                className="rounded-xl h-11 font-semibold"
                 onClick={() => loginGoogle()}
                 disabled={isLoading}
               >
                 <Mail className="mr-2 h-4 w-4 text-red-500" />
-                Iniciar sesión con Google
+                Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl h-11 font-semibold"
+                onClick={() => navigate("/")}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Inicio
               </Button>
             </div>
 
