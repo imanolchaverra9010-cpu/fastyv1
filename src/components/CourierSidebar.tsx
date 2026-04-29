@@ -147,11 +147,6 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
-                <DropdownMenuItem asChild>
-                  <Link to="/domiciliario/profile" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" /> Perfil
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   Cerrar sesión
