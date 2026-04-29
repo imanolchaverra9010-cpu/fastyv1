@@ -127,7 +127,7 @@ const Businesses = () => {
                     <img
                       src={b.image_url.startsWith("http") ? b.image_url : (b.image_url.startsWith("/api") ? b.image_url : `/api${b.image_url}`)}
                       alt={b.name}
-                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-warm rounded-2xl text-7xl">

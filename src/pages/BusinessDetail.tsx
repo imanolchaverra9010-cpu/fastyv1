@@ -140,9 +140,9 @@ const BusinessDetail = () => {
 
           {/* Content Overlay */}
           <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 w-full text-white">
-            <div className="h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-4 border-white/30 overflow-hidden shadow-soft shrink-0 p-2 flex items-center justify-center">
+            <div className="h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-4 border-white/30 overflow-hidden shadow-soft shrink-0 flex items-center justify-center">
               {business.image_url ? (
-                <img src={business.image_url.startsWith("http") ? business.image_url : (business.image_url.startsWith("/api") ? business.image_url : `/api${business.image_url}`)} alt={business.name} className="h-full w-full object-contain" />
+                <img src={business.image_url.startsWith("http") ? business.image_url : (business.image_url.startsWith("/api") ? business.image_url : `/api${business.image_url}`)} alt={business.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full flex items-center justify-center bg-white/10 rounded-full">
                   <Store className="h-16 w-16 text-white" />
