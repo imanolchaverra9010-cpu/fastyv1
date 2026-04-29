@@ -1,9 +1,11 @@
-import { AlertCircle, ChefHat, Package, Check, MapPin, ChevronDown, ChevronUp, ExternalLink, Phone, ArrowRight, Bike } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, ChefHat, Package, Check, MapPin, ChevronDown, ChevronUp, ExternalLink, Phone, ArrowRight, Bike, Navigation, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/data/mock";
 import { Order, BusinessContextType } from "@/types/business";
 import { useOutletContext, Link } from "react-router-dom";
 import DeliveryMap from "@/components/DeliveryMap";
+import { RequestDeliveryModal } from "./RequestDeliveryModal";
 
 const STATUS_CONFIG = {
   pending: { label: "Pendiente", color: "border-destructive/30 bg-destructive/5", badge: "bg-destructive/10 text-destructive" },
@@ -69,6 +71,11 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
           <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${config.badge}`}>
             {config.label}
           </span>
+          {order.order_type === "business_requested" && (
+            <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 mt-1">
+              Servicio Externo
+            </span>
+          )}
         </div>
 
         <div className="ml-2 text-muted-foreground">
@@ -182,7 +189,8 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
 };
 
 export const OrdersTab = () => {
-  const { orders, expandedOrder, setExpandedOrder, handleUpdateOrderStatus, business } = useOutletContext<BusinessContextType>();
+  const { orders, expandedOrder, setExpandedOrder, handleUpdateOrderStatus, business, fetchBusinessData } = useOutletContext<BusinessContextType>();
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
 
   const businessCoords = (business as any)?.latitude && (business as any)?.longitude 
     ? { 
@@ -230,10 +238,32 @@ export const OrdersTab = () => {
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-between items-center bg-card border border-border/60 p-4 rounded-2xl shadow-card">
+        <div className="hidden md:block">
+          <h3 className="font-bold text-sm">¿Tienes pedidos externos?</h3>
+          <p className="text-xs text-muted-foreground">Solicita un domiciliario de Fasty ahora.</p>
+        </div>
+        <Button 
+          variant="hero" 
+          className="w-full md:w-auto h-12 rounded-xl px-6 font-bold shadow-glow gap-2"
+          onClick={() => setIsDeliveryModalOpen(true)}
+        >
+          <Navigation className="h-5 w-5" /> Solicitar Domicilio
+        </Button>
+      </div>
+
       <Section title="Pendientes" icon={<AlertCircle className="h-4 w-4 text-destructive" />} orders={pendingOrders} />
       <Section title="En Preparación" icon={<ChefHat className="h-4 w-4 text-primary" />} orders={preparingOrders} />
       <Section title="En Camino" icon={<Package className="h-4 w-4 text-warning" />} orders={shippedOrders} />
       <Section title="Entregados" icon={<Check className="h-4 w-4 text-success" />} orders={deliveredOrders.slice(0, 5)} />
+
+      {isDeliveryModalOpen && business && (
+        <RequestDeliveryModal 
+          business={business as any}
+          onClose={() => setIsDeliveryModalOpen(false)}
+          onSuccess={fetchBusinessData}
+        />
+      )}
     </div>
   );
 };
