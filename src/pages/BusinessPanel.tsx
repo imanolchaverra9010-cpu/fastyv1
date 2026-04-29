@@ -24,7 +24,6 @@ const BusinessPanel = () => {
   const [newItemForm, setNewItemForm] = useState({
     name: "",
     price: "",
-    emoji: "🍔",
     description: "",
     category: "Platos Principales"
   });
@@ -170,7 +169,6 @@ const BusinessPanel = () => {
         body: JSON.stringify({
           name: newItemForm.name,
           price: parseInt(newItemForm.price),
-          emoji: newItemForm.emoji,
           description: newItemForm.description,
           category: newItemForm.category,
           is_active: true
@@ -182,7 +180,7 @@ const BusinessPanel = () => {
           title: "Éxito",
           description: `${newItemForm.name} ${editingItem ? 'actualizado' : 'agregado'} correctamente.`
         });
-        setNewItemForm({ name: "", price: "", emoji: "🍔", description: "", category: "Platos Principales" });
+        setNewItemForm({ name: "", price: "", description: "", category: "Platos Principales" });
         setShowMenuForm(false);
         setEditingItem(null);
         fetchData();
@@ -305,7 +303,6 @@ const BusinessPanel = () => {
                 context={{
                   orders,
                   menuItems,
-                  promotions,
                   stats,
                   business,
                   fetchBusinessData,
@@ -319,7 +316,6 @@ const BusinessPanel = () => {
                   editingItem,
                   setEditingItem,
                   handleAddMenuItem,
-                  handleToggleMenuItem,
                   handleToggleMenuItem,
                   handleDeleteMenuItem
                 } satisfies BusinessContextType}
