@@ -18,6 +18,7 @@ import { MenuTab } from "@/components/business/MenuTab";
 import { PromotionsTab } from "@/components/business/PromotionsTab";
 import { StatsTab } from "@/components/business/StatsTab";
 import { ProfileTab } from "@/components/business/ProfileTab";
+import { CouriersTab } from "@/components/business/CouriersTab";
 import OrderTracking from "./pages/OrderTracking.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
@@ -85,6 +86,7 @@ const AppContent = () => {
           <Route index element={<Navigate to="pedidos" replace />} />
           <Route path="pedidos" element={<OrdersTab />} />
           <Route path="menu" element={<MenuTab />} />
+          <Route path="repartidores" element={<CouriersTab />} />
           <Route path="estadisticas" element={<StatsTab />} />
           <Route path="perfil" element={<ProfileTab />} />
         </Route>

@@ -1,4 +1,4 @@
-import { LogOut, Home, Package, Menu, BarChart3, TrendingUp } from "lucide-react";
+import { LogOut, Home, Package, Menu, BarChart3, Bike } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
@@ -47,7 +47,14 @@ export function BusinessSidebar() {
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
-
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/negocio/repartidores" className={({ isActive }) => `flex items-center gap-2 ${isActive ? 'text-primary font-bold bg-primary/10' : ''}`}>
+                <Bike className="h-4 w-4" />
+                <span>Repartidores</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <NavLink to="/negocio/estadisticas" className={({ isActive }) => `flex items-center gap-2 ${isActive ? 'text-primary font-bold bg-primary/10' : ''}`}>
