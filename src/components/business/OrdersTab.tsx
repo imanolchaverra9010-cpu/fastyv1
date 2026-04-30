@@ -45,14 +45,14 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
   const nextStatuses = STATUS_FLOW[order.status] ?? [];
 
   return (
-    <div className={`bg-card border-2 rounded-2xl transition-all duration-200 overflow-hidden ${config.color}`}>
+    <div className={`bg-card border-2 rounded-2xl transition-all duration-200 overflow-hidden ${config.color} shadow-sm`}>
       {/* Header — always visible */}
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer select-none"
+        className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 cursor-pointer select-none"
         onClick={onToggleExpand}
       >
         {/* Status dot */}
-        <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+        <div className={`h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 ${
           order.status === "pending"   ? "bg-destructive animate-pulse" :
           order.status === "preparing" ? "bg-primary animate-pulse" :
           order.status === "shipped" || order.status === "in_transit" ? "bg-warning animate-pulse" :
@@ -60,40 +60,42 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
         }`} />
 
         <div className="flex-1 min-w-0">
-          <p className="font-bold truncate">{order.customer_name}</p>
-          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-            <MapPin className="h-3 w-3 shrink-0" /> {order.delivery_address}
+          <p className="font-bold text-sm sm:text-base truncate leading-none mb-1">{order.customer_name}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground truncate flex items-center gap-1">
+            <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> {order.delivery_address}
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <p className="font-bold text-base">{formatCOP(order.total)}</p>
-          <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${config.badge}`}>
-            {config.label}
-          </span>
-          {order.order_type === "business_requested" && (
-            <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 mt-1">
-              Servicio Externo
+        <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
+          <p className="font-bold text-sm sm:text-base leading-none">{formatCOP(order.total)}</p>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide px-1.5 sm:px-2 py-0.5 rounded-full ${config.badge}`}>
+              {config.label}
             </span>
-          )}
+            {order.order_type === "business_requested" && (
+              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                Externo
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="ml-2 text-muted-foreground">
+        <div className="ml-1 text-muted-foreground">
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </div>
 
       {/* Expanded Detail */}
       {isExpanded && (
-        <div className="px-4 pb-5 space-y-4 border-t border-border/40 pt-4">
+        <div className="px-3 sm:px-4 pb-4 sm:pb-5 space-y-4 border-t border-border/40 pt-4 bg-background/30">
           {/* ID + Google Maps Link */}
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-mono text-muted-foreground">{order.id}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <p className="text-[10px] font-mono text-muted-foreground truncate">ID: {order.id}</p>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-primary/5 sm:bg-transparent px-2 py-1 rounded-lg sm:p-0 w-fit"
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="h-3.5 w-3.5" /> Ver en Google Maps
@@ -102,49 +104,49 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
 
           {/* Products */}
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Productos</p>
-            <div className="space-y-1.5 bg-muted/30 rounded-xl p-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 tracking-wider">Productos</p>
+            <div className="space-y-1.5 bg-card/60 border border-border/40 rounded-xl p-3 shadow-inner">
               {(order.items || []).map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="flex items-center gap-1.5">
-                    <span>{item.emoji}</span>
-                    <span className="font-medium">{item.name}</span>
-                    <span className="text-muted-foreground">×{item.quantity}</span>
+                <div key={idx} className="flex justify-between text-xs sm:text-sm gap-2">
+                  <span className="flex items-start gap-1.5 min-w-0">
+                    <span className="shrink-0">{item.emoji}</span>
+                    <span className="font-medium truncate">{item.name}</span>
+                    <span className="text-muted-foreground shrink-0">×{item.quantity}</span>
                   </span>
-                  <span className="font-bold">{formatCOP(item.price * item.quantity)}</span>
+                  <span className="font-bold shrink-0">{formatCOP(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Meta */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="h-3 w-3" /> Teléfono
+          <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div className="bg-muted/30 p-2 rounded-xl">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase flex items-center gap-1 mb-1">
+                <Phone className="h-2.5 w-2.5" /> Teléfono
               </p>
-              <p className="font-medium mt-0.5">{order.customer_phone || "—"}</p>
+              <p className="font-bold truncate">{order.customer_phone || "—"}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Pago</p>
-              <p className="font-medium capitalize mt-0.5">{order.payment_method}</p>
+            <div className="bg-muted/30 p-2 rounded-xl">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Pago</p>
+              <p className="font-bold capitalize truncate">{order.payment_method}</p>
             </div>
           </div>
 
           {order.notes && (
-            <div className="bg-muted/40 rounded-xl p-3 text-sm">
-              <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Notas del cliente</p>
-              <p>{order.notes}</p>
+            <div className="bg-warning/5 border border-warning/10 rounded-xl p-3 text-xs sm:text-sm">
+              <p className="text-[10px] font-bold text-warning uppercase mb-1 tracking-wider">Notas del cliente</p>
+              <p className="font-medium">{order.notes}</p>
             </div>
           )}
 
           {/* Live Map for Active Deliveries */}
           {(order.status === 'shipped' || order.status === 'in_transit') && (
             <div className="space-y-2">
-              <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 tracking-wider">
                 <Bike className="h-3.5 w-3.5" /> Rastreo en vivo
               </p>
-              <div className="h-[200px] rounded-xl overflow-hidden border border-border/60 shadow-inner">
+              <div className="h-[160px] sm:h-[200px] rounded-xl overflow-hidden border border-border/60 shadow-inner">
                 <DeliveryMap 
                    pickup={{ 
                       lat: businessCoords?.lat || 4.6533, 
@@ -174,8 +176,11 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
                 <Button
                   key={ns}
                   variant={ns === "cancelled" ? "outline" : "hero"}
-                  className={`w-full rounded-xl h-11 font-bold gap-2 ${ns === "cancelled" ? "border-destructive/40 text-destructive hover:bg-destructive/10" : ""}`}
-                  onClick={() => onStatusChange(order.id, ns)}
+                  className={`w-full rounded-xl h-12 sm:h-11 font-bold gap-2 text-sm ${ns === "cancelled" ? "border-destructive/40 text-destructive hover:bg-destructive/10" : "shadow-glow"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStatusChange(order.id, ns);
+                  }}
                 >
                   {NEXT_LABEL[ns] ?? ns} <ArrowRight className="h-4 w-4" />
                 </Button>
