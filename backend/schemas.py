@@ -33,6 +33,7 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
     password: Optional[str] = None
     current_password: Optional[str] = None
+    is_admin_edit: Optional[bool] = False
 
 # Order Schemas
 class OrderRatingCreate(BaseModel):

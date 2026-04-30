@@ -16,7 +16,8 @@ def update_user(user_id: int, user_data: UserUpdate):
     cursor = db.cursor(dictionary=True)
     try:
         # Verificar contraseña actual si se intenta cambiar el nombre de usuario o la contraseña
-        if user_data.password or user_data.username:
+        # Pero saltar esta verificación si es una edición administrativa
+        if (user_data.password or user_data.username) and not user_data.is_admin_edit:
             if not user_data.current_password:
                 raise HTTPException(status_code=400, detail="Se requiere la contraseña actual para cambiar las credenciales.")
             

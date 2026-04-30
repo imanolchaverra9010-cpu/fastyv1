@@ -1,4 +1,4 @@
-import { Plus, Search, Store, Trash2, Edit, Utensils, MoreVertical } from "lucide-react";
+import { Plus, Search, Store, Trash2, Edit, Utensils, MoreVertical, Key } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { BusinessModal } from "@/components/BusinessModal";
 import { MenuManagerModal } from "@/components/MenuManagerModal";
+import { AdminCredentialsModal } from "@/components/admin/AdminCredentialsModal";
 import { toast } from "@/hooks/use-toast";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -17,6 +18,7 @@ const AdminBusinesses = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<any>(null);
   const [managingMenuBusiness, setManagingMenuBusiness] = useState<any>(null);
+  const [credentialsBusiness, setCredentialsBusiness] = useState<any>(null);
 
   const fetchBusinesses = async () => {
     setLoading(true);
@@ -35,9 +37,13 @@ const AdminBusinesses = () => {
     }
   };
 
+// ... (fetchBusinesses y useEffect se mantienen igual)
+
   useEffect(() => {
     fetchBusinesses();
   }, [filter]);
+
+// ... (toggleStatus y deleteBusiness se mantienen igual)
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -139,7 +145,7 @@ const AdminBusinesses = () => {
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {loading ? (
-                      <tr><td colSpan={6} className="px-5 py-10 text-center animate-pulse">Cargando aliados...</td></tr>
+                      <tr><td colSpan={7} className="px-5 py-10 text-center animate-pulse">Cargando aliados...</td></tr>
                     ) : (filteredBusinesses || []).map((b) => (
                       <tr key={b.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-4">
@@ -183,6 +189,15 @@ const AdminBusinesses = () => {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => setCredentialsBusiness(b)}
+                              title="Gestionar Credenciales"
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -249,9 +264,18 @@ const AdminBusinesses = () => {
             onClose={() => setManagingMenuBusiness(null)}
           />
         )}
+        {credentialsBusiness && (
+          <AdminCredentialsModal
+            business={credentialsBusiness}
+            onClose={() => setCredentialsBusiness(null)}
+            onSuccess={fetchBusinesses}
+          />
+        )}
       </div>
     </SidebarProvider>
   );
 };
+
+export default AdminBusinesses;
 
 export default AdminBusinesses;
