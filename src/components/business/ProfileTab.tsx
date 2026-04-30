@@ -148,6 +148,13 @@ export const ProfileTab = () => {
 
       if (res.ok) {
         toast({ title: "Credenciales actualizadas", description: "Tus datos de acceso han sido cambiados." });
+        
+        // Actualizar el contexto global para que el Header y otros se enteren
+        updateUser({ 
+          username: credForm.username, 
+          email: credForm.email 
+        });
+        
         setCredForm(prev => ({ ...prev, currentPassword: "", newPassword: "" }));
       } else {
         const data = await res.json();
@@ -339,22 +346,31 @@ export const ProfileTab = () => {
           <span className="text-warning font-semibold ml-1">Se requiere tu contraseña actual para confirmar los cambios.</span>
         </p>
 
+        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 mb-4">
+          <p className="text-xs font-bold text-primary flex items-center gap-2">
+            <User className="h-3.5 w-3.5" /> Usuario actual: <span className="font-black underline">{user?.username}</span>
+          </p>
+          <p className="text-xs font-bold text-primary flex items-center gap-2">
+            <Store className="h-3.5 w-3.5" /> Correo actual: <span className="font-black underline">{user?.email}</span>
+          </p>
+        </div>
+
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <User className="h-3 w-3" /> Nombre de Usuario
+                <User className="h-3 w-3" /> Nuevo Nombre de Usuario
               </label>
               <Input
                 value={credForm.username}
                 onChange={(e) => setCredForm({ ...credForm, username: e.target.value })}
                 className="mt-2 h-11 rounded-xl"
-                placeholder="Nuevo nombre de usuario"
+                placeholder="Nombre de usuario"
               />
             </div>
             <div>
               <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Store className="h-3 w-3" /> Correo Electrónico
+                <Store className="h-3 w-3" /> Nuevo Correo Electrónico
               </label>
               <Input
                 type="email"

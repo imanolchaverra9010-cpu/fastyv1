@@ -302,6 +302,7 @@ const BusinessPanel = () => {
               <Outlet
                 context={{
                   user,
+                  updateUser,
                   orders,
                   menuItems,
                   stats,
