@@ -205,38 +205,60 @@ const BusinessDetail = () => {
                     <div className="px-6 pb-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="grid md:grid-cols-2 gap-4">
                         {items.map((m: any) => (
-                          <div key={m.id} className="rounded-2xl bg-muted/20 border border-border/40 p-4 flex flex-col gap-2 hover:border-primary/20 transition-all shadow-sm">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-sm md:text-base uppercase leading-tight line-clamp-2">{m.name}</h3>
-                                <p className="mt-1 font-display font-bold text-primary text-sm md:text-base">{formatCOP(m.price)}</p>
+                          <div key={m.id} className="rounded-2xl bg-muted/20 border border-border/40 p-4 hover:border-primary/20 transition-all shadow-sm group">
+                            <div className="flex gap-3">
+                              {/* Texto del producto */}
+                              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                  <h3 className="font-bold text-sm md:text-base uppercase leading-tight line-clamp-2 text-foreground/90">
+                                    {m.name}
+                                  </h3>
+                                  {m.description && !expandedItems.has(m.id) && (
+                                    <p className="text-[10px] text-muted-foreground line-clamp-1 mt-1">
+                                      {m.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="mt-2 font-display font-bold text-primary text-base">
+                                  {formatCOP(m.price)}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {m.description && (
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 rounded-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleItem(m.id);
-                                    }}
-                                  >
-                                    {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
-                                  </Button>
-                                )}
+
+                              {/* Acciones */}
+                              <div className="flex flex-col items-center justify-center gap-2 shrink-0">
                                 <Button 
                                   size="icon" 
                                   variant="hero" 
                                   onClick={() => handleAdd(m)} 
-                                  className="h-10 w-10 md:h-9 md:w-9 shadow-lg active:scale-95 transition-transform"
+                                  className="h-12 w-12 rounded-xl shadow-lg active:scale-90 transition-transform bg-primary text-white"
                                 >
-                                  <Plus className="h-5 w-5 md:h-4 md:w-4" />
+                                  <Plus className="h-6 w-6" />
                                 </Button>
+                                {m.description && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleItem(m.id);
+                                    }}
+                                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                  >
+                                    {expandedItems.has(m.id) ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-bold">INFO</span>
+                                        <Info className="h-3.5 w-3.5" />
+                                      </div>
+                                    )}
+                                  </button>
+                                )}
                               </div>
                             </div>
+
+                            {/* Descripción expandida */}
                             {m.description && expandedItems.has(m.id) && (
-                              <div className="mt-2 text-xs text-muted-foreground bg-white/50 backdrop-blur-sm p-3 rounded-xl border border-primary/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="mt-3 text-xs text-muted-foreground bg-white/60 backdrop-blur-sm p-3 rounded-xl border border-primary/10 animate-in fade-in zoom-in-95 duration-200">
+                                <p className="font-bold text-[10px] text-primary uppercase mb-1">Descripción:</p>
                                 {m.description}
                               </div>
                             )}
