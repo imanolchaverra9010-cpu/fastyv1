@@ -157,9 +157,16 @@ const AdminBusinesses = () => {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <div className="text-xs">
-                            <p className="font-mono text-primary font-bold">{b.username}</p>
-                            <p className="text-muted-foreground font-mono">{b.visible_password || '********'}</p>
+                          <div className="text-xs space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-primary">{b.username}</span>
+                            </div>
+                            <div className="text-muted-foreground truncate max-w-[140px]" title={b.email}>
+                              {b.email || 'Sin correo'}
+                            </div>
+                            <div className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px] w-fit font-bold">
+                              {b.visible_password || '********'}
+                            </div>
                           </div>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground text-xs max-w-[150px] truncate">
