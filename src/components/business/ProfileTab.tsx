@@ -150,10 +150,12 @@ export const ProfileTab = () => {
         toast({ title: "Credenciales actualizadas", description: "Tus datos de acceso han sido cambiados." });
         
         // Actualizar el contexto global para que el Header y otros se enteren
-        updateUser({ 
-          username: credForm.username, 
-          email: credForm.email 
-        });
+        if (typeof updateUser === 'function') {
+          updateUser({ 
+            username: credForm.username, 
+            email: credForm.email 
+          });
+        }
         
         setCredForm(prev => ({ ...prev, currentPassword: "", newPassword: "" }));
       } else {
