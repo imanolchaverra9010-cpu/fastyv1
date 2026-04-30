@@ -41,12 +41,22 @@ const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { add } = useCart();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const toggleItem = (itemId: number) => {
     setExpandedItems(prev => {
       const next = new Set(prev);
       if (next.has(itemId)) next.delete(itemId);
       else next.add(itemId);
+      return next;
+    });
+  };
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
       return next;
     });
   };
@@ -74,8 +84,6 @@ const BusinessDetail = () => {
     },
     enabled: !!id,
   });
-
-
 
   const handleAdd = (item: MenuItem) => {
     if (!business) return;
@@ -108,6 +116,13 @@ const BusinessDetail = () => {
   if (errorMenuItems) {
     toast({ title: "Error", description: "No se pudieron cargar los items del menú.", variant: "destructive" });
   }
+
+  const groupedItems = (menuItems || []).reduce((acc: any, item) => {
+    const cat = item.category || "General";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-gradient-warm">
@@ -167,54 +182,64 @@ const BusinessDetail = () => {
         {isLoadingMenuItems ? (
           <p className="text-muted-foreground">Cargando menú...</p>
         ) : (menuItems || []).length > 0 ? (
-          <div className="space-y-10">
-            {Object.entries(
-              (menuItems || []).reduce((acc: any, item) => {
-                const cat = item.category || "General";
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(item);
-                return acc;
-              }, {})
-            ).map(([category, items]: [string, any]) => (
-              <div key={category} className="space-y-4">
-                <h3 className="text-xl font-bold border-b border-border/60 pb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-6 bg-primary rounded-full"></span>
-                  {category}
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {items.map((m: any) => (
-                    <div key={m.id} className="rounded-2xl bg-card border border-border/60 p-5 shadow-card flex flex-col gap-2">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <h3 className="font-bold">{m.name}</h3>
-                          <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {m.description && (
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => toggleItem(m.id)}
-                            >
-                              {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
-                            </Button>
-                          )}
-                          <Button size="icon" variant="hero" onClick={() => handleAdd(m)}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {m.description && expandedItems.has(m.id) && (
-                        <div className="mt-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
-                          {m.description}
-                        </div>
-                      )}
+          <div className="space-y-4">
+            {Object.entries(groupedItems).map(([category, items]: [string, any]) => {
+              const isExpanded = expandedCategories.has(category);
+              return (
+                <div key={category} className="rounded-2xl bg-card border border-border/60 shadow-soft overflow-hidden">
+                  <button 
+                    onClick={() => toggleCategory(category)}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+                      <h3 className="text-xl font-bold">{category}</h3>
+                      <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {items.length}
+                      </span>
                     </div>
-                  ))}
+                    {isExpanded ? <ChevronUp className="h-5 w-5 text-primary" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-6 pb-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {items.map((m: any) => (
+                          <div key={m.id} className="rounded-2xl bg-muted/20 border border-border/40 p-4 flex flex-col gap-2 hover:border-primary/20 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold truncate">{m.name}</h3>
+                                <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {m.description && (
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-8 w-8 rounded-full"
+                                    onClick={() => toggleItem(m.id)}
+                                  >
+                                    {expandedItems.has(m.id) ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4 text-muted-foreground" />}
+                                  </Button>
+                                )}
+                                <Button size="icon" variant="hero" onClick={() => handleAdd(m)} className="h-9 w-9">
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {m.description && expandedItems.has(m.id) && (
+                              <div className="mt-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+                                {m.description}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-muted-foreground">Este negocio aún no tiene productos.</p>
