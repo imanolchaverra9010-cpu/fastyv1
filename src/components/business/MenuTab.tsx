@@ -8,7 +8,126 @@ import { MenuScannerModal } from "./MenuScannerModal";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
-// ... (MenuItemCard y MenuFormCard se mantienen igual)
+interface MenuItemCardProps {
+  item: MenuItem;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}
+
+const MenuItemCard = ({ item, onEdit, onToggle, onDelete }: MenuItemCardProps) => {
+  return (
+    <div className={`bg-card border border-border/60 rounded-xl p-4 transition-all ${!item.is_active ? 'opacity-50' : ''}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-sm font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg">
+          {item.category || "General"}
+        </div>
+        <div className="flex gap-1">
+          <button 
+            onClick={onToggle}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            title={item.is_active ? "Desactivar" : "Activar"}
+          >
+            {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          <button 
+            onClick={onEdit}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={onDelete}
+            className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <h3 className="font-bold">{item.name}</h3>
+      {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+      <p className="text-lg font-bold text-primary mt-2">{formatCOP(item.price)}</p>
+      {item.category && <p className="text-xs text-muted-foreground mt-1">{item.category}</p>}
+    </div>
+  );
+};
+
+interface MenuFormCardProps {
+  form: any;
+  setForm: (form: any) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  isEditing: boolean;
+  existingCategories: string[];
+}
+
+const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCategories }: MenuFormCardProps) => {
+  return (
+    <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
+      <h3 className="font-bold text-lg">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
+      
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <label className="text-xs font-bold text-muted-foreground uppercase">Categoría</label>
+          <Input 
+            list="categories-list"
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            className="mt-2 h-11 rounded-xl"
+            placeholder="Escribe o selecciona una categoría"
+          />
+          <datalist id="categories-list">
+            {existingCategories.map(cat => (
+              <option key={cat} value={cat} />
+            ))}
+            <option value="Platos Principales" />
+            <option value="Bebidas" />
+            <option value="Postres" />
+          </datalist>
+          <p className="text-[10px] text-muted-foreground mt-1">Puedes crear una categoría nueva escribiéndola.</p>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-muted-foreground uppercase">Nombre del Producto</label>
+        <Input 
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="mt-2 h-11 rounded-xl"
+          placeholder="ej: Hamburguesa Clásica"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-muted-foreground uppercase">Descripción</label>
+        <textarea 
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          className="mt-2 w-full h-20 rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
+          placeholder="Describe el producto..."
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-muted-foreground uppercase">Precio (COP)</label>
+        <Input 
+          type="number"
+          value={form.price}
+          onChange={(e) => setForm({ ...form, price: e.target.value })}
+          className="mt-2 h-11 rounded-xl"
+          placeholder="15000"
+        />
+      </div>
+
+      <div className="flex gap-3 pt-4">
+        <Button variant="outline" className="flex-1 rounded-xl" onClick={onCancel}>Cancelar</Button>
+        <Button variant="hero" className="flex-1 rounded-xl" onClick={onSubmit}>
+          {isEditing ? 'Actualizar' : 'Agregar'}
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 export const MenuTab = () => {
   const {
