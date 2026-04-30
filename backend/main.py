@@ -9,7 +9,7 @@ from typing import Dict
 # Añadir el directorio actual al path para importar los módulos locales
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users
+from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai
 from utils import limiter
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
@@ -58,6 +58,7 @@ app.include_router(promotions.router, prefix="/promotions", tags=["Promotions"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
 app.include_router(business_requests.router, prefix="/businesses", tags=["Business Requests"])
+app.include_router(ai.router, prefix="/ai", tags=["AI Features"])
 
 @app.get("/")
 def read_root():

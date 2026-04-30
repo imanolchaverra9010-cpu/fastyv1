@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Sparkles, Upload, Check, X, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, Upload, Check, X, AlertCircle, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatCOP } from "@/data/mock";
 
@@ -36,33 +36,48 @@ export const MenuScannerModal = ({ isOpen, onClose, onSaveItems, businessId }: M
     reader.onloadend = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    processImage(file);
-  };
-
-  const processImage = async (file: File) => {
-    setIsProcessing(true);
-    
-    // Aquí es donde conectaríamos con el backend real que usa Gemini/OpenAI
-    // Simularemos un retraso de procesamiento y datos extraídos
+    // Llamada al backend real que usa Gemini
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Simulación de llamada a API
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const res = await fetch("/api/ai/scan-menu", {
+        method: "POST",
+        body: formData,
+      });
 
-      // Mock de datos que la IA extraería
-      const mockResult: ScannedItem[] = [
-        { name: "Hamburgesa Especial", price: 25000, description: "Carne de res, queso cheddar, tocino y salsa de la casa", category: "Hamburguesas", selected: true },
-        { name: "Perro Caliente", price: 12000, description: "Salchicha premium, ripio de papa y salsas", category: "Comida Rápida", selected: true },
-        { name: "Papas Fritas", price: 8000, description: "Porción de papas crujientes con sal", category: "Acompañamientos", selected: true },
-        { name: "Coca Cola 350ml", price: 4500, description: "Gaseosa refrescante", category: "Bebidas", selected: true },
-      ];
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Error al procesar la imagen.");
+      }
 
-      setScannedItems(mockResult);
-      toast({ title: "Escaneo completado", description: `Se han detectado ${mockResult.length} productos.` });
-    } catch (error) {
-      toast({ title: "Error", description: "No se pudo procesar la imagen.", variant: "destructive" });
+      const items = await res.json();
+
+      if (!Array.isArray(items) || items.length === 0) {
+        toast({ 
+          title: "Menú vacío", 
+          description: "La IA no pudo detectar productos en esta imagen. Asegúrate de que la foto sea clara y los precios visibles.",
+          variant: "destructive"
+        });
+        setImagePreview(null);
+        return;
+      }
+
+      // Mapear para añadir el estado 'selected'
+      const mappedItems = items.map(item => ({
+        ...item,
+        selected: true
+      }));
+
+      setScannedItems(mappedItems);
+      toast({ title: "Escaneo completado", description: `Se han detectado ${mappedItems.length} productos.` });
+    } catch (error: any) {
+      toast({ 
+        title: "Error de Escaneo", 
+        description: error.message || "No se pudo procesar la imagen.", 
+        variant: "destructive" 
+      });
+      setImagePreview(null);
     } finally {
       setIsProcessing(false);
     }
