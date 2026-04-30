@@ -35,7 +35,7 @@ try:
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
     import routers
-    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push"]
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai"]
     
     # Importar routers dinámicamente para que si uno falla no mate a los demás
     import importlib
@@ -95,14 +95,15 @@ API_PREFIX = "/api"
 # Lista de routers a cargar
 routers_to_load = [
     ("auth", auth.router, f"{API_PREFIX}", ["Authentication"]),
+    ("ai", ai.router, f"{API_PREFIX}/ai", ["AI Features"]),
     ("orders", orders.router, f"{API_PREFIX}/orders", ["Orders"]),
     ("users", users.router, f"{API_PREFIX}/users", ["Users"]),
-    ("businesses", businesses.router, f"{API_PREFIX}/businesses", ["Businesses"]),
     ("menu_items", menu_items.router, f"{API_PREFIX}/businesses", ["Menu Items"]),
+    ("business_requests", business_requests.router, f"{API_PREFIX}/businesses", ["Business Requests"]),
+    ("businesses", businesses.router, f"{API_PREFIX}/businesses", ["Businesses"]),
     ("promotions", promotions.router, f"{API_PREFIX}/promotions", ["Promotions"]),
     ("admin", admin.router, f"{API_PREFIX}/admin", ["Admin Dashboard"]),
     ("couriers", couriers.router, f"{API_PREFIX}/couriers", ["Couriers Panel"]),
-    ("business_requests", business_requests.router, f"{API_PREFIX}/businesses", ["Business Requests"]),
     ("push", push.router, f"{API_PREFIX}/push", ["Push Notifications"]),
 ]
 
