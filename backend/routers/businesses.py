@@ -7,6 +7,8 @@ import os
 import shutil
 import uuid
 
+from datetime import datetime, timedelta, date
+
 router = APIRouter()
 
 # Variable global para el manager de conexiones WebSocket (se setea desde main.py)
@@ -15,6 +17,28 @@ websocket_manager = None
 def set_websocket_manager(manager):
     global websocket_manager
     websocket_manager = manager
+
+def format_business_data(data):
+    """Convertir objetos no serializables (como timedelta) a strings."""
+    if not data:
+        return data
+    
+    if isinstance(data, list):
+        return [format_business_data(item) for item in data]
+    
+    formatted = dict(data)
+    for key, value in formatted.items():
+        if isinstance(value, timedelta):
+            # Convertir timedelta (08:00:00) a string "08:00:00"
+            total_seconds = int(value.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            formatted[key] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        elif isinstance(value, (datetime, date)):
+            formatted[key] = value.isoformat()
+            
+    return formatted
 
 @router.post("", response_model=BusinessResponse, status_code=status.HTTP_201_CREATED)
 def create_business(business: BusinessCreate):
@@ -74,7 +98,7 @@ def get_businesses(status_filter: Optional[str] = None, category: Optional[str] 
     cursor.execute(query, params)
     businesses = cursor.fetchall()
     db.close()
-    return businesses
+    return format_business_data(businesses)
 
 @router.get("/{business_id}", response_model=BusinessResponse)
 def get_business(business_id: str):
@@ -88,7 +112,7 @@ def get_business(business_id: str):
         db.close()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
-        return business
+        return format_business_data(business)
     except Exception as e:
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
@@ -173,7 +197,7 @@ def get_business_by_owner(user_id: int):
         db.close()
         if not business:
             raise HTTPException(status_code=404, detail="No business found for this owner")
-        return business
+        return format_business_data(business)
     except Exception as e:
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
@@ -227,7 +251,7 @@ def update_business(business_id: str, business_update: BusinessUpdate):
         cursor.execute("SELECT * FROM businesses WHERE id = %s", (business_id,))
         updated = cursor.fetchone()
         db.close()
-        return updated
+        return format_business_data(updated)
     except Exception as e:
         db.rollback()
         db.close()
