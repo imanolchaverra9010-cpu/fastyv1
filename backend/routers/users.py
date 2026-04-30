@@ -48,12 +48,18 @@ def update_user(user_id: int, user_data: UserUpdate):
             from utils import hash_password
             updates.append("password_hash = %s")
             params.append(hash_password(user_data.password))
-            # También actualizamos la contraseña visible para que el Admin pueda verla si es necesario
-            updates.append("visible_password = %s")
-            params.append(user_data.password)
+            
+            # Intentar actualizar visible_password solo si la columna existe
+            try:
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'visible_password'")
+                if cursor.fetchone():
+                    updates.append("visible_password = %s")
+                    params.append(user_data.password)
+            except:
+                pass
             
         if not updates:
-            raise HTTPException(status_code=400, detail="No updates provided")
+            raise HTTPException(status_code=400, detail="No hay datos para actualizar.")
             
         query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
         params.append(user_id)
