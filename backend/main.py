@@ -50,15 +50,15 @@ app.add_middleware(
 
 # Incluir Routers
 app.include_router(auth.router, tags=["Authentication"])
+app.include_router(ai.router, prefix="/ai", tags=["AI Features"])
 app.include_router(orders.router, prefix="/orders", tags=["Orders"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(businesses.router, prefix="/businesses", tags=["Businesses"])
 app.include_router(menu_items.router, prefix="/businesses", tags=["Menu Items"])
+app.include_router(business_requests.router, prefix="/businesses", tags=["Business Requests"])
+app.include_router(businesses.router, prefix="/businesses", tags=["Businesses"])
 app.include_router(promotions.router, prefix="/promotions", tags=["Promotions"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
-app.include_router(business_requests.router, prefix="/businesses", tags=["Business Requests"])
-app.include_router(ai.router, prefix="/ai", tags=["AI Features"])
 
 @app.get("/")
 def read_root():

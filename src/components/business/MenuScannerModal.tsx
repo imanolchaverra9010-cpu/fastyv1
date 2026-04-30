@@ -41,7 +41,7 @@ export const MenuScannerModal = ({ isOpen, onClose, onSaveItems, businessId }: M
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/businesses/scan-menu", {
+      const res = await fetch("/api/ai/scan-menu", {
         method: "POST",
         body: formData,
       });
