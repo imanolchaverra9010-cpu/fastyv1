@@ -23,20 +23,20 @@ const MenuItemCard = ({ item, onEdit, onToggle, onDelete }: MenuItemCardProps) =
           {item.category || "General"}
         </div>
         <div className="flex gap-1">
-          <button 
+          <button
             onClick={onToggle}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
             title={item.is_active ? "Desactivar" : "Activar"}
           >
             {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
           </button>
-          <button 
+          <button
             onClick={onEdit}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
             <Edit2 className="h-4 w-4" />
           </button>
-          <button 
+          <button
             onClick={onDelete}
             className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
           >
@@ -65,11 +65,11 @@ const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCa
   return (
     <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
       <h3 className="font-bold text-lg">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-      
+
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase">Categoría</label>
-          <Input 
+          <Input
             list="categories-list"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -90,7 +90,7 @@ const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCa
 
       <div>
         <label className="text-xs font-bold text-muted-foreground uppercase">Nombre del Producto</label>
-        <Input 
+        <Input
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className="mt-2 h-11 rounded-xl"
@@ -100,7 +100,7 @@ const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCa
 
       <div>
         <label className="text-xs font-bold text-muted-foreground uppercase">Descripción</label>
-        <textarea 
+        <textarea
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           className="mt-2 w-full h-20 rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
@@ -110,7 +110,7 @@ const MenuFormCard = ({ form, setForm, onSubmit, onCancel, isEditing, existingCa
 
       <div>
         <label className="text-xs font-bold text-muted-foreground uppercase">Precio (COP)</label>
-        <Input 
+        <Input
           type="number"
           value={form.price}
           onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -153,7 +153,7 @@ export const MenuTab = () => {
   const handleSaveScannedItems = async (items: any[]) => {
     if (!business?.id) return;
     setIsBatchSaving(true);
-    
+
     try {
       // Guardar cada producto uno por uno (o podrías crear un endpoint batch en el futuro)
       for (const item of items) {
@@ -170,7 +170,7 @@ export const MenuTab = () => {
           }),
         });
       }
-      
+
       toast({ title: "Menú actualizado", description: `Se han agregado ${items.length} productos correctamente.` });
       fetchBusinessData();
     } catch (error) {
@@ -185,6 +185,7 @@ export const MenuTab = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-lg font-bold">Gestión de Menú</h2>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {/*
           <Button 
             variant="outline" 
             className="flex-1 sm:flex-none rounded-xl gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold"
@@ -194,8 +195,9 @@ export const MenuTab = () => {
             {isBatchSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             Escaneo con IA
           </Button>
-          <Button 
-            variant="hero" 
+          */}
+          <Button
+            variant="hero"
             className="flex-1 sm:flex-none rounded-xl gap-2"
             onClick={() => {
               setEditingItem(null);
@@ -209,7 +211,7 @@ export const MenuTab = () => {
         </div>
       </div>
 
-      <MenuScannerModal 
+      <MenuScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onSaveItems={handleSaveScannedItems}
@@ -217,7 +219,7 @@ export const MenuTab = () => {
       />
 
       {showMenuForm && (
-        <MenuFormCard 
+        <MenuFormCard
           form={newItemForm}
           setForm={setNewItemForm}
           onSubmit={handleAddMenuItem}

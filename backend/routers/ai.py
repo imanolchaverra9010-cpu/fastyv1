@@ -22,7 +22,22 @@ async def scan_menu(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        
+        # Intentar autodetectar el mejor modelo disponible
+        model_name = 'gemini-1.5-flash' # Default
+        try:
+            available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            # Preferir flash 1.5, luego pro 1.5, luego vision clásico
+            if any('gemini-1.5-flash' in m for m in available_models):
+                model_name = next(m for m in available_models if 'gemini-1.5-flash' in m)
+            elif any('gemini-1.5-pro' in m for m in available_models):
+                model_name = next(m for m in available_models if 'gemini-1.5-pro' in m)
+            elif any('gemini-pro-vision' in m for m in available_models):
+                model_name = next(m for m in available_models if 'gemini-pro-vision' in m)
+        except:
+            pass # Si falla el listado, usamos el default
+
+        model = genai.GenerativeModel(model_name)
 
         image_part = {
             "mime_type": file.content_type or "image/jpeg",
@@ -39,7 +54,6 @@ async def scan_menu(file: UploadFile = File(...)):
         - category: La categoría a la que pertenece (ej: Hamburguesas, Bebidas, Entradas).
         
         Devuelve el resultado ÚNICAMENTE como un array JSON válido. 
-        Ejemplo: [{"name": "Producto", "price": 1000, "description": "Desc", "category": "Cat"}]
         Si no encuentras productos, devuelve [].
         """
 
