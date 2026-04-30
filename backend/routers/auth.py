@@ -251,6 +251,7 @@ def social_login(request: Request, social_user: SocialAuth):
             "id": user["id"],
             "role": user["role"],
             "username": user["username"],
+            "email": user["email"],
             "avatar_url": user.get("avatar_url")
         }
     except Exception as e:

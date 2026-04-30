@@ -25,7 +25,12 @@ export const ProfileTab = () => {
 
   useEffect(() => {
     if (user) {
-      setCredForm(prev => ({ ...prev, username: user.username, email: user.email || "" }));
+      console.log("Cargando credenciales del usuario:", user);
+      setCredForm(prev => ({ 
+        ...prev, 
+        username: user.username || "", 
+        email: user.email || "" 
+      }));
     }
   }, [user]);
 
