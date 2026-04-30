@@ -193,7 +193,7 @@ const BusinessDetail = () => {
                   >
                     <div className="flex items-center gap-3">
                       <span className="w-1.5 h-6 bg-primary rounded-full"></span>
-                      <h3 className="text-xl font-bold">{category}</h3>
+                      <h3 className="text-xl font-bold uppercase">{category}</h3>
                       <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {items.length}
                       </span>
@@ -208,7 +208,7 @@ const BusinessDetail = () => {
                           <div key={m.id} className="rounded-2xl bg-muted/20 border border-border/40 p-4 flex flex-col gap-2 hover:border-primary/20 transition-all">
                             <div className="flex items-center gap-4">
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-bold truncate">{m.name}</h3>
+                                <h3 className="font-bold truncate uppercase">{m.name}</h3>
                                 <p className="mt-1 font-display font-bold text-primary">{formatCOP(m.price)}</p>
                               </div>
                               <div className="flex items-center gap-2">
