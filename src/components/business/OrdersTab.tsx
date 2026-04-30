@@ -221,11 +221,12 @@ export const OrdersTab = () => {
 
   const Section = ({ title, icon, orders: sectionOrders }: { title: string; icon: React.ReactNode; orders: Order[] }) => (
     sectionOrders.length > 0 ? (
-      <section>
-        <h2 className="text-base font-bold mb-3 flex items-center gap-2 text-muted-foreground uppercase tracking-wide text-xs">
-          {icon} {title} <span className="bg-muted rounded-full px-2 py-0.5 text-foreground">{sectionOrders.length}</span>
+      <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <h2 className="text-[11px] font-black mb-3 flex items-center gap-2 text-muted-foreground uppercase tracking-[0.15em] bg-muted/30 w-fit px-3 py-1.5 rounded-full border border-border/40">
+          {icon} {title} 
+          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 ml-1">{sectionOrders.length}</span>
         </h2>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
           {sectionOrders.map((order) => (
             <OrderCard
               key={order.id}

@@ -15,6 +15,7 @@ export const ProfileTab = () => {
   const [form, setForm] = useState<Partial<Business>>({});
   const [credForm, setCredForm] = useState({
     username: "",
+    email: "",
     currentPassword: "",
     newPassword: ""
   });
@@ -22,7 +23,7 @@ export const ProfileTab = () => {
 
   useEffect(() => {
     if (user) {
-      setCredForm(prev => ({ ...prev, username: user.username }));
+      setCredForm(prev => ({ ...prev, username: user.username, email: user.email || "" }));
     }
   }, [user]);
 
@@ -139,6 +140,7 @@ export const ProfileTab = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: credForm.username,
+          email: credForm.email,
           password: credForm.newPassword || undefined,
           current_password: credForm.currentPassword
         }),
@@ -338,16 +340,30 @@ export const ProfileTab = () => {
         </p>
 
         <div className="space-y-4 pt-2">
-          <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-              <User className="h-3 w-3" /> Nombre de Usuario
-            </label>
-            <Input
-              value={credForm.username}
-              onChange={(e) => setCredForm({ ...credForm, username: e.target.value })}
-              className="mt-2 h-11 rounded-xl"
-              placeholder="Nuevo nombre de usuario"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <User className="h-3 w-3" /> Nombre de Usuario
+              </label>
+              <Input
+                value={credForm.username}
+                onChange={(e) => setCredForm({ ...credForm, username: e.target.value })}
+                className="mt-2 h-11 rounded-xl"
+                placeholder="Nuevo nombre de usuario"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Store className="h-3 w-3" /> Correo Electrónico
+              </label>
+              <Input
+                type="email"
+                value={credForm.email}
+                onChange={(e) => setCredForm({ ...credForm, email: e.target.value })}
+                className="mt-2 h-11 rounded-xl"
+                placeholder="nuevo@correo.com"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
