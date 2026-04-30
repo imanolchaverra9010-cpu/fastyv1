@@ -20,29 +20,43 @@ db_config = {
     "connection_timeout": 10,
 }
 
-# Configurar el pool de conexiones
-try:
-    db_pool = pooling.MySQLConnectionPool(
-        pool_name="mypool",
-        pool_size=10,
-        pool_reset_session=True,
-        **db_config
-    )
-except Exception as e:
-    print(f"Error inicializando el pool de base de datos: {e}")
-    db_pool = None
+def create_pool():
+    """Crear el pool de conexiones."""
+    try:
+        return pooling.MySQLConnectionPool(
+            pool_name="mypool",
+            pool_size=10,
+            pool_reset_session=True,
+            **db_config
+        )
+    except Exception as e:
+        print(f"Error creando el pool de base de datos: {e}")
+        return None
+
+# Configurar el pool de conexiones inicialmente
+db_pool = create_pool()
 
 def get_db():
     """Obtener una conexión del pool asegurando que esté viva."""
     global db_pool
+    
+    # Si el pool no existe, intentar crearlo de nuevo (Auto-recuperación)
     if db_pool is None:
-        print("El pool de base de datos no está inicializado.")
-        return None
+        print("Intentando re-inicializar el pool de base de datos...")
+        db_pool = create_pool()
         
+    if db_pool is None:
+        print("Fallback: intentando conexión directa...")
+        try:
+            return mysql.connector.connect(**db_config)
+        except Exception as e:
+            print(f"Error crítico conectando a DB (directo): {e}")
+            return None
+            
     for attempt in range(3):
         try:
             conn = db_pool.get_connection()
-            # Hacer ping para asegurar que la conexión no fue cerrada por el servidor (común en Hostinger)
+            # Hacer ping para asegurar que la conexión no fue cerrada por el servidor
             conn.ping(reconnect=True, attempts=1, delay=0)
             if conn.is_connected():
                 return conn
@@ -50,16 +64,13 @@ def get_db():
             print(f"Error del pool (Pool exhausto): {e}")
             break
         except Exception as e:
-            print(f"Conexión muerta en el pool, reintentando... ({e})")
-            # Devolver al pool la conexión rota para que la descarte y genere una nueva
-            try:
-                conn.close()
-            except:
-                pass
+            print(f"Error obteniendo conexión del pool, reintentando... ({e})")
+            # El pool a veces entrega conexiones cerradas, intentamos de nuevo
+            continue
             
-    # Fallback si el pool falla por completo
+    # Último intento: conexión directa
     try:
-        print("Fallback: intentando conexión directa...")
+        print("Fallback final: intentando conexión directa...")
         return mysql.connector.connect(**db_config)
     except Exception as e:
         print(f"Error crítico conectando a DB: {e}")
