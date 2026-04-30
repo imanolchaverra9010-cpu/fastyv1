@@ -23,7 +23,8 @@ async def scan_menu(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         image = Image.open(io.BytesIO(contents))
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Usar la versión más reciente y estable del modelo flash
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
         prompt = """
         Analiza esta imagen de un menú de restaurante. 
