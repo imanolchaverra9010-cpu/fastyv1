@@ -238,17 +238,17 @@ export const OrdersTab = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center bg-card border border-border/60 p-4 rounded-2xl shadow-card">
-        <div className="hidden md:block">
+      <div className="flex flex-col md:flex-row justify-between items-center bg-card border border-border/60 p-4 rounded-2xl shadow-card gap-4">
+        <div className="text-center md:text-left">
           <h3 className="font-bold text-sm">¿Tienes pedidos externos?</h3>
           <p className="text-xs text-muted-foreground">Solicita un domiciliario de Fasty ahora.</p>
         </div>
         <Button 
           variant="hero" 
-          className="w-full md:w-auto h-12 rounded-xl px-6 font-bold shadow-glow gap-2"
+          className="w-full md:w-auto h-11 md:h-12 rounded-xl px-6 font-bold shadow-glow gap-2 text-sm"
           onClick={() => setIsDeliveryModalOpen(true)}
         >
-          <Navigation className="h-5 w-5" /> Solicitar Domicilio
+          <Navigation className="h-4 w-4 md:h-5 md:w-5" /> Solicitar Domicilio
         </Button>
       </div>
 

@@ -252,24 +252,24 @@ const BusinessPanel = () => {
           <BusinessSidebar />
 
           {currentNotification && (
-            <div className="fixed inset-x-0 top-6 z-[100] flex justify-center px-4 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="bg-card border-2 border-primary shadow-2xl rounded-3xl p-6 w-full max-w-md pointer-events-auto ring-4 ring-primary/10 backdrop-blur-xl">
-                <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 animate-bounce">
-                    <Bell className="h-6 w-6" />
+            <div className="fixed inset-x-0 top-0 sm:top-6 z-[100] flex justify-center p-2 sm:px-4 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="bg-card border-2 border-primary shadow-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-md pointer-events-auto ring-4 ring-primary/10 backdrop-blur-xl">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 animate-bounce">
+                    <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-display font-bold text-xl leading-tight">¡Nuevo Pedido! 🚀</h3>
-                    <p className="text-muted-foreground text-sm font-medium mt-1">{currentNotification.customer_name}</p>
-                    <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg w-fit">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {currentNotification.delivery_address}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display font-bold text-lg sm:text-xl leading-tight truncate">¡Nuevo Pedido! 🚀</h3>
+                    <p className="text-muted-foreground text-xs sm:text-sm font-medium mt-0.5 truncate">{currentNotification.customer_name}</p>
+                    <div className="flex items-center gap-1.5 mt-2 text-[10px] sm:text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg w-fit max-w-full">
+                      <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                      <span className="truncate">{currentNotification.delivery_address}</span>
                     </div>
                     <p className="text-sm font-bold mt-2">{formatCOP(currentNotification.total)}</p>
-                    <div className="mt-4 flex gap-3">
+                    <div className="mt-4 flex gap-2">
                       <Button
                         variant="hero"
-                        className="flex-1 rounded-xl h-11 font-bold shadow-glow"
+                        className="flex-1 rounded-xl h-10 sm:h-11 font-bold shadow-glow text-sm"
                         onClick={() => setCurrentNotification(null)}
                       >
                         <Check className="mr-2 h-4 w-4" /> Entendido
@@ -282,19 +282,19 @@ const BusinessPanel = () => {
           )}
 
           <SidebarInset className="flex-1">
-            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
+            <header className="sticky top-0 z-30 flex h-14 md:h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
               <SidebarTrigger className="-ml-1" />
-              <div className="h-4 w-px bg-border/60 mx-2" />
-              <h2 className="text-sm font-semibold text-muted-foreground capitalize">
+              <div className="h-4 w-px bg-border/60 mx-1 md:mx-2" />
+              <h2 className="text-xs md:text-sm font-semibold text-muted-foreground capitalize truncate">
                 Panel de Negocio
               </h2>
             </header>
 
-            <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-              <div className="mb-6 md:mb-8">
-                <p className="text-xs md:text-sm text-primary font-semibold">Operación</p>
-                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">¡Hola, {user?.username}! 👋</h1>
-                <p className="text-sm text-muted-foreground mt-1">Gestiona tu negocio en tiempo real.</p>
+            <main className="p-3 md:p-8 max-w-7xl mx-auto w-full">
+              <div className="mb-6 md:mb-8 bg-card/40 md:bg-transparent p-4 md:p-0 rounded-2xl md:rounded-none border border-border/40 md:border-none">
+                <p className="text-[10px] md:text-sm text-primary font-bold uppercase tracking-wider">Operación</p>
+                <h1 className="text-xl md:text-4xl font-display font-bold tracking-tight mt-1 truncate">¡Hola, {user?.username}! 👋</h1>
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">Gestiona tu negocio en tiempo real.</p>
               </div>
 
 

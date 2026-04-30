@@ -111,16 +111,16 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-lg rounded-3xl border border-border/60 shadow-glow overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-border/60 flex items-center justify-between bg-primary text-primary-foreground">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-sm">
+      <div className="bg-card w-full max-w-lg h-full sm:h-auto sm:rounded-3xl border-0 sm:border border-border/60 shadow-glow overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+        <div className="p-4 sm:p-6 border-b border-border/60 flex items-center justify-between bg-primary text-primary-foreground shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Navigation className="h-6 w-6" />
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <Navigation className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-display font-bold">Solicitar Domicilio</h2>
-              <p className="text-xs opacity-80">Despacho para pedidos externos</p>
+              <h2 className="text-lg sm:text-xl font-display font-bold">Solicitar Domicilio</h2>
+              <p className="text-[10px] sm:text-xs opacity-80">Despacho para pedidos externos</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -128,7 +128,7 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1.5">
