@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, ChefHat, Package, Check, MapPin, ChevronDown, ChevronUp, ExternalLink, Phone, ArrowRight, Bike, Navigation, Plus } from "lucide-react";
+import { AlertCircle, ChefHat, Package, Check, MapPin, ChevronDown, ChevronUp, ExternalLink, Phone, ArrowRight, Bike, Navigation, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/data/mock";
 import { Order, BusinessContextType } from "@/types/business";
