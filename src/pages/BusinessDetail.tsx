@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesario
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
@@ -35,13 +36,12 @@ interface MenuItem {
   is_active: boolean;
 }
 
-
-
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { add } = useCart();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleItem = (itemId: number) => {
     setExpandedItems(prev => {
@@ -91,6 +91,39 @@ const BusinessDetail = () => {
     toast({ title: "Añadido al carrito", description: item.name });
   };
 
+  // Filtrado y agrupación lógica
+  const filteredGroupedItems = useMemo(() => {
+    const items = menuItems || [];
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filtrar items
+    const filtered = query === "" 
+      ? items 
+      : items.filter(item => 
+          item.name.toLowerCase().includes(query) || 
+          (item.description && item.description.toLowerCase().includes(query)) ||
+          item.category.toLowerCase().includes(query)
+        );
+
+    // Agrupar
+    const grouped = filtered.reduce((acc: any, item) => {
+      const cat = item.category || "General";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+      return acc;
+    }, {});
+
+    return grouped;
+  }, [menuItems, searchQuery]);
+
+  // Si hay búsqueda, expandir todas las categorías que tengan resultados
+  useMemo(() => {
+    if (searchQuery.trim() !== "") {
+      const categoriesWithResults = Object.keys(filteredGroupedItems);
+      setExpandedCategories(new Set(categoriesWithResults));
+    }
+  }, [filteredGroupedItems, searchQuery]);
+
   if (isLoadingBusiness || isLoadingMenuItems) {
     return (
       <div className="min-h-screen bg-gradient-warm">
@@ -117,16 +150,9 @@ const BusinessDetail = () => {
     toast({ title: "Error", description: "No se pudieron cargar los items del menú.", variant: "destructive" });
   }
 
-  const groupedItems = (menuItems || []).reduce((acc: any, item) => {
-    const cat = item.category || "General";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
-    return acc;
-  }, {});
-
   return (
     <div className="min-h-screen bg-gradient-warm">
-      <main className="container py-8">
+      <main className="container py-8 pb-24">
         <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="h-4 w-4" /> Todos los negocios
         </Link>
@@ -178,12 +204,36 @@ const BusinessDetail = () => {
           </div>
         </div>
 
-        <h2 className="mt-10 mb-6 text-3xl font-display font-bold">Menú</h2>
+        {/* Cabecera del Menú con Buscador */}
+        <div className="mt-10 mb-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-3xl font-display font-bold">Menú</h2>
+            
+            <div className="relative w-full md:w-80 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Busca un plato o ingrediente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10 h-11 rounded-xl border-border/60 bg-card/50 backdrop-blur-sm focus:ring-primary/20 transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {isLoadingMenuItems ? (
-          <p className="text-muted-foreground">Cargando menú...</p>
-        ) : (menuItems || []).length > 0 ? (
+          <p className="text-muted-foreground text-center py-10">Cargando productos...</p>
+        ) : Object.keys(filteredGroupedItems).length > 0 ? (
           <div className="space-y-4">
-            {Object.entries(groupedItems).map(([category, items]: [string, any]) => {
+            {Object.entries(filteredGroupedItems).map(([category, items]: [string, any]) => {
               const isExpanded = expandedCategories.has(category);
               return (
                 <div key={category} className="rounded-2xl bg-card border border-border/60 shadow-soft overflow-hidden">
