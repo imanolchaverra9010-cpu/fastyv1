@@ -277,5 +277,3 @@ const AdminBusinesses = () => {
 };
 
 export default AdminBusinesses;
-
-export default AdminBusinesses;
