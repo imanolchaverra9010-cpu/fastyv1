@@ -22,7 +22,7 @@ async def scan_menu(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
 
         image_part = {
             "mime_type": file.content_type or "image/jpeg",
