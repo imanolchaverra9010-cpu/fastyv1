@@ -114,6 +114,8 @@ class BusinessBase(BaseModel):
     eta: Optional[str] = "20-30 min"
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    opening_time: Optional[str] = "08:00:00"
+    closing_time: Optional[str] = "22:00:00"
 
 class BusinessCreate(BusinessBase):
     id: str
@@ -131,6 +133,8 @@ class BusinessUpdate(BaseModel):
     status: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    opening_time: Optional[str] = None
+    closing_time: Optional[str] = None
 
 class BusinessResponse(BusinessBase):
     id: str
@@ -141,6 +145,9 @@ class BusinessResponse(BusinessBase):
     email: Optional[str] = None
     visible_password: Optional[str] = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 # Menu Item Schemas
 class MenuItemBase(BaseModel):

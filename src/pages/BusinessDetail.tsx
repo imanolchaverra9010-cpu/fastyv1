@@ -87,9 +87,40 @@ const BusinessDetail = () => {
 
   const handleAdd = (item: MenuItem) => {
     if (!business) return;
+    if (!isBusinessOpen()) {
+      toast({ 
+        title: "Negocio cerrado", 
+        description: "Este negocio no está aceptando pedidos en este momento.", 
+        variant: "destructive" 
+      });
+      return;
+    }
     add(item, business.name);
     toast({ title: "Añadido al carrito", description: item.name });
   };
+
+  const isBusinessOpen = () => {
+    if (!business?.opening_time || !business?.closing_time) return true;
+    
+    const now = new Date();
+    const currentTime = now.getHours() * 100 + now.getMinutes();
+    
+    // Parsear HH:MM:SS a número HHMM
+    const [openH, openM] = business.opening_time.split(":").map(Number);
+    const [closeH, closeM] = business.closing_time.split(":").map(Number);
+    
+    const openTime = openH * 100 + openM;
+    const closeTime = closeH * 100 + closeM;
+    
+    // Manejo básico de horarios que cruzan la medianoche (ej: 18:00 a 02:00)
+    if (closeTime < openTime) {
+      return currentTime >= openTime || currentTime <= closeTime;
+    }
+    
+    return currentTime >= openTime && currentTime <= closeTime;
+  };
+
+  const isOpen = isBusinessOpen();
 
   // Filtrado y agrupación lógica
   const filteredGroupedItems = useMemo(() => {
@@ -199,6 +230,14 @@ const BusinessDetail = () => {
                   <Clock className="h-4 w-4" />
                   {business.eta}
                 </span>
+                <span className={`flex items-center gap-1.5 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-soft font-bold ${
+                  isOpen 
+                    ? "bg-green-500/20 border-green-500/30 text-green-400" 
+                    : "bg-red-500/20 border-red-500/30 text-red-400"
+                }`}>
+                  <span className={`h-2 w-2 rounded-full animate-pulse ${isOpen ? "bg-green-500" : "bg-red-500"}`} />
+                  {isOpen ? "ABIERTO" : "CERRADO"}
+                </span>
               </div>
             </div>
           </div>
@@ -278,9 +317,12 @@ const BusinessDetail = () => {
                               <div className="flex flex-col items-center justify-center gap-2 shrink-0">
                                 <Button 
                                   size="icon" 
-                                  variant="hero" 
+                                  variant={isOpen ? "hero" : "secondary"} 
                                   onClick={() => handleAdd(m)} 
-                                  className="h-12 w-12 rounded-xl shadow-lg active:scale-90 transition-transform bg-primary text-white"
+                                  disabled={!isOpen}
+                                  className={`h-12 w-12 rounded-xl shadow-lg active:scale-90 transition-transform ${
+                                    isOpen ? "bg-primary text-white" : "opacity-50 cursor-not-allowed"
+                                  }`}
                                 >
                                   <Plus className="h-6 w-6" />
                                 </Button>

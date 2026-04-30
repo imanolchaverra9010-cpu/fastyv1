@@ -45,6 +45,8 @@ export const ProfileTab = () => {
         emoji: business.emoji ?? "",
         category: business.category ?? "",
         image_url: business.image_url ?? "",
+        opening_time: business.opening_time ?? "08:00:00",
+        closing_time: business.closing_time ?? "22:00:00",
       });
     }
   }, [business]);
@@ -100,6 +102,8 @@ export const ProfileTab = () => {
           eta: form.eta,
           emoji: form.emoji,
           category: form.category,
+          opening_time: form.opening_time,
+          closing_time: form.closing_time,
         }),
       });
 
@@ -128,6 +132,8 @@ export const ProfileTab = () => {
         emoji: business.emoji ?? "",
         category: business.category ?? "",
         image_url: business.image_url ?? "",
+        opening_time: business.opening_time ?? "08:00:00",
+        closing_time: business.closing_time ?? "22:00:00",
       });
     }
     setIsEditing(false);
@@ -341,6 +347,33 @@ export const ProfileTab = () => {
             disabled={!isEditing}
             placeholder="ej: 30-45 min"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Hora de apertura
+            </label>
+            <Input
+              type="time"
+              value={form.opening_time ?? "08:00"}
+              onChange={(e) => setForm({ ...form, opening_time: e.target.value })}
+              className="mt-2 h-11 rounded-xl"
+              disabled={!isEditing}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Hora de cierre
+            </label>
+            <Input
+              type="time"
+              value={form.closing_time ?? "22:00"}
+              onChange={(e) => setForm({ ...form, closing_time: e.target.value })}
+              className="mt-2 h-11 rounded-xl"
+              disabled={!isEditing}
+            />
+          </div>
         </div>
       </div>
 

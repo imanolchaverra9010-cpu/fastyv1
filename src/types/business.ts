@@ -8,6 +8,8 @@ export interface Business {
   emoji?: string;
   category?: string;
   image_url?: string;
+  opening_time?: string;
+  closing_time?: string;
 }
 
 export interface MenuItem {
