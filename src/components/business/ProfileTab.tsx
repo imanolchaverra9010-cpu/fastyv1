@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -7,7 +8,8 @@ import { Business, BusinessContextType } from "@/types/business";
 import { Edit2, Save, X, Store, MapPin, Phone, Clock, Tag, Loader2, Camera, ImageOff, ShieldAlert, Lock, Key, User } from "lucide-react";
 
 export const ProfileTab = () => {
-  const { business, fetchBusinessData, user, updateUser } = useOutletContext<BusinessContextType>();
+  const { business, fetchBusinessData } = useOutletContext<BusinessContextType>();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);

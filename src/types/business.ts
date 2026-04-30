@@ -71,8 +71,6 @@ export interface NewOrderNotification {
 }
 
 export interface BusinessContextType {
-  user: any | null;
-  updateUser: (userData: any) => void;
   business: Business | null;
   fetchBusinessData: () => void;
   orders: Order[];
