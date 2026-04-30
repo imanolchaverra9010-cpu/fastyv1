@@ -22,9 +22,12 @@ async def scan_menu(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
-        image = Image.open(io.BytesIO(contents))
-        # Usar la versión más reciente y estable del modelo flash
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        image_part = {
+            "mime_type": file.content_type or "image/jpeg",
+            "data": contents
+        }
 
         prompt = """
         Analiza esta imagen de un menú de restaurante. 
@@ -36,14 +39,11 @@ async def scan_menu(file: UploadFile = File(...)):
         - category: La categoría a la que pertenece (ej: Hamburguesas, Bebidas, Entradas).
         
         Devuelve el resultado ÚNICAMENTE como un array JSON válido. 
-        Ejemplo de formato:
-        [
-          {"name": "Hamburguesa XL", "price": 25000, "description": "Carne 200g, queso y tocino", "category": "Hamburguesas"}
-        ]
-        Si no encuentras productos, devuelve un array vacío [].
+        Ejemplo: [{"name": "Producto", "price": 1000, "description": "Desc", "category": "Cat"}]
+        Si no encuentras productos, devuelve [].
         """
 
-        response = model.generate_content([prompt, image])
+        response = model.generate_content([prompt, image_part])
         text_response = response.text
         
         # Limpiar respuesta markdown si existe
