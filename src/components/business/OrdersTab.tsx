@@ -19,8 +19,8 @@ const STATUS_CONFIG = {
 const STATUS_FLOW: Record<string, string[]> = {
   pending:   ["preparing", "cancelled"],
   preparing: ["shipped",   "cancelled"],
-  shipped:   ["delivered"],
-  in_transit: ["delivered"],
+  shipped:   ["delivered", "cancelled"],
+  in_transit: ["delivered", "cancelled"],
   delivered: [],
   cancelled: [],
 };
@@ -179,7 +179,13 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
                   className={`w-full rounded-xl h-12 sm:h-11 font-bold gap-2 text-sm ${ns === "cancelled" ? "border-destructive/40 text-destructive hover:bg-destructive/10" : "shadow-glow"}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onStatusChange(order.id, ns);
+                    if (ns === "cancelled") {
+                      if (window.confirm("¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.")) {
+                        onStatusChange(order.id, ns);
+                      }
+                    } else {
+                      onStatusChange(order.id, ns);
+                    }
                   }}
                 >
                   {NEXT_LABEL[ns] ?? ns} <ArrowRight className="h-4 w-4" />
@@ -209,6 +215,7 @@ export const OrdersTab = () => {
   const preparingOrders = orders.filter(o => o.status === "preparing");
   const shippedOrders   = orders.filter(o => o.status === "shipped" || o.status === "in_transit");
   const deliveredOrders = orders.filter(o => o.status === "delivered");
+  const cancelledOrders = orders.filter(o => o.status === "cancelled");
 
   if ((orders || []).length === 0) {
     return (
@@ -219,28 +226,43 @@ export const OrdersTab = () => {
     );
   }
 
-  const Section = ({ title, icon, orders: sectionOrders }: { title: string; icon: React.ReactNode; orders: Order[] }) => (
-    sectionOrders.length > 0 ? (
-      <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <h2 className="text-[11px] font-black mb-3 flex items-center gap-2 text-muted-foreground uppercase tracking-[0.15em] bg-muted/30 w-fit px-3 py-1.5 rounded-full border border-border/40">
-          {icon} {title} 
-          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 ml-1">{sectionOrders.length}</span>
-        </h2>
-        <div className="grid grid-cols-1 gap-3 sm:gap-4">
-          {sectionOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              isExpanded={expandedOrder === order.id}
-              onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
-              onStatusChange={handleUpdateOrderStatus}
-              businessCoords={businessCoords}
-            />
-          ))}
-        </div>
-      </section>
-    ) : null
-  );
+  const Section = ({ title, icon, orders: sectionOrders, collapsed = false }: { title: string; icon: React.ReactNode; orders: Order[]; collapsed?: boolean }) => {
+    const [isCollapsed, setIsCollapsed] = useState(collapsed);
+    
+    return (
+      sectionOrders.length > 0 ? (
+        <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div 
+            className="flex items-center justify-between mb-3 cursor-pointer select-none group"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <h2 className="text-[11px] font-black flex items-center gap-2 text-muted-foreground uppercase tracking-[0.15em] bg-muted/30 w-fit px-3 py-1.5 rounded-full border border-border/40 group-hover:bg-muted transition-colors">
+              {icon} {title} 
+              <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 ml-1">{sectionOrders.length}</span>
+            </h2>
+            <div className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors pr-2">
+              {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </div>
+          </div>
+          
+          {!isCollapsed && (
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
+              {sectionOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  isExpanded={expandedOrder === order.id}
+                  onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                  onStatusChange={handleUpdateOrderStatus}
+                  businessCoords={businessCoords}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -261,7 +283,8 @@ export const OrdersTab = () => {
       <Section title="Pendientes" icon={<AlertCircle className="h-4 w-4 text-destructive" />} orders={pendingOrders} />
       <Section title="En Preparación" icon={<ChefHat className="h-4 w-4 text-primary" />} orders={preparingOrders} />
       <Section title="En Camino" icon={<Package className="h-4 w-4 text-warning" />} orders={shippedOrders} />
-      <Section title="Entregados" icon={<Check className="h-4 w-4 text-success" />} orders={deliveredOrders.slice(0, 5)} />
+      <Section title="Entregados" icon={<Check className="h-4 w-4 text-success" />} orders={deliveredOrders.slice(0, 5)} collapsed />
+      <Section title="Cancelados" icon={<X className="h-4 w-4 text-muted-foreground" />} orders={cancelledOrders.slice(0, 5)} collapsed />
 
       {isDeliveryModalOpen && business && (
         <RequestDeliveryModal 
