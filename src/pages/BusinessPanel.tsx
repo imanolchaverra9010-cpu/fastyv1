@@ -299,8 +299,8 @@ const BusinessPanel = () => {
 
 
               {/* Dynamic Content based on React Router */}
-              <Outlet
                 context={{
+                  user,
                   orders,
                   menuItems,
                   stats,

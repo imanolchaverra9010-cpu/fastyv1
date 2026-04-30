@@ -4,15 +4,27 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Business, BusinessContextType } from "@/types/business";
-import { Edit2, Save, X, Store, MapPin, Phone, Clock, Tag, Loader2, Camera, ImageOff } from "lucide-react";
+import { Edit2, Save, X, Store, MapPin, Phone, Clock, Tag, Loader2, Camera, ImageOff, ShieldAlert, Lock, Key, User } from "lucide-react";
 
 export const ProfileTab = () => {
-  const { business, fetchBusinessData } = useOutletContext<BusinessContextType>();
+  const { business, fetchBusinessData, user } = useOutletContext<BusinessContextType>();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUpdatingCreds, setIsUpdatingCreds] = useState(false);
   const [form, setForm] = useState<Partial<Business>>({});
+  const [credForm, setCredForm] = useState({
+    username: "",
+    currentPassword: "",
+    newPassword: ""
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      setCredForm(prev => ({ ...prev, username: user.username }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (business) {
@@ -111,6 +123,39 @@ export const ProfileTab = () => {
       });
     }
     setIsEditing(false);
+  };
+
+  const handleUpdateCredentials = async () => {
+    if (!user?.id) return;
+    if (!credForm.currentPassword) {
+      toast({ title: "Seguridad", description: "Ingresa tu contraseña actual para continuar.", variant: "destructive" });
+      return;
+    }
+
+    setIsUpdatingCreds(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: credForm.username,
+          password: credForm.newPassword || undefined,
+          current_password: credForm.currentPassword
+        }),
+      });
+
+      if (res.ok) {
+        toast({ title: "Credenciales actualizadas", description: "Tus datos de acceso han sido cambiados." });
+        setCredForm(prev => ({ ...prev, currentPassword: "", newPassword: "" }));
+      } else {
+        const data = await res.json();
+        toast({ title: "Error", description: data.detail || "No se pudieron actualizar las credenciales.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Error de conexión con el servidor.", variant: "destructive" });
+    } finally {
+      setIsUpdatingCreds(false);
+    }
   };
 
   if (!business) {
@@ -278,6 +323,73 @@ export const ProfileTab = () => {
             disabled={!isEditing}
             placeholder="ej: 30-45 min"
           />
+        </div>
+      </div>
+
+      {/* Security Section */}
+      <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-5">
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          <ShieldAlert className="h-5 w-5 text-warning" />
+          Seguridad y Acceso
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Aquí puedes actualizar tus credenciales de acceso al panel. 
+          <span className="text-warning font-semibold ml-1">Se requiere tu contraseña actual para confirmar los cambios.</span>
+        </p>
+
+        <div className="space-y-4 pt-2">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <User className="h-3 w-3" /> Nombre de Usuario
+            </label>
+            <Input
+              value={credForm.username}
+              onChange={(e) => setCredForm({ ...credForm, username: e.target.value })}
+              className="mt-2 h-11 rounded-xl"
+              placeholder="Nuevo nombre de usuario"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Contraseña Actual
+              </label>
+              <Input
+                type="password"
+                value={credForm.currentPassword}
+                onChange={(e) => setCredForm({ ...credForm, currentPassword: e.target.value })}
+                className="mt-2 h-11 rounded-xl"
+                placeholder="••••••••"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Key className="h-3 w-3" /> Nueva Contraseña
+              </label>
+              <Input
+                type="password"
+                value={credForm.newPassword}
+                onChange={(e) => setCredForm({ ...credForm, newPassword: e.target.value })}
+                className="mt-2 h-11 rounded-xl"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          </div>
+
+          <Button 
+            variant="soft" 
+            className="w-full rounded-xl h-12 font-bold gap-2 mt-2" 
+            onClick={handleUpdateCredentials}
+            disabled={isUpdatingCreds}
+          >
+            {isUpdatingCreds ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Actualizar Credenciales
+          </Button>
         </div>
       </div>
     </div>

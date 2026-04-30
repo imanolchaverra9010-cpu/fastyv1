@@ -15,9 +15,27 @@ def update_user(user_id: int, user_data: UserUpdate):
     
     cursor = db.cursor(dictionary=True)
     try:
+        # Verificar contraseña actual si se intenta cambiar el nombre de usuario o la contraseña
+        if user_data.password or user_data.username:
+            if not user_data.current_password:
+                raise HTTPException(status_code=400, detail="Se requiere la contraseña actual para cambiar las credenciales.")
+            
+            cursor.execute("SELECT password_hash FROM users WHERE id = %s", (user_id,))
+            user = cursor.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            
+            from utils import check_password
+            if not check_password(user_data.current_password, user['password_hash']):
+                raise HTTPException(status_code=401, detail="La contraseña actual es incorrecta.")
+
         updates = []
         params = []
         if user_data.username:
+            # Verificar si el nombre de usuario ya existe
+            cursor.execute("SELECT id FROM users WHERE username = %s AND id != %s", (user_data.username, user_id))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso.")
             updates.append("username = %s")
             params.append(user_data.username)
         if user_data.email:
@@ -30,6 +48,9 @@ def update_user(user_id: int, user_data: UserUpdate):
             from utils import hash_password
             updates.append("password_hash = %s")
             params.append(hash_password(user_data.password))
+            # También actualizamos la contraseña visible para que el Admin pueda verla si es necesario
+            updates.append("visible_password = %s")
+            params.append(user_data.password)
             
         if not updates:
             raise HTTPException(status_code=400, detail="No updates provided")
