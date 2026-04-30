@@ -134,8 +134,12 @@ class BusinessUpdate(BaseModel):
 
 class BusinessResponse(BusinessBase):
     id: str
+    owner_id: Optional[int] = None
     rating: float
     status: str
+    username: Optional[str] = None
+    email: Optional[str] = None
+    visible_password: Optional[str] = None
     created_at: datetime
 
 # Menu Item Schemas

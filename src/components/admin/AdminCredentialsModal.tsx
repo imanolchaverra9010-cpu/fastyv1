@@ -20,6 +20,15 @@ export const AdminCredentialsModal = ({ business, onClose, onSuccess }: AdminCre
   });
 
   const handleUpdate = async () => {
+    if (!business.owner_id) {
+      toast({ 
+        title: "Error de Vinculación", 
+        description: "Este negocio no tiene un ID de propietario vinculado. No se pueden gestionar sus credenciales.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     if (!formData.username || !formData.email) {
       toast({ title: "Error", description: "El usuario y el correo son obligatorios.", variant: "destructive" });
       return;
