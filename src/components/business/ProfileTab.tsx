@@ -7,7 +7,7 @@ import { Business, BusinessContextType } from "@/types/business";
 import { Edit2, Save, X, Store, MapPin, Phone, Clock, Tag, Loader2, Camera, ImageOff, ShieldAlert, Lock, Key, User } from "lucide-react";
 
 export const ProfileTab = () => {
-  const { business, fetchBusinessData, user } = useOutletContext<BusinessContextType>();
+  const { business, fetchBusinessData, user, updateUser } = useOutletContext<BusinessContextType>();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
