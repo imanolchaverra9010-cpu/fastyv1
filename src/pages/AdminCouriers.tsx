@@ -99,13 +99,12 @@ const AdminCouriers = () => {
                       <th className="text-right px-5 py-3 font-medium">Entregas</th>
                       <th className="text-right px-5 py-3 font-medium">Calificación</th>
                       <th className="text-right px-5 py-3 font-medium">Ganancias</th>
-                      <th className="px-5 py-3 font-medium w-20"></th>
                       <th className="text-right px-5 py-3 font-medium">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {loading ? (
-                      <tr><td colSpan={7} className="px-5 py-10 text-center animate-pulse">Cargando equipo...</td></tr>
+                      <tr><td colSpan={8} className="px-5 py-10 text-center animate-pulse">Cargando equipo...</td></tr>
                     ) : filteredCouriers.map((c) => (
                       <tr key={c.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-4">

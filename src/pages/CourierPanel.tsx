@@ -232,7 +232,7 @@ const CourierPanel = () => {
         if (data.status) {
           setOnline(data.status === 'online' || data.status === 'busy');
         }
-
+      }
     } catch (error) {
       console.error("Error fetching courier data:", error);
     } finally {
