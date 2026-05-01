@@ -128,9 +128,8 @@ const AdminBusinesses = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
+              </              {/* Vista de Escritorio: Tabla */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
                     <tr>
@@ -244,6 +243,91 @@ const AdminBusinesses = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Vista Móvil: Tarjetas */}
+              <div className="md:hidden divide-y divide-border/60">
+                {loading ? (
+                  <div className="p-10 text-center animate-pulse">Cargando aliados...</div>
+                ) : filteredBusinesses.map((b) => (
+                  <div key={b.id} className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl h-10 w-10 rounded-lg bg-muted flex items-center justify-center">{b.emoji}</span>
+                        <div>
+                          <p className="font-bold text-sm">{b.name}</p>
+                          <span className="px-2 py-0.5 rounded-md bg-primary/5 text-primary text-[10px] font-medium">
+                            {b.category}
+                          </span>
+                        </div>
+                      </div>
+                      <StatusBadge status={b.status} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-muted/20 p-3 rounded-xl">
+                      <div className="col-span-2 border-b border-border/40 pb-2 mb-1">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Ubicación</p>
+                        <p className="truncate">{b.address || 'Sin dirección'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Credenciales</p>
+                        <p className="font-bold text-primary">{b.username}</p>
+                        <p className="font-mono text-[9px] text-muted-foreground">{b.visible_password || '********'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest text-right">Rating</p>
+                        <p className="font-bold">{b.rating.toFixed(1)} ⭐</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-around pt-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 flex-1 flex-col gap-1 text-[10px] text-muted-foreground"
+                        onClick={() => setCredentialsBusiness(b)}
+                      >
+                        <Key className="h-4 w-4" /> Llaves
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 flex-1 flex-col gap-1 text-[10px] text-muted-foreground"
+                        onClick={() => {
+                          setEditingBusiness(b);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" /> Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 flex-1 flex-col gap-1 text-[10px] text-muted-foreground"
+                        onClick={() => setManagingMenuBusiness(b)}
+                      >
+                        <Utensils className="h-4 w-4" /> Menú
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={`h-10 flex-1 flex-col gap-1 text-[10px] ${b.status === 'active' ? 'text-orange-500' : 'text-green-500'}`}
+                        onClick={() => toggleStatus(b.id, b.status)}
+                      >
+                        <Store className="h-4 w-4" /> {b.status === 'active' ? 'Off' : 'On'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 flex-1 flex-col gap-1 text-[10px] text-destructive"
+                        onClick={() => deleteBusiness(b.id)}
+                      >
+                        <Trash2 className="h-4 w-4" /> Borrar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+      </div>
             </div>
           </main>
         </SidebarInset>

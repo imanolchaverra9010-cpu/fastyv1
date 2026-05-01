@@ -116,8 +116,8 @@ const Pedidos = () => {
                 <span className="text-xs font-medium text-muted-foreground">
                   {(orders || []).length} pedidos encontrados
                 </span>
-              </div>
-              <div className="overflow-x-auto">
+              </              {/* Vista de Escritorio: Tabla */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
                     <tr>
@@ -198,6 +198,62 @@ const Pedidos = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Vista Móvil: Tarjetas */}
+              <div className="md:hidden divide-y divide-border/60">
+                {loading ? (
+                  <div className="p-10 text-center">Cargando pedidos...</div>
+                ) : (orders || []).map((o) => (
+                  <div key={o.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-primary">#{o.id}</span>
+                      <StatusBadge status={o.status} />
+                    </div>
+                    
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-sm">{o.businessName || 'Negocio'}</p>
+                        <p className="text-xs text-muted-foreground">{o.customer_name || o.customer}</p>
+                      </div>
+                      <p className="font-bold text-sm text-right">{formatCOP(o.total)}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg">
+                      <div className={`flex items-center gap-1 text-[10px] font-bold ${getTimerColor(o.created_at || o.createdAt)}`}>
+                        <Clock className="h-3 w-3" />
+                        {new Date(o.created_at || o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-[10px] font-bold gap-1"
+                          onClick={() => setSelectedOrderId(o.id)}
+                        >
+                          <Eye className="h-3.5 w-3.5" /> Ver Detalle
+                        </Button>
+                        <select
+                          className="text-[10px] border rounded-md p-1 bg-background outline-none font-bold"
+                          value={o.status}
+                          onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+                        >
+                          <option value="pending">Pendiente</option>
+                          <option value="preparing">Prep</option>
+                          <option value="shipped">Env</option>
+                          <option value="delivered">Ent</option>
+                          <option value="cancelled">Can</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(orders || []).length === 0 && !loading && (
+                  <div className="p-10 text-center text-muted-foreground italic">
+                    No hay pedidos.
+                  </div>
+                )}
+              </div>
+  </div>
             </div>
           </main>
         </SidebarInset>

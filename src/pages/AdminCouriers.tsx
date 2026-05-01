@@ -88,7 +88,8 @@ const AdminCouriers = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Vista de Escritorio: Tabla */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
                     <tr>
@@ -179,6 +180,75 @@ const AdminCouriers = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Vista Móvil: Tarjetas */}
+              <div className="md:hidden divide-y divide-border/60">
+                {loading ? (
+                  <div className="p-10 text-center animate-pulse">Cargando equipo...</div>
+                ) : filteredCouriers.map((c) => (
+                  <div key={c.id} className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-xs shadow-soft">
+                          {c.name.split(" ").map((n: any) => n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Phone className="h-2.5 w-2.5" /> {c.phone}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground"
+                          onClick={() => {
+                            setEditingCourier(c);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => deleteCourier(c.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-muted/20 p-3 rounded-xl">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Vehículo</p>
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Bike className="h-3 w-3" /> {c.vehicle}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Estado</p>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                          c.status === "online" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                        }`}>
+                          {c.status === "online" ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Credenciales</p>
+                        <p className="font-mono text-primary font-bold">{c.username}</p>
+                        <p className="font-mono text-[9px] text-muted-foreground">{c.visible_password || '********'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1 tracking-widest text-right">Ganancias</p>
+                        <p className="font-bold text-primary">{formatCOP(c.earnings)}</p>
+                        <p className="text-[9px] text-muted-foreground italic">{c.deliveries} entregas</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </main>
