@@ -202,7 +202,6 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
                 onChange={e => setFormData(prev => ({ ...prev, payment_method: e.target.value }))}
               >
                 <option value="Efectivo">Efectivo (Cobrar al entregar)</option>
-                <option value="Transferencia">Transferencia (Ya pagado)</option>
                 <option value="Datafono">Datáfono</option>
               </select>
             </div>

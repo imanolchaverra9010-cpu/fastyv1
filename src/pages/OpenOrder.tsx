@@ -219,7 +219,7 @@ const OpenOrder = () => {
               <h2 className="text-xl font-bold">Método de pago</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
@@ -227,14 +227,6 @@ const OpenOrder = () => {
               >
                 <span className="text-2xl">💵</span>
                 <span className="font-bold text-sm">Efectivo</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, paymentMethod: 'transfer' })}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.paymentMethod === 'transfer' ? 'border-primary bg-primary/5' : 'border-border/60'}`}
-              >
-                <span className="text-2xl">💸</span>
-                <span className="font-bold text-sm">Transferencia</span>
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-4 text-center italic">

@@ -425,7 +425,6 @@ const Checkout = () => {
               <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-3">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵" },
-                  { v: "transfer", l: "Transferencia", e: "💸" },
                 ].map((o) => (
                   <Label key={o.v} htmlFor={o.v} className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:bg-muted/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
                     <RadioGroupItem value={o.v} id={o.v} />
