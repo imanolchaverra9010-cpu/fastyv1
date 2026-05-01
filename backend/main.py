@@ -60,6 +60,19 @@ app.include_router(promotions.router, prefix="/promotions", tags=["Promotions"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
 
+@app.get("/api/maintenance")
+def check_maintenance():
+    from database import get_db
+    db = get_db()
+    if not db: return {"maintenance_mode": False}
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'")
+        result = cursor.fetchone()
+        return {"maintenance_mode": result['config_value'] == 'true' if result else False}
+    finally:
+        db.close()
+
 @app.get("/")
 def read_root():
     return {"status": "Rapidito API is running modularly"}

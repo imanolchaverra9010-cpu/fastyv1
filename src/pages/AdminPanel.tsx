@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { formatCOP } from "@/data/mock";
+import { toast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Hammer } from "lucide-react";
 
 const AdminPanel = () => {
   const [stats, setStats] = useState<any>(null);
@@ -14,6 +17,8 @@ const AdminPanel = () => {
   const [hoursChart, setHoursChart] = useState<any[]>([]);
   const [topBusinesses, setTopBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -29,6 +34,11 @@ const AdminPanel = () => {
         if (revenueRes.ok) setRevenueChart(await revenueRes.json());
         if (hoursRes.ok) setHoursChart(await hoursRes.json());
         if (topRes.ok) setTopBusinesses(await topRes.json());
+        const maintRes = await fetch("/api/admin/maintenance");
+        if (maintRes.ok) {
+          const maintData = await maintRes.json();
+          setMaintenanceMode(maintData.maintenance_mode);
+        }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -37,6 +47,32 @@ const AdminPanel = () => {
     };
     fetchDashboardData();
   }, []);
+
+  const handleToggleMaintenance = async () => {
+    setTogglingMaintenance(true);
+    try {
+      const response = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !maintenanceMode })
+      });
+      if (response.ok) {
+        setMaintenanceMode(!maintenanceMode);
+        toast({
+          title: !maintenanceMode ? "Modo mantenimiento activado" : "Modo mantenimiento desactivado",
+          description: !maintenanceMode ? "La plataforma ahora está en mantenimiento." : "La plataforma vuelve a estar en línea.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cambiar el estado de mantenimiento.",
+        variant: "destructive"
+      });
+    } finally {
+      setTogglingMaintenance(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,6 +93,17 @@ const AdminPanel = () => {
             <h2 className="text-sm font-semibold text-muted-foreground capitalize">
               Resumen
             </h2>
+            <div className="ml-auto flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/40">
+                <Hammer className={`h-4 w-4 ${maintenanceMode ? "text-orange-500 animate-pulse" : "text-muted-foreground"}`} />
+                <span className="text-xs font-medium">Mantenimiento</span>
+                <Switch 
+                  checked={maintenanceMode} 
+                  onCheckedChange={handleToggleMaintenance} 
+                  disabled={togglingMaintenance}
+                />
+              </div>
+            </div>
           </header>
 
           <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">

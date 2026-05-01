@@ -330,6 +330,32 @@ def update_courier(courier_id: int, courier_data: dict):
         if db: db.close()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/maintenance")
+def get_maintenance_mode():
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'")
+        result = cursor.fetchone()
+        return {"maintenance_mode": result['config_value'] == 'true' if result else False}
+    finally:
+        db.close()
+
+@router.post("/maintenance")
+def toggle_maintenance_mode(data: dict):
+    enabled = data.get("enabled", False)
+    db = get_db()
+    cursor = db.cursor()
+    try:
+        val = 'true' if enabled else 'false'
+        cursor.execute("UPDATE system_config SET config_value = %s WHERE config_key = 'maintenance_mode'", (val,))
+        db.commit()
+        
+        # Opcional: Notificar vía websocket a todos que la plataforma entró en mantenimiento
+        return {"message": "Maintenance mode updated", "maintenance_mode": enabled}
+    finally:
+        db.close()
+
 @router.delete("/couriers/{courier_id}")
 def delete_courier(courier_id: int):
     db = get_db()

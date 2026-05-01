@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Loader2 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/CartContext";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Businesses from "./pages/Businesses.tsx";
@@ -29,6 +31,7 @@ import OpenOrder from "./pages/OpenOrder.tsx";
 import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import MaintenancePage from "./pages/Maintenance.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
 
@@ -42,6 +45,43 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { pathname } = useLocation();
+  const { user, isLoading: authLoading } = useAuth();
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [checkingMaint, setCheckingMaint] = useState(true);
+
+  useEffect(() => {
+    const checkMaint = async () => {
+      try {
+        const res = await fetch("/api/maintenance");
+        if (res.ok) {
+          const data = await res.json();
+          setIsMaintenance(data.maintenance_mode);
+        }
+      } catch (e) {
+        console.error("Error checking maintenance:", e);
+      } finally {
+        setCheckingMaint(false);
+      }
+    };
+    checkMaint();
+  }, [pathname]);
+
+  const isAdmin = user?.role === 'admin';
+  const isMaintenanceActive = isMaintenance && !isAdmin;
+  const isLoginPage = pathname === "/login";
+  const isAdminPath = pathname.startsWith("/admin");
+
+  if ((checkingMaint || authLoading) && !isLoginPage) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-warm">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isMaintenanceActive && !isAdminPath && !isLoginPage) {
+    return <MaintenancePage />;
+  }
   const hideHeader = ["/login", "/register"].includes(pathname) ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/domiciliario");
