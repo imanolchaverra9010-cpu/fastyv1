@@ -128,7 +128,9 @@ const AdminBusinesses = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-              </              {/* Vista de Escritorio: Tabla */}
+              </div>
+              
+              {/* Vista de Escritorio: Tabla */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
@@ -327,7 +329,6 @@ const AdminBusinesses = () => {
                   </div>
                 ))}
               </div>
-      </div>
             </div>
           </main>
         </SidebarInset>

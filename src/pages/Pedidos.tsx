@@ -116,7 +116,9 @@ const Pedidos = () => {
                 <span className="text-xs font-medium text-muted-foreground">
                   {(orders || []).length} pedidos encontrados
                 </span>
-              </              {/* Vista de Escritorio: Tabla */}
+              </div>
+              
+              {/* Vista de Escritorio: Tabla */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
@@ -253,7 +255,6 @@ const Pedidos = () => {
                   </div>
                 )}
               </div>
-  </div>
             </div>
           </main>
         </SidebarInset>
