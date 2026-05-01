@@ -55,7 +55,7 @@ def get_courier_profile(user_id: int):
     
     cursor = db.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT name, phone, vehicle, image_url, rating, deliveries, earnings FROM couriers WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT name, phone, vehicle, image_url, rating, deliveries, earnings, status FROM couriers WHERE user_id = %s", (user_id,))
         profile = cursor.fetchone()
         if not profile:
             raise HTTPException(status_code=404, detail="Courier profile not found")
@@ -529,10 +529,13 @@ def complete_order(user_id: int, order_id: str):
                     "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                     (order["id"], 'delivered')
                 )
-            # Solo sumar una entrega por el paquete completo? 
-            # O una por cada tienda? Generalmente es un solo viaje, pero múltiples paradas.
-            # Vamos a sumar 1 entrega por cada tienda para incentivar multi-tienda.
-            cursor.execute("UPDATE couriers SET deliveries = deliveries + %s WHERE id = %s", (len(batch_orders), real_courier_id))
+            # Calcular ganancias (10% del total de las órdenes del paquete)
+            cursor.execute("SELECT SUM(total) as batch_total FROM orders WHERE batch_id = %s", (order_id,))
+            batch_data = cursor.fetchone()
+            batch_total = batch_data["batch_total"] if batch_data and batch_data["batch_total"] else 0
+            order_earnings = batch_total * 0.1
+
+            cursor.execute("UPDATE couriers SET deliveries = deliveries + %s, earnings = earnings + %s WHERE id = %s", (len(batch_orders), order_earnings, real_courier_id))
         else:
             cursor.execute(
                 "UPDATE orders SET status = 'delivered' WHERE id = %s AND courier_id = %s",
@@ -542,8 +545,14 @@ def complete_order(user_id: int, order_id: str):
                 "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                 (order_id, 'delivered')
             )
+            # Calcular ganancias (10% del total)
+            cursor.execute("SELECT total FROM orders WHERE id = %s", (order_id,))
+            order_data = cursor.fetchone()
+            order_total = order_data["total"] if order_data else 0
+            order_earnings = order_total * 0.1
+
             # Actualizar estadísticas del domiciliario
-            cursor.execute("UPDATE couriers SET deliveries = deliveries + 1 WHERE id = %s", (real_courier_id,))
+            cursor.execute("UPDATE couriers SET deliveries = deliveries + 1, earnings = earnings + %s WHERE id = %s", (order_earnings, real_courier_id))
         
         db.commit()
         db.close()

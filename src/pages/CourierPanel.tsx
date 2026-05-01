@@ -228,7 +228,10 @@ const CourierPanel = () => {
             password: ""
           });
         }
-      }
+        // Sincronizar estado online con el backend
+        if (data.status) {
+          setOnline(data.status === 'online' || data.status === 'busy');
+        }
 
     } catch (error) {
       console.error("Error fetching courier data:", error);
@@ -318,8 +321,6 @@ const CourierPanel = () => {
 
   useEffect(() => {
     fetchData(true);
-    // Auto-set online status on load if not already set
-    if (user?.id) toggleOnline(true);
     
     const interval = setInterval(() => fetchData(false), 10000); // 10s para mejor respuesta en Vercel
     return () => clearInterval(interval);
@@ -591,9 +592,9 @@ const CourierPanel = () => {
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <StatCard icon={DollarSign} label="Ganancias hoy" value={formatCOP(stats?.earnings_today || 0)} hint="+12% vs ayer" tone="success" />
-                  <StatCard icon={Package} label="Entregas hoy" value={String(stats?.deliveries_today || 0)} hint={`${assigned.length + mine.length + inTransit.length} activos`} tone="primary" />
-                  <StatCard icon={Star} label="Calificación" value={String(stats?.rating?.toFixed(1) || 5.0)} hint="Últimos 30 días" tone="warning" />
-                  <StatCard icon={TrendingUp} label="Km recorridos" value={String(stats?.km_today || 0)} tone="accent" />
+                  <StatCard icon={Package} label="Entregas hoy" value={stats ? String(stats.deliveries_today) : "0"} hint={`${assigned.length + mine.length + inTransit.length} activos`} tone="primary" />
+                  <StatCard icon={Star} label="Calificación" value={stats ? stats.rating.toFixed(1) : "5.0"} hint="Últimos 30 días" tone="warning" />
+                  <StatCard icon={TrendingUp} label="Km recorridos" value={stats ? String(stats.km_today) : "0"} tone="accent" />
                 </div>
 
                 <section>

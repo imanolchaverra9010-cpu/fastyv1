@@ -99,6 +99,7 @@ const AdminCouriers = () => {
                       <th className="text-right px-5 py-3 font-medium">Entregas</th>
                       <th className="text-right px-5 py-3 font-medium">Calificación</th>
                       <th className="text-right px-5 py-3 font-medium">Ganancias</th>
+                      <th className="px-5 py-3 font-medium w-20"></th>
                       <th className="text-right px-5 py-3 font-medium">Acciones</th>
                     </tr>
                   </thead>
