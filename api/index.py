@@ -151,24 +151,36 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
+# Cache para modo mantenimiento para reducir carga en DB
+maint_cache = {"value": False, "last_check": None}
+
 # Maintenance mode check
 @app.get(f"{API_PREFIX}/maintenance")
 @app.get("/maintenance") # Fallback en caso de que el prefijo sea removido por el proxy
 def check_maintenance():
+    global maint_cache
+    now = datetime.now()
+    
+    # Reutilizar cache si tiene menos de 10 segundos
+    if maint_cache["last_check"] and (now - maint_cache["last_check"]).total_seconds() < 10:
+        return {"maintenance_mode": maint_cache["value"]}
+        
     try:
         from database import get_db
         db = get_db()
-        if not db: return {"maintenance_mode": False}
+        if not db: return {"maintenance_mode": maint_cache["value"]}
         cursor = db.cursor(dictionary=True)
         try:
             cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'")
             result = cursor.fetchone()
-            return {"maintenance_mode": result['config_value'] == 'true' if result else False}
+            maint_cache["value"] = result['config_value'] == 'true' if result else False
+            maint_cache["last_check"] = now
+            return {"maintenance_mode": maint_cache["value"]}
         finally:
             db.close()
     except Exception as e:
         print(f"Error checking maintenance in api/index: {e}")
-        return {"maintenance_mode": False}
+        return {"maintenance_mode": maint_cache["value"]}
 
 # Diagnóstico de base de datos
 @app.get(f"{API_PREFIX}/debug-db")
