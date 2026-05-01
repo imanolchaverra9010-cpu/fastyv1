@@ -21,11 +21,13 @@ db_config = {
 }
 
 def create_pool():
-    """Crear el pool de conexiones."""
+    """Crear el pool de conexiones optimizado para Serverless."""
     try:
+        # En Vercel, cada instancia de función es independiente y efímera.
+        # Un pool grande agota rápidamente las conexiones de MySQL (Railway).
         return pooling.MySQLConnectionPool(
             pool_name="mypool",
-            pool_size=10,
+            pool_size=2, # Mínimo posible para permitir concurrencia básica por instancia
             pool_reset_session=True,
             **db_config
         )
@@ -37,41 +39,37 @@ def create_pool():
 db_pool = create_pool()
 
 def get_db():
-    """Obtener una conexión del pool asegurando que esté viva."""
+    """Obtener una conexión de forma robusta."""
     global db_pool
     
-    # Si el pool no existe, intentar crearlo de nuevo (Auto-recuperación)
+    # Auto-recuperación del pool
     if db_pool is None:
-        print("Intentando re-inicializar el pool de base de datos...")
         db_pool = create_pool()
         
     if db_pool is None:
-        print("Fallback: intentando conexión directa...")
+        # Si falla el pool, intentamos conexión directa (sin pool)
         try:
             return mysql.connector.connect(**db_config)
         except Exception as e:
             print(f"Error crítico conectando a DB (directo): {e}")
             return None
             
-    for attempt in range(3):
-        try:
-            conn = db_pool.get_connection()
-            # Hacer ping para asegurar que la conexión no fue cerrada por el servidor
-            conn.ping(reconnect=True, attempts=1, delay=0)
-            if conn.is_connected():
-                return conn
-        except mysql.connector.errors.PoolError as e:
-            print(f"Error del pool (Pool exhausto): {e}")
-            break
-        except Exception as e:
-            print(f"Error obteniendo conexión del pool, reintentando... ({e})")
-            # El pool a veces entrega conexiones cerradas, intentamos de nuevo
-            continue
-            
-    # Último intento: conexión directa
+    conn = None
     try:
-        print("Fallback final: intentando conexión directa...")
+        conn = db_pool.get_connection()
+        # Verificar si la conexión es válida
+        if conn.is_connected():
+            conn.ping(reconnect=True, attempts=2, delay=1)
+            return conn
+    except Exception as e:
+        print(f"Error obteniendo conexión del pool: {e}")
+        if conn:
+            try: conn.close()
+            except: pass
+            
+    # Último recurso: conexión directa nueva
+    try:
         return mysql.connector.connect(**db_config)
     except Exception as e:
-        print(f"Error crítico conectando a DB: {e}")
+        print(f"Error crítico en fallback final de DB: {e}")
         return None
