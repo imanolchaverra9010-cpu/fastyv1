@@ -52,13 +52,29 @@ const AppContent = () => {
   useEffect(() => {
     const checkMaint = async () => {
       try {
-        const res = await fetch("/api/maintenance");
+        const res = await fetch("/api/maintenance", { 
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        });
+        
         if (res.ok) {
           const data = await res.json();
-          setIsMaintenance(data.maintenance_mode);
+          setIsMaintenance(!!data.maintenance_mode);
+        } else {
+          // Si falla el endpoint /api, intentar /maintenance como fallback
+          const fallbackRes = await fetch("/maintenance", { cache: 'no-store' });
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            setIsMaintenance(!!fallbackData.maintenance_mode);
+          }
         }
       } catch (e) {
-        console.error("Error checking maintenance:", e);
+        // No loguear error si es un fallo de conexión común (para no saturar la consola)
+        if (e instanceof TypeError && e.message === 'Failed to fetch') {
+          // Silencioso o log reducido
+        } else {
+          console.error("Error checking maintenance:", e);
+        }
       } finally {
         setCheckingMaint(false);
       }

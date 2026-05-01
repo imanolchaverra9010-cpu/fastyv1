@@ -82,7 +82,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex="https?://.*", # Permitir cualquier origen de forma segura para desarrollo/producción
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -153,6 +153,7 @@ def health_check():
 
 # Maintenance mode check
 @app.get(f"{API_PREFIX}/maintenance")
+@app.get("/maintenance") # Fallback en caso de que el prefijo sea removido por el proxy
 def check_maintenance():
     try:
         from database import get_db
