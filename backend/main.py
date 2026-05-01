@@ -60,7 +60,7 @@ app.include_router(promotions.router, prefix="/promotions", tags=["Promotions"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
 
-@app.get("/api/maintenance")
+@app.get("/maintenance")
 def check_maintenance():
     from database import get_db
     db = get_db()

@@ -63,7 +63,19 @@ const AppContent = () => {
         setCheckingMaint(false);
       }
     };
+    
     checkMaint();
+    
+    // Check when window gets focus
+    window.addEventListener('focus', checkMaint);
+    
+    // Periodic check every 30 seconds
+    const interval = setInterval(checkMaint, 30000);
+    
+    return () => {
+      window.removeEventListener('focus', checkMaint);
+      clearInterval(interval);
+    };
   }, [pathname]);
 
   const isAdmin = user?.role === 'admin';
