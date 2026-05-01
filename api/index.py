@@ -151,6 +151,24 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
+# Maintenance mode check
+@app.get(f"{API_PREFIX}/maintenance")
+def check_maintenance():
+    try:
+        from database import get_db
+        db = get_db()
+        if not db: return {"maintenance_mode": False}
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'")
+            result = cursor.fetchone()
+            return {"maintenance_mode": result['config_value'] == 'true' if result else False}
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error checking maintenance in api/index: {e}")
+        return {"maintenance_mode": False}
+
 # Diagnóstico de base de datos
 @app.get(f"{API_PREFIX}/debug-db")
 def debug_db():
