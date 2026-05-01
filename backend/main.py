@@ -60,31 +60,11 @@ app.include_router(promotions.router, prefix="/promotions", tags=["Promotions"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
 
-# Cache para modo mantenimiento
-maint_cache = {"value": False, "last_check": None}
-
 @app.get("/api/maintenance")
 @app.get("/maintenance")
 def check_maintenance():
-    global maint_cache
-    now = datetime.now()
-    
-    # Cache de 10 segundos para no saturar la DB con peticiones de muchos clientes
-    if maint_cache["last_check"] and (now - maint_cache["last_check"]).total_seconds() < 10:
-        return {"maintenance_mode": maint_cache["value"]}
-
-    from database import get_db
-    db = get_db()
-    if not db: return {"maintenance_mode": maint_cache["value"]}
-    cursor = db.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'")
-        result = cursor.fetchone()
-        maint_cache["value"] = result['config_value'] == 'true' if result else False
-        maint_cache["last_check"] = now
-        return {"maintenance_mode": maint_cache["value"]}
-    finally:
-        db.close()
+    # Desactivado para reducir carga en producción
+    return {"maintenance_mode": False}
 
 @app.get("/")
 def read_root():

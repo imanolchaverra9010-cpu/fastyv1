@@ -50,6 +50,8 @@ const AppContent = () => {
   const [checkingMaint, setCheckingMaint] = useState(true);
 
   useEffect(() => {
+    /* 
+    // Mantenimiento desactivado para reducir consultas a la base de datos en producción
     const checkMaint = async () => {
       try {
         const res = await fetch("/api/maintenance", { 
@@ -69,9 +71,9 @@ const AppContent = () => {
           }
         }
       } catch (e) {
-        // No loguear error si es un fallo de conexión común (para no saturar la consola)
+        // No loguear error si es un fallo de conexión común
         if (e instanceof TypeError && e.message === 'Failed to fetch') {
-          // Silencioso o log reducido
+          // Silencioso
         } else {
           console.error("Error checking maintenance:", e);
         }
@@ -81,17 +83,16 @@ const AppContent = () => {
     };
     
     checkMaint();
-    
-    // Check when window gets focus
     window.addEventListener('focus', checkMaint);
-    
-    // Periodic check every 30 seconds
     const interval = setInterval(checkMaint, 30000);
     
     return () => {
       window.removeEventListener('focus', checkMaint);
       clearInterval(interval);
     };
+    */
+    setIsMaintenance(false);
+    setCheckingMaint(false);
   }, [pathname]);
 
   const isAdmin = user?.role === 'admin';
