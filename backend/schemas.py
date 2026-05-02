@@ -58,6 +58,17 @@ class OrderCreate(BaseModel):
     total: int
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+
+class FeeCalculationRequest(BaseModel):
+    latitude: float
+    longitude: float
+
+class FeeCalculationResponse(BaseModel):
+    fee: int
+    distance_km: float
+    base_fee: int
+    distance_fee: int
+    night_fee: int
     items: List[OrderItemCreate] = []
     order_type: str = "regular"
     origin_name: Optional[str] = None

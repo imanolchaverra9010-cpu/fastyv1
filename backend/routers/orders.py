@@ -2,8 +2,10 @@ from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional
 import uuid
 from database import get_db
-from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate
+from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate, FeeCalculationRequest, FeeCalculationResponse
+from utils import get_bogota_time, calculate_distance
 import json
+import math
 from .push import send_push_notification
 
 router = APIRouter()
@@ -175,6 +177,50 @@ def get_orders(status_filter: Optional[str] = None):
                 o['items'] = items_map.get(o['id'], [])
                 
         return orders
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/calculate-open-fee", response_model=FeeCalculationResponse)
+def calculate_open_fee(request: FeeCalculationRequest):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    cursor = db.cursor(dictionary=True)
+    try:
+        # Find all online couriers with valid coordinates
+        cursor.execute("SELECT id, lat, lng FROM couriers WHERE status = 'online' AND lat IS NOT NULL AND lng IS NOT NULL")
+        couriers = cursor.fetchall()
+        
+        min_distance = 0.0
+        
+        if couriers:
+            distances = []
+            for c in couriers:
+                dist = calculate_distance(request.latitude, request.longitude, float(c['lat']), float(c['lng']))
+                distances.append(dist)
+            min_distance = min(distances)
+            
+        # Calculation formula: Base 5000 + 1000 per km
+        base_fee = 5000
+        distance_fee = int(math.ceil(min_distance)) * 1000
+        
+        # Check night fee
+        bogota_time = get_bogota_time()
+        hour = bogota_time.hour
+        is_night = hour >= 22 or hour < 6
+        night_fee = 2000 if is_night else 0
+        
+        total_fee = base_fee + distance_fee + night_fee
+        
+        return {
+            "fee": total_fee,
+            "distance_km": min_distance,
+            "base_fee": base_fee,
+            "distance_fee": distance_fee,
+            "night_fee": night_fee
+        }
     finally:
         cursor.close()
         db.close()

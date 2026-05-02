@@ -16,6 +16,10 @@ const OpenOrder = () => {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [orderSummary, setOrderSummary] = useState<any>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [dynamicFee, setDynamicFee] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -55,8 +59,8 @@ const OpenOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerName || !formData.originName || !formData.description || !formData.deliveryAddress) {
-      toast({ title: "Faltan datos", description: "Por favor completa los campos obligatorios.", variant: "destructive" });
+    if (!formData.customerName || !formData.originName || !formData.description || !formData.deliveryAddress || !latitude || !longitude) {
+      toast({ title: "Faltan datos", description: "Por favor completa los campos y asegúrate de obtener tu ubicación GPS.", variant: "destructive" });
       return;
     }
 
@@ -75,7 +79,9 @@ const OpenOrder = () => {
           open_order_description: formData.description,
           payment_method: formData.paymentMethod,
           order_type: "open",
-          total: 0, // El total se definirá cuando el domiciliario haga la compra
+          total: dynamicFee || 5000, // Send dynamic fee as total initially
+          latitude: latitude,
+          longitude: longitude,
           items: []
         })
       });
@@ -96,8 +102,8 @@ const OpenOrder = () => {
           emoji: "🛍️"
         }],
         subtotal: 0,
-        fee: 5000 + (isNightFeeTime() ? 2000 : 0), // Tarifa base para pedidos abiertos + recargo nocturno
-        total: 5000 + (isNightFeeTime() ? 2000 : 0)
+        fee: dynamicFee || 5000,
+        total: dynamicFee || 5000
       });
       setDone(data.id);
       toast({ title: "¡Pedido enviado!", description: "Un domiciliario se encargará de tu compra." });
@@ -105,6 +111,73 @@ const OpenOrder = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLocationLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lon);
+          
+          try {
+            // Get dynamic fee from backend
+            const feeResponse = await fetch('/api/orders/calculate-open-fee', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ latitude: lat, longitude: lon })
+            });
+            
+            if (feeResponse.ok) {
+              const feeData = await feeResponse.json();
+              setDynamicFee(feeData.fee);
+            }
+            
+            // Get human readable address
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+              { headers: { 'Accept-Language': 'es' } }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.display_name) {
+                setFormData(prev => ({ ...prev, deliveryAddress: data.display_name }));
+                toast({ title: "Ubicación obtenida", description: "Dirección actualizada automáticamente." });
+              } else {
+                setFormData(prev => ({ ...prev, deliveryAddress: `${lat.toFixed(6)}, ${lon.toFixed(6)}` }));
+                toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+              }
+            }
+          } catch (err) {
+            console.error("Error in location tools:", err);
+            setFormData(prev => ({ ...prev, deliveryAddress: `${lat.toFixed(6)}, ${lon.toFixed(6)}` }));
+            toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+          } finally {
+            setLocationLoading(false);
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setLocationLoading(false);
+          toast({
+            title: "Error de ubicación",
+            description: "No se pudo obtener la ubicación. Asegúrate de dar permisos de GPS.",
+            variant: "destructive",
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      toast({
+        title: "Geolocalización no soportada",
+        description: "Tu navegador no soporta la geolocalización.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -200,13 +273,25 @@ const OpenOrder = () => {
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="deliveryAddress">Dirección de entrega *</Label>
-                <Input
-                  id="deliveryAddress"
-                  value={formData.deliveryAddress}
-                  onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                  className="rounded-xl h-12"
-                />
+                <Label>Dirección de entrega (GPS Obligatorio) *</Label>
+                <div className="flex flex-col gap-3">
+                  <Input
+                    readOnly
+                    value={formData.deliveryAddress}
+                    placeholder="Tu ubicación aparecerá aquí..."
+                    className="rounded-xl h-12 bg-muted/50 cursor-not-allowed"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={getCurrentLocation}
+                    disabled={locationLoading}
+                    className="h-12 rounded-xl border-2 border-primary/20 text-primary hover:bg-primary/5 flex items-center justify-center gap-2"
+                  >
+                    {locationLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
+                    {formData.deliveryAddress ? "Actualizar mi ubicación" : "Obtener mi ubicación actual"}
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
@@ -231,8 +316,15 @@ const OpenOrder = () => {
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-4 text-center italic">
-              * El valor total del pedido se ajustará una vez el domiciliario realice la compra y presente el recibo.
+              * El valor total de los productos se ajustará una vez el domiciliario realice la compra y presente el recibo.
             </p>
+            
+            {dynamicFee !== null && (
+              <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex justify-between items-center">
+                <span className="font-bold text-sm">Tarifa de entrega estimada:</span>
+                <span className="font-bold text-lg text-primary">${dynamicFee.toLocaleString()}</span>
+              </div>
+            )}
           </section>
 
           <Button

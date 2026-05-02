@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+import math
 
 # Zona horaria de Bogotá (UTC-5)
 BOGOTA_TZ = timezone(timedelta(hours=-5))
@@ -18,6 +19,26 @@ BOGOTA_TZ = timezone(timedelta(hours=-5))
 def get_bogota_time() -> datetime:
     """Retorna la fecha y hora actual en Bogotá."""
     return datetime.now(BOGOTA_TZ)
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calcula la distancia en kilómetros entre dos puntos geográficos usando la fórmula de Haversine.
+    """
+    R = 6371.0 # Radio de la Tierra en km
+    
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+    
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    distance = R * c
+    return distance
 
 # Configuración
 limiter = Limiter(key_func=get_remote_address)
