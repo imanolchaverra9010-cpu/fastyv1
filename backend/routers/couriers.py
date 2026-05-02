@@ -501,7 +501,7 @@ def reject_order(user_id: int, order_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{user_id}/complete-order/{order_id}")
-def complete_order(user_id: int, order_id: str):
+def complete_order(user_id: int, order_id: str, data: dict = None):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -515,6 +515,7 @@ def complete_order(user_id: int, order_id: str):
             raise HTTPException(status_code=404, detail="Courier profile not found")
             
         real_courier_id = courier_data["id"]
+        delivery_fee = data.get("delivery_fee") if data else None
 
         # Check if it's a batch
         cursor.execute("SELECT id FROM orders WHERE batch_id = %s", (order_id,))
@@ -530,14 +531,23 @@ def complete_order(user_id: int, order_id: str):
                     "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                     (order["id"], 'delivered')
                 )
-            # Calcular ganancias (10% del total de las órdenes del paquete)
-            cursor.execute("SELECT SUM(total) as batch_total FROM orders WHERE batch_id = %s", (order_id,))
-            batch_data = cursor.fetchone()
-            batch_total = batch_data["batch_total"] if batch_data and batch_data["batch_total"] else 0
-            order_earnings = batch_total * 0.1
+            
+            # Calcular ganancias
+            if delivery_fee is not None:
+                order_earnings = float(delivery_fee)
+            else:
+                # 10% del total de las órdenes del paquete
+                cursor.execute("SELECT SUM(total) as batch_total FROM orders WHERE batch_id = %s", (order_id,))
+                batch_data = cursor.fetchone()
+                batch_total = batch_data["batch_total"] if batch_data and batch_data["batch_total"] else 0
+                order_earnings = batch_total * 0.1
 
             cursor.execute("UPDATE couriers SET deliveries = deliveries + %s, earnings = earnings + %s WHERE id = %s", (len(batch_orders), order_earnings, real_courier_id))
         else:
+            # Obtener tipo de pedido
+            cursor.execute("SELECT order_type, total FROM orders WHERE id = %s", (order_id,))
+            order_info = cursor.fetchone()
+            
             cursor.execute(
                 "UPDATE orders SET status = 'delivered' WHERE id = %s AND courier_id = %s",
                 (order_id, real_courier_id)
@@ -546,11 +556,14 @@ def complete_order(user_id: int, order_id: str):
                 "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                 (order_id, 'delivered')
             )
-            # Calcular ganancias (10% del total)
-            cursor.execute("SELECT total FROM orders WHERE id = %s", (order_id,))
-            order_data = cursor.fetchone()
-            order_total = order_data["total"] if order_data else 0
-            order_earnings = order_total * 0.1
+            
+            # Si se proporcionó cobro manual (usualmente para pedidos abiertos)
+            if delivery_fee is not None:
+                order_earnings = float(delivery_fee)
+            else:
+                # Calcular ganancias (10% del total)
+                order_total = order_info['total'] if order_info else 0
+                order_earnings = order_total * 0.1
 
             # Actualizar estadísticas del domiciliario
             cursor.execute("UPDATE couriers SET deliveries = deliveries + 1, earnings = earnings + %s WHERE id = %s", (order_earnings, real_courier_id))

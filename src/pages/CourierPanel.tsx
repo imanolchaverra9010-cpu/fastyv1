@@ -98,6 +98,8 @@ const CourierPanel = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentNotification, setCurrentNotification] = useState<OrderNotification | null>(null);
@@ -427,7 +429,7 @@ const CourierPanel = () => {
     }
   };
 
-  const handleAction = async (action: 'accept' | 'reject' | 'start_trip' | 'complete', orderId: string) => {
+  const handleAction = async (action: 'accept' | 'reject' | 'start_trip' | 'complete', orderId: string, deliveryFee?: number) => {
     if (!user?.id) return;
 
     let url = ``;
@@ -468,12 +470,26 @@ const CourierPanel = () => {
       }
       return;
     } else if (action === 'complete') {
+      const order = [...availableOrders, ...myOrders].find(o => o.id === orderId);
+      
+      // Si es un pedido abierto y no tenemos el fee aún, mostramos el modal
+      if (order?.order_type === 'open' && deliveryFee === undefined) {
+        setCompletingOrder(order);
+        setDeliveryFeeInput("");
+        return;
+      }
+
       url = `/api/couriers/${user.id}/complete-order/${orderId}`;
       successMessage = `¡Entrega completada!`;
     }
 
     try {
-      const response = await fetch(url, { method: "POST" });
+      const body = deliveryFee !== undefined ? JSON.stringify({ delivery_fee: deliveryFee }) : undefined;
+      const response = await fetch(url, { 
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : {},
+        body
+      });
       if (response.ok) {
         toast({ title: successMessage });
         if (currentNotification?.order_id === orderId) {
@@ -1314,6 +1330,54 @@ const CourierPanel = () => {
         )}
       </div>
     </SidebarProvider>
+
+    {/* MODAL PARA COMPLETAR PEDIDO ABIERTO (Cobro de domicilio) */}
+    {completingOrder && (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-card w-full max-w-md rounded-3xl border-2 border-primary shadow-2xl p-6 space-y-6">
+          <div className="text-center">
+            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+              <DollarSign className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-display font-bold">Cobro de Domicilio</h2>
+            <p className="text-muted-foreground mt-2">Indica cuánto cobraste por este encargo especial.</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-muted-foreground uppercase ml-1">Monto Cobrado ($)</label>
+            <Input
+              type="number"
+              placeholder="ej: 5000"
+              value={deliveryFeeInput}
+              onChange={(e) => setDeliveryFeeInput(e.target.value)}
+              className="h-14 text-xl font-bold text-center rounded-2xl border-primary/20 focus:border-primary"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 rounded-xl h-12" 
+              onClick={() => setCompletingOrder(null)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="hero" 
+              className="flex-[2] rounded-xl h-12 font-bold shadow-glow"
+              disabled={!deliveryFeeInput || isNaN(Number(deliveryFeeInput))}
+              onClick={() => {
+                handleAction('complete', completingOrder.id, Number(deliveryFeeInput));
+                setCompletingOrder(null);
+              }}
+            >
+              Finalizar Entrega
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 };
 
