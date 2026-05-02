@@ -191,7 +191,7 @@ const OrderTracking = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-20">
-      <main className="container max-w-4xl pt-10">
+      <main className="container max-w-4xl pt-8 px-4">
         <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="h-4 w-4" /> Volver a la tienda
         </Link>
@@ -277,7 +277,7 @@ const OrderTracking = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Map or Detail */}
-              <div className="bg-card border rounded-3xl overflow-hidden shadow-card h-[400px]">
+              <div className="bg-card border rounded-3xl overflow-hidden shadow-card h-[300px] md:h-[400px]">
                 {order.status === 'shipped' || order.status === 'in_transit' ? (
                   <DeliveryMap
                     pickup={{
@@ -317,106 +317,103 @@ const OrderTracking = () => {
               </div>
 
               {/* Order Info */}
-              <div className="bg-card border rounded-3xl p-6 shadow-card space-y-6">
+              <div className="bg-card border rounded-3xl p-5 shadow-card space-y-5 overflow-hidden min-w-0">
+                {/* Items */}
                 <div>
-                  <h3 className="font-bold text-lg mb-4">Resumen</h3>
-                  <div className="space-y-3">
+                  <h3 className="font-bold text-lg mb-3">Resumen</h3>
+                  <div className="space-y-2">
                     {order.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm">
-                        <span className="flex items-center gap-2">
-                          <span className="text-xl">{item.emoji}</span>
-                          <span className="font-medium">{item.name} x{item.quantity}</span>
-                        </span>
-                        <span className="font-bold">{formatCOP(item.price * item.quantity)}</span>
+                      <div key={idx} className="flex items-center gap-2 text-sm min-w-0">
+                        <span className="text-xl shrink-0">{item.emoji}</span>
+                        <span className="font-medium flex-1 truncate min-w-0">{item.name} x{item.quantity}</span>
+                        <span className="font-bold shrink-0 ml-2">{formatCOP(item.price * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 pt-4 border-t flex justify-between font-bold text-xl">
+                  <div className="mt-3 pt-3 border-t flex justify-between items-center font-bold text-lg">
                     <span>Total</span>
-                    <span className="text-primary">{formatCOP(order.total)}</span>
+                    <span className="text-primary shrink-0">{formatCOP(order.total)}</span>
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t">
-                  <div className="flex gap-3">
-                    <MapPin className="h-5 w-5 text-primary shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-muted-foreground uppercase">Dirección de entrega</p>
+                {/* Delivery info */}
+                <div className="space-y-3 pt-3 border-t">
+                  <div className="flex gap-3 min-w-0">
+                    <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Dirección de entrega</p>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-medium hover:text-primary transition-colors"
+                        className="text-sm font-medium hover:text-primary transition-colors break-words block"
                       >
                         {order.delivery_address}
                       </a>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <Package className="h-5 w-5 text-primary shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-muted-foreground uppercase">Destinatario</p>
-                      <p className="text-sm font-medium">{order.customer_name}</p>
+                  <div className="flex gap-3 min-w-0">
+                    <Package className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Destinatario</p>
+                      <p className="text-sm font-medium truncate">{order.customer_name}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Courier Info Section */}
+                {/* Courier Info */}
                 {order.courier_id && (
-                  <div className="pt-6 border-t animate-in fade-in slide-in-from-top-2 duration-500">
-                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Tu Domiciliario Fasty</h3>
-                    <div className="bg-primary/5 p-4 rounded-2xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-all">
-                      {/* Avatar + info row */}
-                      <div className="flex items-start gap-3">
+                  <div className="pt-3 border-t animate-in fade-in slide-in-from-top-2 duration-500">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tu Domiciliario Fasty</p>
+                    <div className="bg-primary/5 rounded-2xl border-2 border-primary/20 p-3 space-y-3">
+                      {/* Avatar row */}
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="relative shrink-0">
                           {order.courier_image ? (
                             <img
                               src={order.courier_image}
                               alt={order.courier_name}
-                              className="h-14 w-14 rounded-full object-cover border-2 border-primary/40 shadow-sm"
+                              className="h-12 w-12 rounded-full object-cover border-2 border-primary/40"
                             />
                           ) : (
-                            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40 shadow-sm">
-                              <Bike className="h-7 w-7" />
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40">
+                              <Bike className="h-6 w-6" />
                             </div>
                           )}
-                          <div className="absolute -bottom-1 -right-1 bg-success h-3.5 w-3.5 rounded-full border-2 border-card animate-pulse" title="En línea" />
+                          <div className="absolute -bottom-0.5 -right-0.5 bg-success h-3 w-3 rounded-full border-2 border-card animate-pulse" />
                         </div>
-
-                        <div className="flex-1 min-w-0">
-                          {/* Name + verified + rating — wraps on mobile */}
-                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
-                            <p className="font-bold text-base leading-tight break-words max-w-full">
-                              {order.courier_name || "Domiciliario asignado"}
-                            </p>
-                            <CheckCircle2 className="h-4 w-4 text-success fill-success/20 shrink-0" title="Verificado" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-sm leading-snug break-words">{order.courier_name || "Domiciliario asignado"}</p>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                             {order.courier_rating && (
-                              <div className="flex items-center gap-1 bg-yellow-400/20 text-yellow-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-yellow-400/30 shrink-0">
-                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              <span className="inline-flex items-center gap-0.5 bg-yellow-400/20 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-400/30 shrink-0">
+                                <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
                                 {Number(order.courier_rating).toFixed(1)}
-                              </div>
+                              </span>
                             )}
                           </div>
-                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <Bike className="h-3 w-3 shrink-0" />
                             <span className="truncate">{order.courier_vehicle || "Vehículo de entrega"}</span>
                           </p>
                         </div>
                       </div>
 
-                      {/* Action buttons — stretch full width on all screen sizes */}
+                      {/* Action buttons */}
                       {order.courier_phone && (
-                        <div className="flex gap-2 mt-3">
-                          <Button variant="hero" size="sm" className="flex-1 h-9 text-xs gap-1.5 rounded-xl" asChild>
-                            <a href={`tel:${order.courier_phone}`}>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button variant="hero" size="sm" className="h-9 text-xs gap-1.5 rounded-xl w-full" asChild>
+                            <a href={`tel:${order.courier_phone}`} className="flex items-center justify-center">
                               <Phone className="h-3.5 w-3.5 shrink-0" /> Llamar
                             </a>
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 rounded-xl border-success/30 text-success hover:bg-success/5" asChild>
+                          <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 rounded-xl w-full border-success/40 text-success hover:bg-success/5" asChild>
                             <a
                               href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="flex items-center justify-center"
                             >
                               <MessageCircle className="h-3.5 w-3.5 shrink-0" /> WhatsApp
                             </a>
