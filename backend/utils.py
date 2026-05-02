@@ -8,6 +8,9 @@ if not hasattr(bcrypt, "__about__"):
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta, timezone
+from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # Zona horaria de Bogotá (UTC-5)
 BOGOTA_TZ = timezone(timedelta(hours=-5))
