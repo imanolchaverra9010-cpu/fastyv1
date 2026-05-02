@@ -226,10 +226,6 @@ def get_my_orders(user_id: int):
         # Localizar el ID del domiciliario asociado al usuario
         cursor.execute("SELECT id, name, image_url, vehicle FROM couriers WHERE user_id = %s", (user_id,))
         courier_data = cursor.fetchone()
-        if not courier_data:
-            db.close()
-            return []
-            
         real_courier_id = courier_data["id"]
 
         cursor.execute("""
@@ -240,7 +236,6 @@ def get_my_orders(user_id: int):
             ORDER BY o.created_at DESC
         """, (real_courier_id,))
         orders = cursor.fetchall()
-        db.close()
 
         # Group orders that share the same batch_id into a single "bundle"
         bundles = {}
@@ -267,13 +262,13 @@ def get_my_orders(user_id: int):
                         "order_type": "batch",
                         "orders": []
                     }
-                bundles[bid]["total"] += order.get("total", 0)
+                bundles[bid]["total"] += (order.get("total") or 0)
                 bundles[bid]["orders"].append({
                     "id": order["id"],
                     "business_name": order.get("business_name") or order.get("origin_name", ""),
                     "business_address": order.get("business_address") or order.get("origin_address", ""),
                     "business_emoji": order.get("business_emoji", "🏪"),
-                    "total": order.get("total", 0),
+                    "total": (order.get("total") or 0),
                     "items_summary": []   # could be enriched later
                 })
             else:
