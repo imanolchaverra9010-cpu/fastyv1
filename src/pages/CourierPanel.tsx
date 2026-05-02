@@ -515,7 +515,8 @@ const CourierPanel = () => {
   }
 
   return (
-    <SidebarProvider>
+    <>
+      <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-warm relative">
         <CourierSidebar
           activeTab={activeTab}
@@ -1377,7 +1378,8 @@ const CourierPanel = () => {
           </div>
         </div>
       </div>
-    )}
+      )}
+    </>
   );
 };
 
