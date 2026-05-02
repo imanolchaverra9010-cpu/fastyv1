@@ -19,6 +19,8 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+  const [dailyReport, setDailyReport] = useState<any[]>([]);
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -34,6 +36,10 @@ const AdminPanel = () => {
         if (revenueRes.ok) setRevenueChart(await revenueRes.json());
         if (hoursRes.ok) setHoursChart(await hoursRes.json());
         if (topRes.ok) setTopBusinesses(await topRes.json());
+        
+        const reportRes = await fetch("/api/admin/daily-report");
+        if (reportRes.ok) setDailyReport(await reportRes.json());
+
         const maintRes = await fetch("/api/admin/maintenance");
         if (maintRes.ok) {
           const maintData = await maintRes.json();
@@ -151,6 +157,83 @@ const AdminPanel = () => {
             </div>
             <div className="mb-10">
               <TopBusinessesChart data={topBusinesses} />
+            </div>
+
+            {/* Reporte Diario de Repartidores */}
+            <div className="mb-10 rounded-3xl bg-card border border-border/60 p-6 shadow-card overflow-hidden">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-display font-bold">Reporte Diario de Repartidores</h2>
+                  <p className="text-sm text-muted-foreground">Entregas realizadas hoy por cada repartidor.</p>
+                </div>
+                <div className="bg-primary/10 text-primary px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-2">
+                  <Bike className="h-4 w-4" />
+                  {dailyReport.reduce((acc, curr) => acc + curr.total_deliveries, 0)} Entregas Hoy
+                </div>
+              </div>
+
+              <div className="grid gap-6">
+                {dailyReport.length === 0 ? (
+                  <div className="text-center py-10 border-2 border-dashed border-border/40 rounded-3xl">
+                    <p className="text-muted-foreground">No hay entregas registradas hoy todavía.</p>
+                  </div>
+                ) : (
+                  dailyReport.map((courier) => (
+                    <div key={courier.id} className="border border-border/40 rounded-2xl overflow-hidden bg-muted/20">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-muted/40 gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            {courier.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-bold">{courier.name}</h3>
+                            <p className="text-xs text-muted-foreground">ID: {courier.id}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4 w-full md:w-auto">
+                          <div className="flex-1 md:flex-none text-center md:text-right">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Pedidos</p>
+                            <p className="text-lg font-display font-bold">{courier.total_deliveries}</p>
+                          </div>
+                          <div className="flex-1 md:flex-none text-center md:text-right">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Recaudado</p>
+                            <p className="text-lg font-display font-bold text-success">{formatCOP(courier.total_revenue || 0)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {courier.orders && courier.orders.length > 0 && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border/40 text-left text-muted-foreground bg-muted/10">
+                                <th className="p-3 font-medium">ID Pedido</th>
+                                <th className="p-3 font-medium">Cliente</th>
+                                <th className="p-3 font-medium">Negocio</th>
+                                <th className="p-3 font-medium">Hora</th>
+                                <th className="p-3 font-medium text-right">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/20">
+                              {courier.orders.map((order: any) => (
+                                <tr key={order.id} className="hover:bg-white/50 transition-colors">
+                                  <td className="p-3 font-mono text-xs">{order.id}</td>
+                                  <td className="p-3">{order.customer_name}</td>
+                                  <td className="p-3">{order.business_name}</td>
+                                  <td className="p-3 text-xs">
+                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                  <td className="p-3 text-right font-bold">{formatCOP(order.total)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </main>
         </SidebarInset>

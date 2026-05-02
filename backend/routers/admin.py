@@ -369,3 +369,42 @@ def delete_courier(courier_id: int):
         db.rollback()
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/daily-report")
+def get_daily_report():
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    try:
+        today = get_bogota_time().date()
+        # Traer repartidores y sus totales de hoy
+        cursor.execute("""
+            SELECT 
+                c.id, c.name,
+                COUNT(o.id) as total_deliveries,
+                SUM(o.total) as total_revenue
+            FROM couriers c
+            LEFT JOIN orders o ON c.id = o.courier_id AND o.status = 'delivered' AND DATE(o.created_at) = %s
+            GROUP BY c.id
+            ORDER BY total_deliveries DESC
+        """, (today,))
+        
+        report = cursor.fetchall()
+        
+        # Detalle de pedidos por repartidor
+        for courier in report:
+            cursor.execute("""
+                SELECT o.id, o.customer_name, o.total, o.created_at, b.name as business_name
+                FROM orders o
+                JOIN businesses b ON o.business_id = b.id
+                WHERE o.courier_id = %s AND o.status = 'delivered' AND DATE(o.created_at) = %s
+                ORDER BY o.created_at DESC
+            """, (courier['id'], today))
+            courier['orders'] = cursor.fetchall()
+            
+        db.close()
+        return report
+    except Exception as e:
+        db.close()
+        raise HTTPException(status_code=500, detail=str(e))
