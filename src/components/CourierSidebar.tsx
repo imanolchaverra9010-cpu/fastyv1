@@ -94,6 +94,17 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  isActive={activeTab === "in_progress"}
+                  tooltip="En Proceso"
+                  className={activeTab === "in_progress" ? "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary" : ""}
+                  onClick={() => handleTabClick("in_progress")}
+                >
+                  <Play className="h-4 w-4" />
+                  <span className="font-medium">En Proceso</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
                   isActive={activeTab === "history"}
                   tooltip="Historial Entregas"
                   className={activeTab === "history" ? "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary" : ""}

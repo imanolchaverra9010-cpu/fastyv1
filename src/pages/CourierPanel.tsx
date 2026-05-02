@@ -88,7 +88,7 @@ const CourierPanel = () => {
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [t, setT] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "available" | "history" | "profile">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "available" | "in_progress" | "history" | "profile">("dashboard");
   const [activeDeliveryId, setActiveDeliveryId] = useState<string | null>(null);
   const [realCourierPos, setRealCourierPos] = useState<{ lat: number; lng: number } | null>(null);
   const watchIdRef = useRef<number | null>(null);
@@ -569,6 +569,7 @@ const CourierPanel = () => {
             <h2 className="text-sm font-semibold text-muted-foreground capitalize">
               {activeTab === "dashboard" && "Dashboard"}
               {activeTab === "available" && "Pedidos Disponibles"}
+              {activeTab === "in_progress" && "Pedidos en Proceso"}
               {activeTab === "history" && "Historial de Entregas"}
             </h2>
           </header>
@@ -622,39 +623,97 @@ const CourierPanel = () => {
                   )}
                 </section>
 
-                {assigned.length > 0 && (
+                <div className="grid gap-6">
+                  {inTransit.length > 0 && (
+                    <div className="bg-success/5 border border-success/20 rounded-2xl p-6">
+                      <h3 className="text-lg font-bold text-success mb-2 flex items-center gap-2">
+                        <Navigation className="h-5 w-5 animate-pulse" /> Entrega activa
+                      </h3>
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-bold">{inTransit[0].customer_name}</p>
+                          <p className="text-sm text-muted-foreground">{inTransit[0].delivery_address}</p>
+                        </div>
+                        <Button variant="hero" onClick={() => setActiveTab("in_progress")}>Ver Detalles</Button>
+                      </div>
+                    </div>
+                  )}
+                  {mine.length > 0 && inTransit.length === 0 && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
+                      <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2">
+                        <Package className="h-5 w-5" /> Tienes pedidos listos para recoger
+                      </h3>
+                      <Button variant="hero" onClick={() => setActiveTab("in_progress")}>Ir a recoger</Button>
+                    </div>
+                  )}
+                  {assigned.length > 0 && mine.length === 0 && inTransit.length === 0 && (
+                    <div className="bg-warning/5 border border-warning/20 rounded-2xl p-6">
+                      <h3 className="text-lg font-bold text-warning mb-2 flex items-center gap-2">
+                        <Clock className="h-5 w-5" /> {assigned.length} pedido(s) en preparación
+                      </h3>
+                      <Button variant="outline" className="border-warning/30" onClick={() => setActiveTab("in_progress")}>Ver Progreso</Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* EN PROCESO TAB */}
+            {activeTab === "in_progress" && (
+              <div className="space-y-8">
+                <div>
+                  <h1 className="text-3xl font-display font-bold">Pedidos en Proceso</h1>
+                  <p className="text-muted-foreground">Gestiona tus recogidas y entregas actuales.</p>
+                </div>
+
+                {inTransit.length > 0 && (
                   <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-warning" /> Pedidos en preparación
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-success">
+                      <Navigation className="h-5 w-5 animate-pulse" /> En Camino ({inTransit.length})
                     </h2>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {assigned.map((order) => (
-                        <div key={order.id} className={`bg-card border-2 ${order.order_type === 'open' ? 'border-orange-500/20' : 'border-warning/20'} rounded-xl p-4 shadow-sm relative overflow-hidden group`}>
-                          <div className="absolute top-0 right-0 p-2">
-                            <span className={`flex h-2 w-2 rounded-full ${order.order_type === 'open' ? 'bg-orange-500' : 'bg-warning'} animate-pulse`} />
-                          </div>
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <p className="font-bold text-lg">{order.business_name || order.origin_name} {order.business_emoji || '🛍️'}</p>
-                              <p className="text-sm text-muted-foreground">{order.business_address || order.origin_address}</p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {inTransit.map((order) => (
+                        <div key={order.id} className="bg-card border-2 border-success/30 rounded-2xl p-5 shadow-sm space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-2 inline-block">En Ruta</span>
+                              <h3 className="font-bold text-lg leading-tight">{order.customer_name}</h3>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <MapPin className="h-3 w-3 shrink-0" /> {order.delivery_address}
+                              </p>
                             </div>
-                            <p className={`font-bold text-lg ${order.order_type === 'open' ? 'text-orange-600' : 'text-warning'}`}>{order.order_type === 'open' ? 'Por definir' : formatCOP(order.total)}</p>
+                            <div className="text-right">
+                              <p className="font-bold text-lg">{order.order_type === 'open' ? 'Por cobrar' : formatCOP(order.total)}</p>
+                              <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">{order.business_name || order.origin_name}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs font-medium text-warning bg-warning/10 px-3 py-1.5 rounded-lg w-fit">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            {order.order_type === 'open' ? 'Dirígete al lugar de compra' : (order.status === 'preparing' ? 'El negocio está preparando el pedido' : 'Esperando confirmación del negocio')}
+
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="hero" 
+                              className="flex-1 rounded-xl h-12 font-bold shadow-glow-success"
+                              onClick={() => handleAction('complete', order.id)}
+                            >
+                              <CheckCircle className="mr-2 h-5 w-5" /> Entregado
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="h-12 w-12 rounded-xl border-2"
+                              onClick={() => {
+                                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.delivery_address)}`;
+                                window.open(mapsUrl, '_blank');
+                              }}
+                            >
+                              <Navigation className="h-5 w-5 text-success" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="h-12 w-12 rounded-xl border-2"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-5 w-5" />
+                            </Button>
                           </div>
-                          {order.order_type === 'open' && order.open_order_description && (
-                            <p className="mt-3 text-xs text-muted-foreground italic border-t border-border/40 pt-2">"{order.open_order_description}"</p>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mt-3 w-full h-8 text-xs gap-1.5 rounded-lg border border-warning/10 hover:bg-warning/5"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="h-3.5 w-3.5" /> Ver detalles del pedido
-                          </Button>
                         </div>
                       ))}
                     </div>
@@ -662,83 +721,38 @@ const CourierPanel = () => {
                 )}
 
                 {mine.length > 0 && (
-                  <section>
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Package className="h-5 w-5 text-primary" /> Pedidos aceptados (Listos para recoger)
+                  <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-75">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+                      <Package className="h-5 w-5" /> Listos para Recoger ({mine.length})
                     </h2>
-                    <div className="space-y-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                       {mine.map((order) => (
-                        <div key={order.id} className={`bg-card border-2 ${order.is_batch ? 'border-purple-500/40'
-                            : order.order_type === 'open' ? 'border-orange-500/30'
-                              : 'border-primary/30'
-                          } rounded-xl p-4 shadow-sm`}>
-
-                          {order.is_batch ? (
-                            <>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="bg-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">📦 Paquete Multi-Tienda</span>
-                                <p className="font-bold text-lg text-purple-600">{formatCOP(order.total)}</p>
-                              </div>
-                              <div className="space-y-2 mb-3 pl-1">
-                                {(order.orders ?? []).map((store) => (
-                                  <div key={store.id} className="flex items-center justify-between text-sm bg-muted/40 rounded-lg px-3 py-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-base">{store.business_emoji}</span>
-                                      <div>
-                                        <p className="font-semibold">{store.business_name}</p>
-                                        <p className="text-xs text-muted-foreground">{store.business_address}</p>
-                                      </div>
-                                    </div>
-                                    <span className="font-bold text-primary">{formatCOP(store.total)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="font-bold text-lg">{order.business_name || order.origin_name} {order.business_emoji || '🛍️'}</p>
-                                  {order.order_type === 'open' && (
-                                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Encargo</span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-muted-foreground">{order.business_address || order.origin_address}</p>
-                              </div>
-                              <p className="font-bold text-lg text-primary">{order.order_type === 'open' ? 'Por definir' : formatCOP(order.total)}</p>
+                        <div key={order.id} className="bg-card border-2 border-primary/30 rounded-2xl p-5 shadow-sm space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-2 inline-block">Listo en Local</span>
+                              <h3 className="font-bold text-lg leading-tight">{order.business_name || order.origin_name}</h3>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Store className="h-3 w-3 shrink-0" /> {order.business_address || order.origin_address}
+                              </p>
                             </div>
-                          )}
+                            <p className="font-bold text-lg text-primary">{order.order_type === 'open' ? 'Encargo' : formatCOP(order.total)}</p>
+                          </div>
 
-                          {order.order_type === 'open' && order.open_order_description && (
-                            <div className="mb-4 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 text-sm italic">
-                              "{order.open_order_description}"
-                            </div>
-                          )}
-
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 mb-3 text-sm text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            <MapPin className="h-4 w-4" />
-                            {order.delivery_address}
-                          </a>
                           <div className="flex gap-2">
-                            <Button
-                              variant="hero"
-                              className="flex-1 rounded-lg font-bold"
+                            <Button 
+                              variant="hero" 
+                              className="flex-1 rounded-xl h-12 font-bold shadow-glow"
                               onClick={() => handleAction('start_trip', order.id)}
                             >
-                              <Play className="mr-2 h-4 w-4" /> Iniciar Viaje
+                              <Play className="mr-2 h-5 w-5" /> Recoger y Salir
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="rounded-lg shrink-0"
+                            <Button 
+                              variant="outline" 
+                              className="h-12 w-12 rounded-xl border-2"
                               onClick={() => setSelectedOrder(order)}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-5 w-5" />
                             </Button>
                           </div>
                         </div>
@@ -747,98 +761,43 @@ const CourierPanel = () => {
                   </section>
                 )}
 
-                {inTransit.length > 0 && (
-                  <section>
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Navigation className="h-5 w-5 text-success animate-pulse" /> En Camino
+                {assigned.length > 0 && (
+                  <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-warning">
+                      <Clock className="h-5 w-5" /> En Preparación ({assigned.length})
                     </h2>
-                    <div className="space-y-3">
-                      {inTransit.map((order) => (
-                        <div key={order.id} className={`bg-card border-2 ${order.is_batch ? 'border-purple-500/40'
-                            : order.order_type === 'open' ? 'border-orange-500/30'
-                              : 'border-success/30'
-                          } rounded-xl p-4 shadow-sm`}>
-
-                          {order.is_batch ? (
-                            <>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="bg-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">📦 Paquete Multi-Tienda</span>
-                                <p className="font-bold text-lg text-purple-600">{formatCOP(order.total)}</p>
-                              </div>
-                              <div className="space-y-2 mb-3 pl-1">
-                                {(order.orders ?? []).map((store) => (
-                                  <div key={store.id} className="flex items-center justify-between text-sm bg-muted/40 rounded-lg px-3 py-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-base">{store.business_emoji}</span>
-                                      <div>
-                                        <p className="font-semibold">{store.business_name}</p>
-                                        <p className="text-xs text-muted-foreground">{store.business_address}</p>
-                                      </div>
-                                    </div>
-                                    <span className="font-bold text-success">{formatCOP(store.total)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <p className="font-bold text-lg">{order.business_name || order.origin_name} {order.business_emoji || '🛍️'}</p>
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-muted-foreground hover:text-primary transition-colors block"
-                                >
-                                  {order.delivery_address}
-                                </a>
-                              </div>
-                              <p className="font-bold text-lg text-success">{order.order_type === 'open' ? 'Por definir' : formatCOP(order.total)}</p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {assigned.map((order) => (
+                        <div key={order.id} className="bg-card border-2 border-warning/30 rounded-2xl p-5 shadow-sm opacity-80">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-bold text-lg">{order.business_name || order.origin_name}</h3>
+                              <p className="text-xs text-muted-foreground">Pedido #{order.id}</p>
                             </div>
-                          )}
-
-                          {order.order_type === 'open' && order.open_order_description && (
-                            <div className="mb-4 p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 text-sm italic">
-                              "{order.open_order_description}"
+                            <div className="bg-warning/10 text-warning text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" /> Preparando
                             </div>
-                          )}
-
-                          {order.is_batch && (
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 mb-4 text-sm text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <MapPin className="h-4 w-4" />
-                              {order.delivery_address}
-                            </a>
-                          )}
-
-                          <div className="flex gap-2">
-                            <Button
-                              variant="hero"
-                              className="flex-1 rounded-lg font-bold"
-                              onClick={() => handleAction('complete', order.id)}
-                            >
-                              <Check className="mr-2 h-4 w-4" /> Completar Entrega
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="rounded-lg shrink-0"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
                           </div>
+                          <Button variant="outline" className="w-full rounded-xl" onClick={() => setSelectedOrder(order)}>Ver detalles</Button>
                         </div>
                       ))}
                     </div>
                   </section>
+                )}
+
+                {assigned.length === 0 && mine.length === 0 && inTransit.length === 0 && (
+                  <div className="bg-card border border-border/60 rounded-2xl p-12 text-center shadow-card">
+                    <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+                      <Package className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">No tienes pedidos en proceso</h3>
+                    <p className="text-muted-foreground mb-6">Acepta pedidos disponibles para empezar a ganar dinero.</p>
+                    <Button variant="hero" onClick={() => setActiveTab("available")}>Ver pedidos disponibles</Button>
+                  </div>
                 )}
               </div>
             )}
+
 
             {/* AVAILABLE ORDERS TAB */}
             {activeTab === "available" && (
