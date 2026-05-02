@@ -206,10 +206,10 @@ def calculate_open_fee(request: FeeCalculationRequest):
         base_fee = 5000
         distance_fee = int(math.ceil(min_distance)) * 1000
         
-        # Check night fee
+        # Check night fee (7 PM to 6 AM)
         bogota_time = get_bogota_time()
         hour = bogota_time.hour
-        is_night = hour >= 22 or hour < 6
+        is_night = hour >= 19 or hour < 6
         night_fee = 2000 if is_night else 0
         
         total_fee = base_fee + distance_fee + night_fee
