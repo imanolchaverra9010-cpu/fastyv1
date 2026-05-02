@@ -1,4 +1,4 @@
-import { Clock, Eye, Package, Search, TrendingUp, AlertCircle } from "lucide-react";
+import { Clock, Eye, Package, Search, TrendingUp, AlertCircle, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
@@ -69,6 +69,37 @@ const Pedidos = () => {
     return "text-success";
   };
 
+  const exportOrders = () => {
+    if (orders.length === 0) return;
+    
+    const headers = ["ID Pedido", "Negocio", "Repartidor", "Cliente", "Total", "Estado", "Fecha"];
+    const rows = orders.map(o => [
+      o.id,
+      o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio'),
+      o.courier_name || 'Sin asignar',
+      o.customer_name || o.customer,
+      o.total,
+      o.status,
+      new Date(o.created_at || o.createdAt).toLocaleString()
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => r.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `pedidos_${filter}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-warm">
@@ -104,6 +135,16 @@ const Pedidos = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Buscar por ID o cliente…" className="pl-9 h-10 w-64 rounded-xl" />
                 </div>
+                <Button 
+                  onClick={exportOrders} 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-10 rounded-xl gap-2 border-primary/20 hover:bg-primary/5"
+                  disabled={orders.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { Bike, DollarSign, ShoppingBag, Store, Users, Loader2 } from "lucide-react";
+import { Bike, DollarSign, ShoppingBag, Store, Users, Loader2, Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import StatCard from "@/components/StatCard";
@@ -78,6 +78,35 @@ const AdminPanel = () => {
     } finally {
       setTogglingMaintenance(false);
     }
+  };
+
+  const exportDailyReport = () => {
+    if (dailyReport.length === 0) return;
+    
+    const headers = ["ID Repartidor", "Nombre", "Entregas Hoy", "Total Recaudado"];
+    const rows = dailyReport.map(c => [
+      c.id,
+      c.name,
+      c.total_deliveries,
+      c.total_revenue
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => r.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `reporte_diario_${today}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -170,6 +199,16 @@ const AdminPanel = () => {
                   <Bike className="h-4 w-4" />
                   {dailyReport.reduce((acc, curr) => acc + curr.total_deliveries, 0)} Entregas Hoy
                 </div>
+                <Button 
+                  onClick={exportDailyReport} 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-2xl gap-2 border-primary/20 hover:bg-primary/5"
+                  disabled={dailyReport.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
               </div>
 
               <div className="grid gap-6">
