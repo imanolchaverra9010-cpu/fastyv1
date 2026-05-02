@@ -26,7 +26,7 @@ def create_pool():
         # Aumentamos el pool para soportar más usuarios simultáneos
         return pooling.MySQLConnectionPool(
             pool_name="mypool",
-            pool_size=15, # Aumentado de 2 a 15 para soportar carga masiva
+            pool_size=25, # Aumentado a 25 para mayor capacidad
             pool_reset_session=True,
             **db_config
         )
@@ -37,49 +37,32 @@ def create_pool():
 db_pool = create_pool()
 
 def get_db():
-    """Obtener conexión con auto-recuperación agresiva."""
+    """Obtener conexión del pool con reintentos."""
     global db_pool
     
-    # 1. Intentar obtener del pool
-    if db_pool:
+    if not db_pool:
+        db_pool = create_pool()
+    
+    if not db_pool:
+        return None
+
+    # Intentar obtener conexión con reintentos
+    for attempt in range(3):
         try:
             conn = db_pool.get_connection()
             if conn.is_connected():
-                # Ping rápido para validar
-                conn.ping(reconnect=True, attempts=1, delay=0)
+                conn.ping(reconnect=True)
                 # Establecer zona horaria de Bogotá
                 cursor = conn.cursor()
                 cursor.execute("SET time_zone = '-05:00'")
                 cursor.close()
                 return conn
-            else:
-                conn.close()
         except mysql.connector.errors.PoolError:
-            # Pool exhausto: invalidamos para forzar recreación o fallback
-            print("Pool exhausto, intentando recuperación...")
+            print(f"Pool exhausto (intento {attempt + 1}/3). Esperando...")
+            import time
+            time.sleep(0.1)
         except Exception as e:
-            print(f"Error en pool: {e}")
-
-    # 2. Si llegamos aquí, el pool falló o está mal. 
-    # Intentamos recrear el pool una vez
-    try:
-        db_pool = create_pool()
-        if db_pool:
-            conn = db_pool.get_connection()
-            conn.ping(reconnect=True)
-            return conn
-    except:
-        pass
-
-    # 3. Fallback final: Conexión directa (Salvavidas)
-    # Esto asegura que si el sistema de pool se corrompe, podamos seguir operando
-    try:
-        print("Usando conexión directa de emergencia...")
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        cursor.execute("SET time_zone = '-05:00'")
-        cursor.close()
-        return conn
-    except Exception as e:
-        print(f"FALLO TOTAL DE DB: {e}")
-        return None
+            print(f"Error obteniendo conexión: {e}")
+            break
+            
+    return None

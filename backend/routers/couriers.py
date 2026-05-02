@@ -61,8 +61,6 @@ def get_courier_profile(user_id: int):
         if not profile:
             raise HTTPException(status_code=404, detail="Courier profile not found")
         return profile
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()
@@ -146,16 +144,15 @@ def get_courier_stats(user_id: int):
         """, (real_courier_id, today))
         stats = cursor.fetchone()
         
-        db.close()
         return {
             "earnings_today": float(stats["earnings"] or 0),
             "deliveries_today": int(stats["deliveries"] or 0),
             "rating": rating,
             "km_today": 12.5 # Mock km por ahora
         }
-    except Exception as e:
+    finally:
+        cursor.close()
         db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/available-orders")
 def get_available_orders():
@@ -172,7 +169,6 @@ def get_available_orders():
             ORDER BY o.created_at ASC
         """)
         orders = cursor.fetchall()
-        db.close()
 
         # Group orders that share the same batch_id into a single "bundle"
         bundles = {}
@@ -214,12 +210,10 @@ def get_available_orders():
                 order["orders"] = []
                 standalone.append(order)
 
-        result = list(bundles.values()) + standalone
-        return result
-
-    except Exception as e:
+        return list(bundles.values()) + standalone
+    finally:
+        cursor.close()
         db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{user_id}/my-orders")
@@ -290,10 +284,9 @@ def get_my_orders(user_id: int):
 
         result = list(bundles.values()) + standalone
         return result
-    except Exception as e:
-        if db:
-            db.close()
-        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 @router.patch("/{user_id}/status")
 def update_courier_status(user_id: int, status_data: dict):
@@ -317,12 +310,10 @@ def update_courier_status(user_id: int, status_data: dict):
         
         cursor.execute("UPDATE couriers SET status = %s WHERE id = %s", (new_status, real_courier_id))
         db.commit()
-        db.close()
         return {"message": "Status updated"}
-    except Exception as e:
-        db.rollback()
+    finally:
+        cursor.close()
         db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{user_id}/location")
 async def update_courier_location(user_id: int, location_data: dict):
@@ -374,13 +365,10 @@ async def update_courier_location(user_id: int, location_data: dict):
                     await websocket_manager.notify_user(order["user_id"], update_msg)
         
         db.commit()
-        db.close()
         return {"message": "Location updated", "active_orders_notified": len(active_orders)}
-    except Exception as e:
-        if db:
-            db.rollback()
-            db.close()
-        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 @router.post("/{user_id}/accept-order/{order_id}")
 async def accept_order(user_id: int, order_id: str):
@@ -460,17 +448,10 @@ async def accept_order(user_id: int, order_id: str):
                     }
                 })
 
-        db.close()
         return {"message": "Order accepted"}
-    except HTTPException:
-        db.rollback()
+    finally:
+        cursor.close()
         db.close()
-        raise
-    except Exception as e:
-        if db:
-            db.rollback()
-            db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{user_id}/reject-order/{order_id}")
 def reject_order(user_id: int, order_id: str):
@@ -589,10 +570,7 @@ def complete_order(user_id: int, order_id: str, data: dict = None):
             cursor.execute("UPDATE couriers SET deliveries = deliveries + 1, earnings = earnings + %s WHERE id = %s", (order_earnings, real_courier_id))
         
         db.commit()
-        db.close()
         return {"message": "Order completed"}
-    except Exception as e:
-        if db:
-            db.rollback()
-            db.close()
-        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
