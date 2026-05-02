@@ -141,13 +141,13 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         cursor.execute(
             """INSERT INTO orders (id, business_id, user_id, customer_name, customer_phone, 
                delivery_address, payment_method, notes, total, latitude, longitude, status,
-               order_type, origin_name, origin_address, open_order_description, batch_id,
+               order_type, origin_name, origin_address, origin_latitude, origin_longitude, open_order_description, batch_id,
                delivery_fee, night_fee) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
              order.delivery_address, order.payment_method, order.notes, order.total, 
              order.latitude, order.longitude, 'pending',
-             order.order_type, order.origin_name, order.origin_address, order.open_order_description,
+             order.order_type, order.origin_name, order.origin_address, order.origin_latitude, order.origin_longitude, order.open_order_description,
              order.batch_id, order.delivery_fee, order.night_fee)
         )
         
@@ -539,7 +539,9 @@ def smart_assign_courier(order_id: str, background_tasks: BackgroundTasks):
     cursor = db.cursor(dictionary=True)
     try:
         cursor.execute("""
-            SELECT o.*, b.latitude as business_lat, b.longitude as business_lng,
+            SELECT o.*,
+                   COALESCE(b.latitude, o.origin_latitude) as business_lat,
+                   COALESCE(b.longitude, o.origin_longitude) as business_lng,
                    b.name as business_name
             FROM orders o
             LEFT JOIN businesses b ON o.business_id = b.id

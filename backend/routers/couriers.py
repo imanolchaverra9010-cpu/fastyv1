@@ -556,13 +556,23 @@ def complete_order(user_id: int, order_id: str, data: dict = None):
             cursor.execute("UPDATE couriers SET deliveries = deliveries + %s, earnings = earnings + %s WHERE id = %s", (len(batch_orders), order_earnings, real_courier_id))
         else:
             # Obtener tipo de pedido
-            cursor.execute("SELECT order_type, total FROM orders WHERE id = %s", (order_id,))
+            cursor.execute("SELECT order_type, total, night_fee FROM orders WHERE id = %s", (order_id,))
             order_info = cursor.fetchone()
-            
-            cursor.execute(
-                "UPDATE orders SET status = 'delivered' WHERE id = %s AND courier_id = %s",
-                (order_id, real_courier_id)
-            )
+
+            if delivery_fee is not None and order_info and order_info.get("order_type") == "open":
+                final_total = int(round(float(delivery_fee)))
+                current_night_fee = int(order_info.get("night_fee") or 0)
+                final_delivery_fee = max(final_total - current_night_fee, 0)
+                cursor.execute(
+                    "UPDATE orders SET status = 'delivered', total = %s, delivery_fee = %s WHERE id = %s AND courier_id = %s",
+                    (final_total, final_delivery_fee, order_id, real_courier_id)
+                )
+            else:
+                cursor.execute(
+                    "UPDATE orders SET status = 'delivered' WHERE id = %s AND courier_id = %s",
+                    (order_id, real_courier_id)
+                )
+
             cursor.execute(
                 "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                 (order_id, 'delivered')

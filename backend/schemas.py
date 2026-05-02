@@ -62,6 +62,8 @@ class OrderCreate(BaseModel):
     order_type: str = "regular"
     origin_name: Optional[str] = None
     origin_address: Optional[str] = None
+    origin_latitude: Optional[float] = None
+    origin_longitude: Optional[float] = None
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
     promo_code: Optional[str] = None
@@ -98,6 +100,8 @@ class OrderResponse(BaseModel):
     order_type: str = "regular"
     origin_name: Optional[str] = None
     origin_address: Optional[str] = None
+    origin_latitude: Optional[float] = None
+    origin_longitude: Optional[float] = None
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
     items: Optional[List[OrderItemCreate]] = []
