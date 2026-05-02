@@ -46,6 +46,17 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
 
+      for (const client of clientList) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          if ('navigate' in client) {
+            return client.navigate(targetUrl).then((navigatedClient) => (
+              navigatedClient ? navigatedClient.focus() : client.focus()
+            ));
+          }
+          return client.focus();
+        }
+      }
+
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

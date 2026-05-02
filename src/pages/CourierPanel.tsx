@@ -109,6 +109,7 @@ const CourierPanel = () => {
   const [currentNotification, setCurrentNotification] = useState<OrderNotification | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const handledOfferLinkRef = useRef<string | null>(null);
 
   const assigned = (myOrders || []).filter((o) => ["pending", "preparing"].includes(o.status));
   const mine = (myOrders || []).filter((o) => o.status === "shipped");
@@ -215,7 +216,9 @@ const CourierPanel = () => {
               customer_name: latest.customer_name,
               delivery_address: latest.delivery_address,
               total: latest.total,
-              items: latest.items || []
+              items: latest.items || [],
+              order_type: latest.order_type,
+              description: latest.open_order_description
             });
             playNotificationSound();
           }
@@ -246,6 +249,57 @@ const CourierPanel = () => {
     } finally {
       if (initialLoad) setLoading(false);
     }
+  };
+
+  const openOfferModalForOrder = async (orderId: string) => {
+    let targetOrder = [...availableOrdersRef.current, ...myOrdersRef.current].find((order) => order.id === orderId);
+
+    if (!targetOrder) {
+      try {
+        const response = await fetch(`/api/orders/${orderId}`);
+        if (response.ok) {
+          const data = await response.json();
+          targetOrder = {
+            ...data,
+            business_name: data.business_name || data.origin_name || "Encargo",
+            business_address: data.business_address || data.origin_address || "",
+            business_emoji: data.business_emoji || "",
+            total: data.total || 0,
+            items: data.items || []
+          };
+        }
+      } catch (error) {
+        console.error("Error loading order for offer:", error);
+      }
+    }
+
+    if (!targetOrder) {
+      toast({
+        title: "No se pudo abrir el encargo",
+        description: "Actualiza la pantalla e intenta de nuevo.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (targetOrder.order_type !== "open") {
+      toast({
+        title: "Este pedido no recibe ofertas",
+        description: "Solo los encargos abiertos permiten enviar una oferta."
+      });
+      return;
+    }
+
+    setAvailableOrders((prev) => {
+      if (prev.some((order) => order.id === targetOrder!.id)) return prev;
+      const next = [targetOrder!, ...prev];
+      availableOrdersRef.current = next;
+      return next;
+    });
+    setActiveTab("available");
+    setCurrentNotification(null);
+    setOfferAmountInput("");
+    setOfferingOrder(targetOrder);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,6 +386,19 @@ const CourierPanel = () => {
     
     const interval = setInterval(() => fetchData(false), 10000); // 10s para mejor respuesta en Vercel
     return () => clearInterval(interval);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const offerOrderId = params.get("offer");
+    if (!offerOrderId || handledOfferLinkRef.current === offerOrderId) return;
+
+    handledOfferLinkRef.current = offerOrderId;
+    openOfferModalForOrder(offerOrderId).finally(() => {
+      window.history.replaceState(null, "", window.location.pathname);
+    });
   }, [user?.id]);
 
   // WebSocket connection for new orders
@@ -446,9 +513,27 @@ const CourierPanel = () => {
       successMessage = `Pedido ${orderId} aceptado. ¡Prepárate para el viaje!`;
     } else if (action === 'offer') {
       const order = [...availableOrders, ...myOrders].find(o => o.id === orderId);
-      if (order?.order_type === 'open' && deliveryFee === undefined) {
-        setOfferingOrder(order);
-        setOfferAmountInput("");
+      if (deliveryFee === undefined) {
+        const fallbackOrder = order || (currentNotification?.order_id === orderId ? {
+          id: currentNotification.order_id,
+          order_type: currentNotification.order_type || "open",
+          business_id: "",
+          business_name: currentNotification.business_name || "Encargo",
+          business_address: currentNotification.business_address || "",
+          customer_name: currentNotification.customer_name,
+          delivery_address: currentNotification.delivery_address,
+          total: currentNotification.total || 0,
+          status: "pending",
+          items: currentNotification.items || [],
+          open_order_description: currentNotification.description
+        } : null);
+
+        if (fallbackOrder) {
+          setOfferingOrder(fallbackOrder);
+          setOfferAmountInput("");
+        } else {
+          openOfferModalForOrder(orderId);
+        }
         return;
       }
       url = `/api/couriers/${user.id}/offer/${orderId}`;
