@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Response
 from typing import List, Optional
 from database import get_db
 from schemas import MenuItemCreate, MenuItemUpdate, MenuItemResponse
@@ -42,7 +42,10 @@ def create_menu_item(business_id: str, menu_item: MenuItemCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{business_id}/menu", response_model=List[MenuItemResponse])
-def get_menu_items(business_id: str, active: Optional[bool] = None):
+def get_menu_items(business_id: str, response: Response, active: Optional[bool] = None):
+    # Enable Edge Caching for 60 seconds
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

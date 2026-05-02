@@ -41,7 +41,15 @@ import AdminCouriers from "@/pages/AdminCouriers";
 import { InstallPWA } from "./components/InstallPWA";
 import { NotificationPrompt } from "./components/NotificationPrompt";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30 segundos de gracia antes de revalidar
+      refetchOnWindowFocus: false, // Evita peticiones masivas al cambiar de pestaña
+      retry: 1,
+    },
+  },
+});
 
 const AppContent = () => {
   const { pathname } = useLocation();

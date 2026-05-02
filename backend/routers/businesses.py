@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response
 from typing import List, Optional, Dict
 from database import get_db
 from utils import get_bogota_time
@@ -68,7 +68,10 @@ def create_business(business: BusinessCreate):
 
 @router.get("", response_model=List[BusinessResponse])
 @router.get("/", response_model=List[BusinessResponse])
-def get_businesses(status_filter: Optional[str] = None, category: Optional[str] = None, q: Optional[str] = None):
+def get_businesses(response: Response, status_filter: Optional[str] = None, category: Optional[str] = None, q: Optional[str] = None):
+    # Enable Edge Caching for 60 seconds
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -102,7 +105,10 @@ def get_businesses(status_filter: Optional[str] = None, category: Optional[str] 
     return format_business_data(businesses)
 
 @router.get("/{business_id}", response_model=BusinessResponse)
-def get_business(business_id: str):
+def get_business(business_id: str, response: Response):
+    # Enable Edge Caching for 60 seconds
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
