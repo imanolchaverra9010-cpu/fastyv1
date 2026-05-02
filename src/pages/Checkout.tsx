@@ -387,41 +387,56 @@ const Checkout = () => {
                   <Input key={initialData.phone} id="phone" name="phone" required type="tel" defaultValue={initialData.phone} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Input 
-                    id="address" 
-                    name="address" 
-                    required 
-                    value={addressValue} 
-                    onChange={(e) => setAddressValue(e.target.value)}
-                    placeholder="Calle 123 #45-67, Ciudad"
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address">Dirección de entrega</Label>
+                  <div className="relative">
+                    <Input 
+                      id="address" 
+                      name="address" 
+                      required 
+                      readOnly
+                      value={addressValue} 
+                      className="pr-10 bg-muted/30 cursor-not-allowed font-medium border-primary/20"
+                      placeholder="Usa el botón de abajo para obtener tu ubicación"
+                    />
+                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary animate-pulse" />
+                  </div>
+                  <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1">
+                    * No se permite ingresar la dirección manualmente para asegurar la precisión del envío.
+                  </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="hero"
                     onClick={getCurrentLocation}
                     disabled={locationLoading}
-                    className="gap-2"
+                    className="w-full gap-2 h-12 shadow-glow"
                   >
-                    {locationLoading ? "Obteniendo ubicación..." : <><LocateFixed className="h-4 w-4" /> Usar mi ubicación actual</>}
+                    {locationLoading ? "Obteniendo ubicación..." : <><LocateFixed className="h-5 w-5" /> Obtener mi ubicación exacta (GPS)</>}
                   </Button>
+                  {!latitude && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-3 rounded-xl flex items-center gap-2 mt-2">
+                      <LocateFixed className="h-4 w-4" />
+                      Debes obtener tu ubicación para calcular el envío y confirmar el pedido.
+                    </div>
+                  )}
                   {latitude && longitude && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Ubicación: {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                    </p>
+                    <div className="bg-success/10 border border-success/20 text-success text-xs p-3 rounded-xl flex items-center gap-2 mt-2">
+                      <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                      Ubicación verificada: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="notes">Notas para el domiciliario</Label>
-                  <Textarea id="notes" name="notes" placeholder="Ej. Timbre dañado, llamar al llegar" />
+                  <Label htmlFor="notes">Indicaciones adicionales</Label>
+                  <Textarea id="notes" name="notes" placeholder="Piso, apto, color de casa o indicaciones para el repartidor" />
                 </div>
               </div>
             </section>
 
             <section className="rounded-2xl bg-card border border-border/60 p-6 shadow-card">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Pago</h2>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Método de pago</h2>
               <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-3">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵" },
@@ -435,8 +450,14 @@ const Checkout = () => {
               </RadioGroup>
             </section>
 
-            <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
-              {loading ? "Procesando..." : `Confirmar pedido · ${formatCOP(total)}`}
+            <Button 
+              type="submit" 
+              variant="hero" 
+              size="xl" 
+              className="w-full h-16 text-lg shadow-glow" 
+              disabled={loading || !latitude}
+            >
+              {loading ? "Procesando..." : !latitude ? "Obtén tu ubicación para continuar" : `Confirmar pedido · ${formatCOP(total)}`}
             </Button>
           </form>
 
