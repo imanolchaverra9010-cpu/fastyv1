@@ -46,6 +46,10 @@ def get_db():
             if conn.is_connected():
                 # Ping rápido para validar
                 conn.ping(reconnect=True, attempts=1, delay=0)
+                # Establecer zona horaria de Bogotá
+                cursor = conn.cursor()
+                cursor.execute("SET time_zone = '-05:00'")
+                cursor.close()
                 return conn
             else:
                 conn.close()
@@ -70,7 +74,11 @@ def get_db():
     # Esto asegura que si el sistema de pool se corrompe, podamos seguir operando
     try:
         print("Usando conexión directa de emergencia...")
-        return mysql.connector.connect(**db_config)
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("SET time_zone = '-05:00'")
+        cursor.close()
+        return conn
     except Exception as e:
         print(f"FALLO TOTAL DE DB: {e}")
         return None

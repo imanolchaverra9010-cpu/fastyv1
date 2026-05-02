@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from typing import List, Optional, Dict
 from database import get_db
+from utils import get_bogota_time
 from schemas import BusinessCreate, BusinessResponse, BusinessUpdate
 from datetime import datetime, timedelta
 import os
@@ -143,8 +144,8 @@ def get_business_stats(user_id: int):
         
         business_id = biz['id']
         
-        # Ventas totales hoy
-        today = datetime.now().date()
+        # Ventas totales hoy (Hora Bogotá)
+        today = get_bogota_time().date()
         cursor.execute("""
             SELECT SUM(total) as revenue, COUNT(*) as orders 
             FROM orders 

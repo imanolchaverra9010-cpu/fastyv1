@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from database import get_db
+from utils import get_bogota_time
 from typing import List, Optional
 from datetime import datetime
 import os
@@ -132,8 +133,8 @@ def get_courier_stats(user_id: int):
         real_courier_id = courier_data["id"]
         rating = float(courier_data["rating"])
 
-        # Ganancias hoy
-        today = datetime.now().date()
+        # Ganancias hoy (Hora Bogotá)
+        today = get_bogota_time().date()
         cursor.execute("""
             SELECT SUM(total * 0.1) as earnings, COUNT(*) as deliveries 
             FROM orders 

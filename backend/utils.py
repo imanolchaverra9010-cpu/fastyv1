@@ -7,10 +7,14 @@ if not hasattr(bcrypt, "__about__"):
 
 from passlib.context import CryptContext
 from jose import jwt
-from datetime import datetime, timedelta
-from typing import Optional
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from datetime import datetime, timedelta, timezone
+
+# Zona horaria de Bogotá (UTC-5)
+BOGOTA_TZ = timezone(timedelta(hours=-5))
+
+def get_bogota_time() -> datetime:
+    """Retorna la fecha y hora actual en Bogotá."""
+    return datetime.now(BOGOTA_TZ)
 
 # Configuración
 limiter = Limiter(key_func=get_remote_address)
@@ -52,10 +56,11 @@ def check_password(password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
+    now = get_bogota_time()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

@@ -103,7 +103,9 @@ const BusinessDetail = () => {
     if (!business?.opening_time || !business?.closing_time) return true;
     
     const now = new Date();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
+    // Obtener la hora actual en Bogotá
+    const bogotaNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Bogota" }));
+    const currentTime = bogotaNow.getHours() * 100 + bogotaNow.getMinutes();
     
     // Parsear HH:MM:SS a número HHMM
     const [openH, openM] = business.opening_time.split(":").map(Number);

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from utils import pwd_context, hash_password
+from utils import pwd_context, hash_password, get_bogota_time
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -75,8 +75,8 @@ def get_revenue_chart_data():
         raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = db.cursor(dictionary=True)
     try:
-        # Últimos 7 días
-        end_date = datetime.now()
+        # Últimos 7 días en hora Bogotá
+        end_date = get_bogota_time()
         start_date = end_date - timedelta(days=6)
         
         cursor.execute("""
@@ -114,8 +114,8 @@ def get_hours_chart_data():
         raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = db.cursor(dictionary=True)
     try:
-        # Pedidos por hora hoy
-        today = datetime.now().date()
+        # Pedidos por hora hoy (Hora Bogotá)
+        today = get_bogota_time().date()
         
         cursor.execute("""
             SELECT HOUR(created_at) as hour, COUNT(*) as count 
