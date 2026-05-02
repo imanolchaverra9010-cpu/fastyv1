@@ -125,6 +125,7 @@ const Pedidos = () => {
                     <tr>
                       <th className="text-left px-5 py-3 font-medium">Pedido</th>
                       <th className="text-left px-5 py-3 font-medium">Negocio</th>
+                      <th className="text-left px-5 py-3 font-medium">Productos</th>
                       <th className="text-left px-5 py-3 font-medium">Cliente</th>
                       <th className="text-right px-5 py-3 font-medium">Total</th>
                       <th className="text-left px-5 py-3 font-medium">Estado</th>
@@ -135,7 +136,7 @@ const Pedidos = () => {
                   <tbody className="divide-y divide-border/60">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="px-5 py-20 text-center">
+                        <td colSpan={8} className="px-5 py-20 text-center">
                           <div className="flex flex-col items-center gap-2">
                             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
                             <p className="text-muted-foreground animate-pulse">Cargando pedidos desde la base de datos...</p>
@@ -144,7 +145,7 @@ const Pedidos = () => {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={7} className="px-5 py-20 text-center">
+                        <td colSpan={8} className="px-5 py-20 text-center">
                           <div className="flex flex-col items-center gap-2 text-destructive">
                             <AlertCircle className="h-8 w-8" />
                             <p className="font-bold">Error de conexión con el servidor</p>
@@ -156,6 +157,16 @@ const Pedidos = () => {
                       <tr key={o.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-3 font-mono text-xs font-bold text-primary">#{o.id}</td>
                         <td className="px-5 py-3 font-medium">{o.businessName || 'Negocio'}</td>
+                        <td className="px-5 py-3">
+                          <div className="max-w-[200px] space-y-0.5">
+                            {(o.items || []).map((item: any, idx: number) => (
+                              <p key={idx} className="text-[10px] truncate leading-tight">
+                                <span className="font-bold text-primary">{item.quantity}x</span> {item.name}
+                              </p>
+                            ))}
+                            {o.order_type === 'open' && <p className="text-[10px] italic text-muted-foreground">{o.open_order_description}</p>}
+                          </div>
+                        </td>
                         <td className="px-5 py-3 text-muted-foreground">{o.customer_name || o.customer}</td>
                         <td className="px-5 py-3 text-right font-bold">{formatCOP(o.total)}</td>
                         <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
@@ -192,7 +203,7 @@ const Pedidos = () => {
                     ))}
                     {(orders || []).length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-muted-foreground italic">
+                        <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground italic">
                           No se encontraron pedidos en esta categoría.
                         </td>
                       </tr>
@@ -218,6 +229,20 @@ const Pedidos = () => {
                         <p className="text-xs text-muted-foreground">{o.customer_name || o.customer}</p>
                       </div>
                       <p className="font-bold text-sm text-right">{formatCOP(o.total)}</p>
+                    </div>
+
+                    {/* Resumen de productos en móvil */}
+                    <div className="bg-muted/30 p-2.5 rounded-xl space-y-1.5">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Productos:</p>
+                      {(o.items || []).map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-xs">
+                          <span>{item.emoji} {item.name}</span>
+                          <span className="font-bold text-primary">x{item.quantity}</span>
+                        </div>
+                      ))}
+                      {o.order_type === 'open' && (
+                        <p className="text-xs italic text-muted-foreground bg-white/50 p-1.5 rounded">{o.open_order_description}</p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg">

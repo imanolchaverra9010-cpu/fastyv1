@@ -87,6 +87,7 @@ class OrderResponse(BaseModel):
     origin_address: Optional[str] = None
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
+    items: Optional[List[OrderItemCreate]] = []
 
 class OrderDetailResponse(OrderResponse):
     items: List[OrderItemCreate]
