@@ -141,40 +141,43 @@ def get_orders(status_filter: Optional[str] = None):
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
-    query = """
-        SELECT o.*, b.name as business_name, c.name as courier_name 
-        FROM orders o
-        LEFT JOIN businesses b ON o.business_id = b.id
-        LEFT JOIN couriers c ON o.courier_id = c.id
-    """
-    params = []
-    if status_filter:
-        query += " WHERE o.status = %s"
-        params.append(status_filter)
-    query += " ORDER BY o.created_at DESC"
-    
-    cursor.execute(query, params)
-    orders = cursor.fetchall()
-    
-    if orders:
-        order_ids = [o['id'] for o in orders]
-        format_strings = ','.join(['%s'] * len(order_ids))
-        cursor.execute(f"SELECT * FROM order_items WHERE order_id IN ({format_strings})", tuple(order_ids))
-        all_items = cursor.fetchall()
+    try:
+        query = """
+            SELECT o.*, b.name as business_name, c.name as courier_name 
+            FROM orders o
+            LEFT JOIN businesses b ON o.business_id = b.id
+            LEFT JOIN couriers c ON o.courier_id = c.id
+        """
+        params = []
+        if status_filter:
+            query += " WHERE o.status = %s"
+            params.append(status_filter)
+        query += " ORDER BY o.created_at DESC"
         
-        # Agrupar items por order_id
-        items_map = {}
-        for item in all_items:
-            oid = item['order_id']
-            if oid not in items_map:
-                items_map[oid] = []
-            items_map[oid].append(item)
+        cursor.execute(query, params)
+        orders = cursor.fetchall()
+        
+        if orders:
+            order_ids = [o['id'] for o in orders]
+            format_strings = ','.join(['%s'] * len(order_ids))
+            cursor.execute(f"SELECT * FROM order_items WHERE order_id IN ({format_strings})", tuple(order_ids))
+            all_items = cursor.fetchall()
             
-        for o in orders:
-            o['items'] = items_map.get(o['id'], [])
-            
-    db.close()
-    return orders
+            # Agrupar items por order_id
+            items_map = {}
+            for item in all_items:
+                oid = item['order_id']
+                if oid not in items_map:
+                    items_map[oid] = []
+                items_map[oid].append(item)
+                
+            for o in orders:
+                o['items'] = items_map.get(o['id'], [])
+                
+        return orders
+    finally:
+        cursor.close()
+        db.close()
 
 @router.get("/user/{user_id}", response_model=List[OrderResponse])
 def get_user_orders(user_id: int):

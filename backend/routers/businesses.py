@@ -58,13 +58,10 @@ def create_business(business: BusinessCreate):
         db.commit()
         
         cursor.execute("SELECT * FROM businesses WHERE id = %s", (business.id,))
-        new_business = cursor.fetchone()
+        return cursor.fetchone()
+    finally:
+        cursor.close()
         db.close()
-        return new_business
-    except Exception as e:
-        db.rollback()
-        db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("", response_model=List[BusinessResponse])
 @router.get("/", response_model=List[BusinessResponse])
@@ -99,10 +96,13 @@ def get_businesses(response: Response, status_filter: Optional[str] = None, cate
         
     query += " ORDER BY b.rating DESC"
     
-    cursor.execute(query, params)
-    businesses = cursor.fetchall()
-    db.close()
-    return format_business_data(businesses)
+    try:
+        cursor.execute(query, params)
+        businesses = cursor.fetchall()
+        return format_business_data(businesses)
+    finally:
+        cursor.close()
+        db.close()
 
 @router.get("/{business_id}", response_model=BusinessResponse)
 def get_business(business_id: str, response: Response):
