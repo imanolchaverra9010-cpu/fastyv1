@@ -387,7 +387,6 @@ const Checkout = () => {
                   <Input key={initialData.phone} id="phone" name="phone" required type="tel" defaultValue={initialData.phone} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address">Dirección de entrega</Label>
                   <div className="relative">
                     <Input 
