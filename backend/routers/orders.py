@@ -278,14 +278,12 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
             subscribed_couriers = cursor.fetchall()
             for courier in subscribed_couriers:
                 push_title = f"Nuevo encargo: {notification_data['business_name']}" if order.order_type == "open" else f"Nuevo pedido: {notification_data['business_name']}"
-                push_body = "Envia tu oferta para hacer este domicilio." if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${order.total}"
-                push_url = f"/domiciliario?offer={action_id}" if order.order_type == "open" else "/domiciliario"
+                push_body = f"Destino: {order.delivery_address}" if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${order.total}"
+                push_url = "/domiciliario"
                 background_tasks.add_task(send_push_notification, courier['user_id'], {
-                    "title": f"🚨 ¡NUEVO PEDIDO: {notification_data['business_name']}!",
-                    "body": f"Destino: {order.delivery_address} | Valor aprox: ${order.total}",
-                    "url": push_url,
                     "title": push_title,
-                    "body": push_body
+                    "body": push_body,
+                    "url": push_url
                 })
 
         return {"id": order_id, "message": "Order created successfully"}

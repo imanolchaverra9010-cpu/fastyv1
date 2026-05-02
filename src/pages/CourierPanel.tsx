@@ -661,9 +661,9 @@ const CourierPanel = () => {
                     <Button
                       variant="hero"
                       className="flex-1 rounded-xl h-11 font-bold shadow-glow"
-                      onClick={() => handleAction(currentNotification.order_type === 'open' ? 'offer' : 'accept', currentNotification.order_id)}
+                      onClick={() => handleAction('accept', currentNotification.order_id)}
                     >
-                      <Check className="mr-2 h-4 w-4" /> {currentNotification.order_type === 'open' ? 'Ofertar' : 'Aceptar'}
+                      <Check className="mr-2 h-4 w-4" /> Aceptar
                     </Button>
                     <Button
                       variant="outline"
@@ -1002,9 +1002,9 @@ const CourierPanel = () => {
                           <Button
                             variant="hero"
                             className="flex-1 rounded-lg font-bold"
-                            onClick={() => handleAction(order.order_type === 'open' ? 'offer' : 'accept', order.id)}
+                            onClick={() => handleAction('accept', order.id)}
                           >
-                            <Check className="mr-2 h-4 w-4" /> {order.order_type === 'open' ? 'Enviar oferta' : 'Aceptar'}
+                            <Check className="mr-2 h-4 w-4" /> Aceptar
                           </Button>
                           <Button
                             variant="outline"

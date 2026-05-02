@@ -18,10 +18,7 @@ const OpenOrder = () => {
   const [orderSummary, setOrderSummary] = useState<any>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [originLatitude, setOriginLatitude] = useState<number | null>(null);
-  const [originLongitude, setOriginLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [originLocationLoading, setOriginLocationLoading] = useState(false);
   const [dynamicFee, setDynamicFee] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
@@ -81,8 +78,6 @@ const OpenOrder = () => {
           delivery_address: formData.deliveryAddress,
           origin_name: formData.originName,
           origin_address: formData.originAddress,
-          origin_latitude: originLatitude,
-          origin_longitude: originLongitude,
           open_order_description: formData.description,
           payment_method: formData.paymentMethod,
           order_type: "open",
@@ -190,39 +185,7 @@ const OpenOrder = () => {
     }
   };
 
-  const findOriginLocation = async () => {
-    const query = [formData.originName, formData.originAddress].filter(Boolean).join(", ");
-    if (!query) {
-      toast({ title: "Faltan datos", description: "Escribe el nombre o direccion del lugar.", variant: "destructive" });
-      return;
-    }
 
-    setOriginLocationLoading(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
-        { headers: { 'Accept-Language': 'es' } }
-      );
-      const data = await response.json();
-      const result = data?.[0];
-      if (!result) {
-        throw new Error("No encontramos ese lugar. Revisa la direccion.");
-      }
-
-      setOriginLatitude(Number(result.lat));
-      setOriginLongitude(Number(result.lon));
-      if (result.display_name && !formData.originAddress) {
-        setFormData(prev => ({ ...prev, originAddress: result.display_name }));
-      }
-      toast({ title: "Punto de compra ubicado", description: "Usaremos esta ubicacion para asignar el domiciliario mas cercano." });
-    } catch (error: any) {
-      setOriginLatitude(null);
-      setOriginLongitude(null);
-      toast({ title: "No se pudo ubicar el lugar", description: error.message, variant: "destructive" });
-    } finally {
-      setOriginLocationLoading(false);
-    }
-  };
 
   if (done && orderSummary) {
     return (
@@ -261,8 +224,6 @@ const OpenOrder = () => {
                   placeholder="Ej: Ferretería El Martillo, Tienda de la esquina..."
                   value={formData.originName}
                   onChange={(e) => {
-                    setOriginLatitude(null);
-                    setOriginLongitude(null);
                     setFormData({ ...formData, originName: e.target.value });
                   }}
                   className="rounded-xl h-12"
@@ -275,22 +236,10 @@ const OpenOrder = () => {
                   placeholder="Ej: Calle 10 # 5-20"
                   value={formData.originAddress}
                   onChange={(e) => {
-                    setOriginLatitude(null);
-                    setOriginLongitude(null);
                     setFormData({ ...formData, originAddress: e.target.value });
                   }}
                   className="rounded-xl h-12"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={findOriginLocation}
-                  disabled={originLocationLoading || (!formData.originName && !formData.originAddress)}
-                  className="w-full h-11 rounded-xl border-primary/20 text-primary"
-                >
-                  {originLocationLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
-                  {originLatitude && originLongitude ? "Punto de compra verificado" : "Ubicar punto de compra"}
-                </Button>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">¿Qué necesitas que compremos? *</Label>
