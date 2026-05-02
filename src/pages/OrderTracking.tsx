@@ -365,57 +365,64 @@ const OrderTracking = () => {
                 {order.courier_id && (
                   <div className="pt-6 border-t animate-in fade-in slide-in-from-top-2 duration-500">
                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Tu Domiciliario Fasty</h3>
-                    <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-2xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-all">
-                      <div className="relative">
-                        {order.courier_image ? (
-                          <img
-                            src={order.courier_image}
-                            alt={order.courier_name}
-                            className="h-16 w-16 rounded-full object-cover border-2 border-primary/40 shadow-sm"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40 shadow-sm">
-                            <Bike className="h-8 w-8" />
-                          </div>
-                        )}
-                        <div className="absolute -bottom-1 -right-1 bg-success h-4 w-4 rounded-full border-2 border-card animate-pulse" title="En línea" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-xl truncate">{order.courier_name || "Domiciliario asignado"}</p>
-                            <CheckCircle2 className="h-5 w-5 text-success fill-success/20" title="Domiciliario Verificado" />
-                          </div>
-                          {order.courier_rating && (
-                            <div className="flex items-center gap-1 bg-yellow-400/20 text-yellow-700 px-2 py-1 rounded-lg text-xs font-bold border border-yellow-400/30">
-                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                              {Number(order.courier_rating).toFixed(1)}
+                    <div className="bg-primary/5 p-4 rounded-2xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-all">
+                      {/* Avatar + info row */}
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          {order.courier_image ? (
+                            <img
+                              src={order.courier_image}
+                              alt={order.courier_name}
+                              className="h-14 w-14 rounded-full object-cover border-2 border-primary/40 shadow-sm"
+                            />
+                          ) : (
+                            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40 shadow-sm">
+                              <Bike className="h-7 w-7" />
                             </div>
                           )}
+                          <div className="absolute -bottom-1 -right-1 bg-success h-3.5 w-3.5 rounded-full border-2 border-card animate-pulse" title="En línea" />
                         </div>
-                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-2">
-                          <Bike className="h-3 w-3" /> {order.courier_vehicle || "Vehículo de entrega"}
-                        </p>
-                        {order.courier_phone && (
-                          <div className="flex gap-2">
-                            <Button variant="hero" size="sm" className="h-8 px-3 text-[10px] gap-1 rounded-lg" asChild>
-                              <a href={`tel:${order.courier_phone}`}>
-                                <Phone className="h-3 w-3" /> Llamar
-                              </a>
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 px-3 text-[10px] gap-1 rounded-lg border-success/30 text-success hover:bg-success/5" asChild>
-                              <a
-                                href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <MessageCircle className="h-3 w-3" /> WhatsApp
-                              </a>
-                            </Button>
+
+                        <div className="flex-1 min-w-0">
+                          {/* Name + verified + rating — wraps on mobile */}
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-1">
+                            <p className="font-bold text-base leading-tight break-words max-w-full">
+                              {order.courier_name || "Domiciliario asignado"}
+                            </p>
+                            <CheckCircle2 className="h-4 w-4 text-success fill-success/20 shrink-0" title="Verificado" />
+                            {order.courier_rating && (
+                              <div className="flex items-center gap-1 bg-yellow-400/20 text-yellow-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-yellow-400/30 shrink-0">
+                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                {Number(order.courier_rating).toFixed(1)}
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <Bike className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{order.courier_vehicle || "Vehículo de entrega"}</span>
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Action buttons — stretch full width on all screen sizes */}
+                      {order.courier_phone && (
+                        <div className="flex gap-2 mt-3">
+                          <Button variant="hero" size="sm" className="flex-1 h-9 text-xs gap-1.5 rounded-xl" asChild>
+                            <a href={`tel:${order.courier_phone}`}>
+                              <Phone className="h-3.5 w-3.5 shrink-0" /> Llamar
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 rounded-xl border-success/30 text-success hover:bg-success/5" asChild>
+                            <a
+                              href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5 shrink-0" /> WhatsApp
+                            </a>
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
