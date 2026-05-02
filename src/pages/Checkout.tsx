@@ -140,6 +140,8 @@ const Checkout = () => {
 
     const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
     const nightFee = isNightFeeTime() ? 2000 : 0;
+    
+    // El total de envío es la base (del negocio más lejano) + 2000 por cada negocio extra + 2000 si es noche
     return baseFee + additionalFees + nightFee;
   };
 
@@ -261,11 +263,11 @@ const Checkout = () => {
           } else {
             bFee = 5000; // Fallback si no hay coordenadas
           }
-        }
-
-        // Aplicar tarifa nocturna a cada orden si corresponde
-        if (isNightFeeTime()) {
-          bFee += 2000;
+          
+          // Aplicar recargo nocturno SOLO a la orden del negocio principal (el más lejano)
+          if (isNightFeeTime()) {
+            bFee += 2000;
+          }
         }
 
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
@@ -535,7 +537,15 @@ const Checkout = () => {
 
             <div className="mt-5 pt-4 border-t border-border space-y-2 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{formatCOP(subtotal)}</span></div>
-              <div className="flex justify-between text-muted-foreground"><span>Envío</span><span>{formatCOP(fee)}</span></div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Envío</span>
+                <div className="text-right">
+                  <span>{formatCOP(fee)}</span>
+                  {isNightFeeTime() && (
+                    <p className="text-[10px] text-primary font-bold">Recargo nocturno incluido</p>
+                  )}
+                </div>
+              </div>
               {promo && (
                 <div className="flex justify-between text-success font-medium">
                   <span>Descuento ({promo.code})</span>
