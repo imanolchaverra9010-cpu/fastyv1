@@ -91,25 +91,29 @@ export async function registerPush(userId: number) {
   }
 }
 
-/**
- * Checks if the current time in Bogotá is between 7:00 PM and 6:00 AM
- */
+// v1.0.2 - Force update for Night Fee
 export function isNightFeeTime() {
   try {
-    const bogotaHour = parseInt(new Intl.DateTimeFormat('en-US', {
+    const now = new Date();
+    // Usamos Intl.DateTimeFormat con hourCycle h23 para asegurar 0-23
+    const formatter = new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       hourCycle: 'h23',
       timeZone: 'America/Bogota'
-    }).format(new Date()));
+    });
     
-    console.log("Hora Bogotá calculada:", bogotaHour);
+    const bogotaHour = parseInt(formatter.format(now));
     
-    // 7 PM (19:00) hasta 6 AM
-    return bogotaHour >= 19 || bogotaHour < 6;
+    console.log("RAPIDITO DEBUG - Hora Bogotá:", bogotaHour);
+    
+    // Rango: 7 PM (19) a 6 AM (5:59)
+    const isNight = bogotaHour >= 19 || bogotaHour < 6;
+    
+    return isNight;
   } catch (error) {
-    console.error("Error calculando hora de Bogotá:", error);
-    const hours = new Date().getHours();
-    return hours >= 19 || hours < 6;
+    console.error("RAPIDITO ERROR - Falló detección Bogotá:", error);
+    const localHour = new Date().getHours();
+    return localHour >= 19 || localHour < 6;
   }
 }
 

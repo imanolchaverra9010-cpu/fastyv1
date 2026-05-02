@@ -1,3 +1,4 @@
+// v1.0.2 - Force update for Night Fee
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -110,6 +111,17 @@ const Checkout = () => {
     if (lines.length > 0) fetchBusinessCoords();
   }, [lines]);
 
+  // Debug toast for night fee
+  useEffect(() => {
+    const isNight = isNightFeeTime();
+    if (isNight) {
+      toast({
+        title: "Horario Nocturno Detectado",
+        description: "Se aplicará un recargo de 2000 COP a tu envío.",
+      });
+    }
+  }, []);
+
   const { data: benefitsData } = useQuery({
     queryKey: ["userBenefits", user?.id],
     queryFn: async () => {
@@ -138,10 +150,10 @@ const Checkout = () => {
       }
     });
 
+    const isNight = isNightFeeTime();
     const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
-    const nightFee = isNightFeeTime() ? 2000 : 0;
+    const nightFee = isNight ? 2000 : 0;
     
-    // El total de envío es la base (del negocio más lejano) + 2000 por cada negocio extra + 2000 si es noche
     return baseFee + additionalFees + nightFee;
   };
 
