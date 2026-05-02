@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
@@ -49,7 +49,10 @@ async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
         db.close()
 
 @router.get("/{user_id}/profile")
-def get_courier_profile(user_id: int):
+def get_courier_profile(user_id: int, response: Response):
+    # Cache in browser for 10 seconds, but do not cache at Edge because it's user-specific
+    response.headers["Cache-Control"] = "private, max-age=10"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -109,7 +112,10 @@ def update_courier_profile(user_id: int, profile_data: dict):
         db.close()
 
 @router.get("/{user_id}/stats")
-def get_courier_stats(user_id: int):
+def get_courier_stats(user_id: int, response: Response):
+    # Cache in browser for 10 seconds
+    response.headers["Cache-Control"] = "private, max-age=10"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -155,7 +161,12 @@ def get_courier_stats(user_id: int):
         db.close()
 
 @router.get("/available-orders")
-def get_available_orders():
+def get_available_orders(response: Response):
+    # Enable Edge Caching for 5 seconds to shield DB from aggressive polling
+    # public means Vercel Edge can cache it, s-maxage tells Edge to keep for 5s, 
+    # stale-while-revalidate allows serving stale content while fetching fresh
+    response.headers["Cache-Control"] = "public, max-age=5, s-maxage=5, stale-while-revalidate=10"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -217,7 +228,10 @@ def get_available_orders():
 
 
 @router.get("/{user_id}/my-orders")
-def get_my_orders(user_id: int):
+def get_my_orders(user_id: int, response: Response):
+    # Cache in browser for 5 seconds
+    response.headers["Cache-Control"] = "private, max-age=5"
+    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
