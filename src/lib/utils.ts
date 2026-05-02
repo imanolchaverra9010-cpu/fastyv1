@@ -48,23 +48,44 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+async function getServiceWorkerRegistration() {
+  const existingRegistration = await navigator.serviceWorker.getRegistration();
+  if (existingRegistration) {
+    return existingRegistration;
+  }
+
+  await navigator.serviceWorker.register('/service-worker.js');
+  return navigator.serviceWorker.ready;
+}
+
 export async function registerPush(userId: number) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('Push messaging is not supported');
-    return;
+    return false;
+  }
+
+  if (!window.isSecureContext) {
+    console.warn('Push messaging requires HTTPS or localhost');
+    return false;
+  }
+
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+    console.warn('Notification permission has not been granted');
+    return false;
+  }
+
+  if (!VAPID_PUBLIC_KEY) {
+    console.warn('VITE_VAPID_PUBLIC_KEY is not defined');
+    return false;
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await getServiceWorkerRegistration();
     
     // Check if we already have a subscription
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
-      if (!VAPID_PUBLIC_KEY) {
-        console.warn('VITE_VAPID_PUBLIC_KEY is not defined');
-        return false;
-      }
       // Subscribe the user
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -73,16 +94,20 @@ export async function registerPush(userId: number) {
     }
 
     // Send the subscription to the backend
-    await fetch('/api/push/subscribe', {
+    const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         user_id: userId,
-        subscription: subscription
+        subscription: subscription.toJSON()
       }),
     });
+
+    if (!response.ok) {
+      throw new Error(`Push subscription failed with status ${response.status}`);
+    }
 
     return true;
   } catch (error) {

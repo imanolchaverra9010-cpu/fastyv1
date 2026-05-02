@@ -13,7 +13,16 @@ export const NotificationPrompt = () => {
     if (!user) return;
     
     // Only show if the browser supports notifications and permissions haven't been granted or denied yet
-    if (typeof Notification !== 'undefined' && Notification.permission === "default") {
+    if (typeof Notification === 'undefined') {
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      registerPush(user.id);
+      return;
+    }
+
+    if (Notification.permission === "default") {
       // Small delay before showing the prompt
       const timer = setTimeout(() => setShow(true), 3000);
       return () => clearTimeout(timer);
