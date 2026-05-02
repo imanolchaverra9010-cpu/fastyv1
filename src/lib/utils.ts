@@ -33,6 +33,7 @@ export const getWebSocketUrl = (path: string): string | null => {
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String: string) {
+  if (!base64String) return new Uint8Array(0);
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')
@@ -60,6 +61,10 @@ export async function registerPush(userId: number) {
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
+      if (!VAPID_PUBLIC_KEY) {
+        console.warn('VITE_VAPID_PUBLIC_KEY is not defined');
+        return false;
+      }
       // Subscribe the user
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,

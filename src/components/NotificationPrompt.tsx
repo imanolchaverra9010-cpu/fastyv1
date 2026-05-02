@@ -12,8 +12,8 @@ export const NotificationPrompt = () => {
   useEffect(() => {
     if (!user) return;
     
-    // Only show if permissions haven't been granted or denied yet
-    if (Notification.permission === "default") {
+    // Only show if the browser supports notifications and permissions haven't been granted or denied yet
+    if (typeof Notification !== 'undefined' && Notification.permission === "default") {
       // Small delay before showing the prompt
       const timer = setTimeout(() => setShow(true), 3000);
       return () => clearTimeout(timer);
@@ -21,6 +21,7 @@ export const NotificationPrompt = () => {
   }, [user]);
 
   const handleEnable = async () => {
+    if (typeof Notification === 'undefined') return;
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       const success = await registerPush(user!.id);

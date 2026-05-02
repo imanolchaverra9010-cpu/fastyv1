@@ -209,10 +209,10 @@ const AppContent = () => {
 
 
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 if (!googleClientId) {
-  throw new Error("Falta VITE_GOOGLE_CLIENT_ID en entorno");
+  console.warn("Advertencia: VITE_GOOGLE_CLIENT_ID no está configurado. El inicio de sesión con Google no estará disponible.");
 }
 
 const App = () => (
