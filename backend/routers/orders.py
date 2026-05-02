@@ -59,7 +59,6 @@ async def create_order(order: OrderCreate):
                 "INSERT IGNORE INTO used_coupons (user_id, code) VALUES (%s, %s)",
                 (order.user_id, order.promo_code)
             )
-            
         db.commit()
 
         # Obtener detalles del negocio para la notificación
@@ -374,6 +373,25 @@ async def update_order_status(order_id: str, status_data: dict):
                         "url": f"/rastreo/{real_id}"
                     })
             
+        # Vercel serverless does not keep a websocket manager alive, so client
+        # push notifications must also work when websocket_manager is missing.
+        if not websocket_manager:
+            for order in orders:
+                user_id = order.get('user_id')
+                real_id = order['id']
+                status_messages = {
+                    "preparing": "Tu pedido esta siendo preparado",
+                    "shipped": "Tu pedido va en camino",
+                    "delivered": "Tu pedido ha sido entregado",
+                    "cancelled": "Tu pedido ha sido cancelado"
+                }
+                if user_id and new_status in status_messages:
+                    send_push_notification(user_id, {
+                        "title": "Actualizacion de Pedido",
+                        "body": status_messages[new_status],
+                        "url": f"/rastreo/{real_id}"
+                    })
+
         db.commit()
         db.close()
         return {"message": f"Updated {len(orders)} order(s) successfully"}
