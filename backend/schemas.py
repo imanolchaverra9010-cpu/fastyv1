@@ -58,6 +58,13 @@ class OrderCreate(BaseModel):
     total: int
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    items: List[OrderItemCreate] = []
+    order_type: str = "regular"
+    origin_name: Optional[str] = None
+    origin_address: Optional[str] = None
+    open_order_description: Optional[str] = None
+    batch_id: Optional[str] = None
+    promo_code: Optional[str] = None
 
 class FeeCalculationRequest(BaseModel):
     latitude: float
@@ -69,13 +76,6 @@ class FeeCalculationResponse(BaseModel):
     base_fee: int
     distance_fee: int
     night_fee: int
-    items: List[OrderItemCreate] = []
-    order_type: str = "regular"
-    origin_name: Optional[str] = None
-    origin_address: Optional[str] = None
-    open_order_description: Optional[str] = None
-    batch_id: Optional[str] = None
-    promo_code: Optional[str] = None
 
 class OrderResponse(BaseModel):
     id: str
