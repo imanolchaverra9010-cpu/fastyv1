@@ -65,6 +65,8 @@ class OrderCreate(BaseModel):
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
     promo_code: Optional[str] = None
+    delivery_fee: int = 0
+    night_fee: int = 0
 
 class FeeCalculationRequest(BaseModel):
     latitude: float

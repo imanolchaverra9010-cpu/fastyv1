@@ -31,13 +31,14 @@ async def create_order(order: OrderCreate):
         cursor.execute(
             """INSERT INTO orders (id, business_id, user_id, customer_name, customer_phone, 
                delivery_address, payment_method, notes, total, latitude, longitude, status,
-               order_type, origin_name, origin_address, open_order_description, batch_id) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               order_type, origin_name, origin_address, open_order_description, batch_id,
+               delivery_fee, night_fee) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
              order.delivery_address, order.payment_method, order.notes, order.total, 
              order.latitude, order.longitude, 'pending',
              order.order_type, order.origin_name, order.origin_address, order.open_order_description,
-             order.batch_id)
+             order.batch_id, order.delivery_fee, order.night_fee)
         )
         
         # Log inicial
@@ -372,6 +373,7 @@ async def update_order_status(order_id: str, status_data: dict):
                     "delivered": "¡Tu pedido ha sido entregado! 🎉",
                     "cancelled": "Tu pedido ha sido cancelado ❌"
                 }
+                status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
                 if new_status in status_messages:
                     send_push_notification(user_id, {
                         "title": "Actualización de Pedido",
@@ -391,6 +393,7 @@ async def update_order_status(order_id: str, status_data: dict):
                     "delivered": "Tu pedido ha sido entregado",
                     "cancelled": "Tu pedido ha sido cancelado"
                 }
+                status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
                 if user_id and new_status in status_messages:
                     send_push_notification(user_id, {
                         "title": "Actualizacion de Pedido",

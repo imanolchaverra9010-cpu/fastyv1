@@ -24,8 +24,8 @@ def get_admin_stats():
     
     cursor = db.cursor(dictionary=True)
     try:
-        # 1. Ingresos Totales y Ticket Promedio
-        cursor.execute("SELECT SUM(total) as total_revenue, COUNT(*) as total_orders, AVG(total) as avg_ticket FROM orders WHERE status != 'cancelled'")
+        # 1. Ingresos Totales (solo domicilio + cuota nocturna) y Ticket Promedio de fees
+        cursor.execute("SELECT SUM(delivery_fee + night_fee) as total_revenue, COUNT(*) as total_orders, AVG(delivery_fee + night_fee) as avg_ticket FROM orders WHERE status != 'cancelled'")
         revenue_data = cursor.fetchone()
         
         # 2. Pagos por Método

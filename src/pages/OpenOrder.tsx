@@ -66,6 +66,9 @@ const OpenOrder = () => {
 
     setLoading(true);
     try {
+      const nightFee = isNightFeeTime() ? 2000 : 0;
+      const deliveryFeeOnly = (dynamicFee || 5000) - nightFee;
+
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,9 +82,11 @@ const OpenOrder = () => {
           open_order_description: formData.description,
           payment_method: formData.paymentMethod,
           order_type: "open",
-          total: dynamicFee || 5000, // Send dynamic fee as total initially
+          total: dynamicFee || 5000,
           latitude: latitude,
           longitude: longitude,
+          delivery_fee: deliveryFeeOnly,
+          night_fee: nightFee,
           items: []
         })
       });

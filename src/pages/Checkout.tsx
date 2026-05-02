@@ -287,6 +287,11 @@ const Checkout = () => {
         const bDiscount = Math.min(bFee, rawBDiscount);
         const bTotal = bSubtotal + bFee - bDiscount;
 
+        // Separar delivery_fee y night_fee para el backend
+        const isMainBusiness = businessIdString === furthestBusinessId;
+        const bNightFee = isMainBusiness && isNightFeeTime() ? 2000 : 0;
+        const bDeliveryFee = bFee - bNightFee;
+
         const orderData = {
           user_id: user?.id,
           business_id: businessId,
@@ -300,6 +305,8 @@ const Checkout = () => {
           longitude: longitude ? parseFloat(longitude.toFixed(8)) : null,
           batch_id: batchId,
           promo_code: promo?.code,
+          delivery_fee: Math.round(bDeliveryFee),
+          night_fee: Math.round(bNightFee),
           items: bLines.map(l => ({
             name: String(l.item.name),
             price: Math.round(l.item.price),

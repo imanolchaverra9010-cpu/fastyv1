@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import os
 import shutil
+from .push import send_push_notification
 
 router = APIRouter()
 
@@ -455,6 +456,14 @@ async def accept_order(user_id: int, order_id: str):
                         "image_url": courier_image,
                         "vehicle": courier_vehicle
                     }
+                })
+
+        for order in orders_to_notify:
+            if order.get("user_id"):
+                send_push_notification(order["user_id"], {
+                    "title": "Domiciliario asignado",
+                    "body": f"{courier_name} acepto tu pedido y va a recogerlo.",
+                    "url": f"/rastreo/{order['id']}"
                 })
 
         return {"message": "Order accepted"}
