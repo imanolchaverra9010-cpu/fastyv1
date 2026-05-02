@@ -128,7 +128,7 @@ def set_websocket_manager(manager):
     websocket_manager = manager
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -222,7 +222,7 @@ async def create_order(order: OrderCreate):
         # 2. Push Notifications (Always try)
         # Notify Business Owner
         if order.business_id and business_info and business_info.get('owner_id'):
-            send_push_notification(business_info['owner_id'], {
+            background_tasks.add_task(send_push_notification, business_info['owner_id'], {
                 "title": "¡Nuevo Pedido!",
                 "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
                 "url": "/negocio/pedidos"
@@ -239,7 +239,7 @@ async def create_order(order: OrderCreate):
             """)
             subscribed_couriers = cursor.fetchall()
             for courier in subscribed_couriers:
-                send_push_notification(courier['user_id'], {
+                background_tasks.add_task(send_push_notification, courier['user_id'], {
                     "title": f"🚨 ¡NUEVO PEDIDO: {notification_data['business_name']}!",
                     "body": f"Destino: {order.delivery_address} | Valor aprox: ${order.total}",
                     "url": "/domiciliario"
@@ -417,7 +417,7 @@ def get_order_detail(order_id: str):
 
 
 @router.patch("/{order_id}/status")
-async def update_order_status(order_id: str, status_data: dict):
+async def update_order_status(order_id: str, status_data: dict, background_tasks: BackgroundTasks):
     new_status = status_data.get("status")
     reason = status_data.get("reason")
     courier_id = status_data.get("courier_id")
@@ -496,7 +496,7 @@ async def update_order_status(order_id: str, status_data: dict):
                 }
                 status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
                 if new_status in status_messages:
-                    send_push_notification(user_id, {
+                    background_tasks.add_task(send_push_notification, user_id, {
                         "title": "Actualización de Pedido",
                         "body": status_messages[new_status],
                         "url": f"/rastreo/{real_id}"
@@ -516,7 +516,7 @@ async def update_order_status(order_id: str, status_data: dict):
                 }
                 status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
                 if user_id and new_status in status_messages:
-                    send_push_notification(user_id, {
+                    background_tasks.add_task(send_push_notification, user_id, {
                         "title": "Actualizacion de Pedido",
                         "body": status_messages[new_status],
                         "url": f"/rastreo/{real_id}"
@@ -531,7 +531,7 @@ async def update_order_status(order_id: str, status_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{order_id}/smart-assign")
-def smart_assign_courier(order_id: str):
+def smart_assign_courier(order_id: str, background_tasks: BackgroundTasks):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -578,14 +578,14 @@ def smart_assign_courier(order_id: str):
         db.commit()
 
         if order.get("user_id"):
-            send_push_notification(order["user_id"], {
+            background_tasks.add_task(send_push_notification, order["user_id"], {
                 "title": "Domiciliario asignado",
                 "body": f"{selected['name']} fue asignado a tu pedido. ETA: {eta.get('eta_text') or 'calculando'}",
                 "url": f"/rastreo/{order_id}"
             })
 
         if selected.get("user_id"):
-            send_push_notification(selected["user_id"], {
+            background_tasks.add_task(send_push_notification, selected["user_id"], {
                 "title": "Pedido asignado",
                 "body": f"Te asignamos un pedido en {order.get('business_name') or 'un negocio'}.",
                 "url": "/domiciliario"

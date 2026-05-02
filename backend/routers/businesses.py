@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import os
 import shutil
 import uuid
+from cache import get_cache, set_cache, delete_cache
 
 from datetime import datetime, timedelta, date
 
@@ -58,7 +59,9 @@ def create_business(business: BusinessCreate):
         db.commit()
         
         cursor.execute("SELECT * FROM businesses WHERE id = %s", (business.id,))
-        return cursor.fetchone()
+        new_biz = cursor.fetchone()
+        delete_cache("businesses:*")
+        return new_biz
     finally:
         cursor.close()
         db.close()
@@ -69,6 +72,12 @@ def get_businesses(response: Response, status_filter: Optional[str] = None, cate
     # Enable Edge Caching for 60 seconds
     response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
     
+    # Check cache first
+    cache_key = f"businesses:list:{status_filter or 'all'}:{category or 'all'}:{q or 'none'}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -99,7 +108,9 @@ def get_businesses(response: Response, status_filter: Optional[str] = None, cate
     try:
         cursor.execute(query, params)
         businesses = cursor.fetchall()
-        return format_business_data(businesses)
+        formatted = format_business_data(businesses)
+        set_cache(cache_key, formatted, ttl_seconds=300) # 5 minutes
+        return formatted
     finally:
         cursor.close()
         db.close()
@@ -109,6 +120,11 @@ def get_business(business_id: str, response: Response):
     # Enable Edge Caching for 60 seconds
     response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
     
+    cache_key = f"businesses:detail:{business_id}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -119,7 +135,9 @@ def get_business(business_id: str, response: Response):
         db.close()
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
-        return format_business_data(business)
+        formatted = format_business_data(business)
+        set_cache(cache_key, formatted, ttl_seconds=300)
+        return formatted
     except Exception as e:
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
@@ -288,6 +306,7 @@ def update_business(business_id: str, business_update: BusinessUpdate):
         cursor.execute("SELECT * FROM businesses WHERE id = %s", (business_id,))
         updated = cursor.fetchone()
         db.close()
+        delete_cache("businesses:*")
         return format_business_data(updated)
     except Exception as e:
         db.rollback()
@@ -319,6 +338,7 @@ async def upload_business_image(business_id: str, file: UploadFile = File(...)):
         cursor.execute("UPDATE businesses SET image_url = %s WHERE id = %s", (image_url, business_id))
         db.commit()
         db.close()
+        delete_cache("businesses:*")
         return {"image_url": image_url}
     except Exception as e:
         db.rollback()
@@ -335,6 +355,7 @@ def delete_business(business_id: str):
         cursor.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
         db.commit()
         db.close()
+        delete_cache("businesses:*")
         return {"message": "Business deleted successfully"}
     except Exception as e:
         db.rollback()

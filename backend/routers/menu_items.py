@@ -3,6 +3,7 @@ from typing import List, Optional
 from database import get_db
 from schemas import MenuItemCreate, MenuItemUpdate, MenuItemResponse
 import mysql.connector
+from cache import get_cache, set_cache, delete_cache
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ def create_menu_item(business_id: str, menu_item: MenuItemCreate):
         cursor.execute("SELECT * FROM menu_items WHERE id = %s", (item_id,))
         new_item = cursor.fetchone()
         db.close()
+        delete_cache(f"menu:{business_id}:*")
         return new_item
     except mysql.connector.Error as err:
         db.rollback()
@@ -46,6 +48,11 @@ def get_menu_items(business_id: str, response: Response, active: Optional[bool] 
     # Enable Edge Caching for 60 seconds
     response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
     
+    cache_key = f"menu:{business_id}:{active if active is not None else 'all'}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return cached_data
+
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -62,6 +69,7 @@ def get_menu_items(business_id: str, response: Response, active: Optional[bool] 
         cursor.execute(query, params)
         items = cursor.fetchall()
         db.close()
+        set_cache(cache_key, items, ttl_seconds=600) # 10 minutes
         return items
     except mysql.connector.Error as err:
         db.close()
@@ -120,6 +128,7 @@ def update_menu_item(business_id: str, item_id: int, menu_item_update: MenuItemU
         db.close()
         if not updated_item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found after update")
+        delete_cache(f"menu:{business_id}:*")
         return updated_item
     except mysql.connector.Error as err:
         db.rollback()
@@ -141,6 +150,7 @@ def delete_menu_item(business_id: str, item_id: int):
         cursor.execute("DELETE FROM menu_items WHERE business_id = %s AND id = %s", (business_id, item_id))
         db.commit()
         db.close()
+        delete_cache(f"menu:{business_id}:*")
         return {"message": "Menu item deleted successfully"}
     except mysql.connector.Error as err:
         db.rollback()
@@ -172,6 +182,7 @@ async def upload_menu_item_image(business_id: str, item_id: int, file: UploadFil
         cursor.execute("UPDATE menu_items SET image_url = %s WHERE id = %s AND business_id = %s", (image_url, item_id, business_id))
         db.commit()
         db.close()
+        delete_cache(f"menu:{business_id}:*")
         return {"image_url": image_url}
     except Exception as e:
         db.rollback()

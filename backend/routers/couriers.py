@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, BackgroundTasks
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
@@ -381,7 +381,7 @@ async def update_courier_location(user_id: int, location_data: dict):
         db.close()
 
 @router.post("/{user_id}/accept-order/{order_id}")
-async def accept_order(user_id: int, order_id: str):
+async def accept_order(user_id: int, order_id: str, background_tasks: BackgroundTasks):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -460,7 +460,7 @@ async def accept_order(user_id: int, order_id: str):
 
         for order in orders_to_notify:
             if order.get("user_id"):
-                send_push_notification(order["user_id"], {
+                background_tasks.add_task(send_push_notification, order["user_id"], {
                     "title": "Domiciliario asignado",
                     "body": f"{courier_name} acepto tu pedido y va a recogerlo.",
                     "url": f"/rastreo/{order['id']}"
