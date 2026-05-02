@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from typing import List, Optional
 import uuid
 from database import get_db
@@ -7,6 +7,7 @@ from utils import get_bogota_time, calculate_distance
 import json
 import math
 from .push import send_push_notification
+from whatsapp import send_whatsapp_message
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ def set_websocket_manager(manager):
     websocket_manager = manager
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -118,16 +119,28 @@ async def create_order(order: OrderCreate):
                 "url": "/negocio/pedidos"
             })
 
-        # Notify Couriers
+        # Notify Couriers via Web Push and WhatsApp
         if should_notify_couriers:
-            cursor.execute("SELECT user_id FROM couriers WHERE status = 'online'")
+            cursor.execute("SELECT user_id, phone FROM couriers WHERE status = 'online'")
             online_couriers = cursor.fetchall()
+            
+            # WhatsApp Message Template
+            wa_message = f"🚨 *¡NUEVO PEDIDO DISPONIBLE!*\n"
+            wa_message += f"🏪 Negocio: {notification_data['business_name']}\n"
+            wa_message += f"📍 Destino: {order.delivery_address}\n"
+            wa_message += f"💰 Valor Aprox: ${order.total}\n\n"
+            wa_message += "👉 Entra a Rapidito para aceptarlo."
+
             for courier in online_couriers:
                 send_push_notification(courier['user_id'], {
                     "title": "¡Nuevo Pedido Disponible!",
                     "body": f"Hay un nuevo pedido de {notification_data['business_name']}.",
                     "url": "/domiciliario"
                 })
+                
+                # Enviar WhatsApp si hay número registrado
+                if courier.get('phone'):
+                    background_tasks.add_task(send_whatsapp_message, courier['phone'], wa_message)
 
         return {"id": order_id, "message": "Order created successfully"}
     except Exception as e:
