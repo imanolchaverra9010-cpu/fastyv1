@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import MultiReceipt from "@/components/MultiReceipt";
+import { isNightFeeTime } from "@/lib/utils";
 
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // Radio de la tierra en km
@@ -138,7 +139,8 @@ const Checkout = () => {
     });
 
     const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
-    return baseFee + additionalFees;
+    const nightFee = isNightFeeTime() ? 2000 : 0;
+    return baseFee + additionalFees + nightFee;
   };
 
   const fee = calculateTotalFee();
@@ -259,6 +261,11 @@ const Checkout = () => {
           } else {
             bFee = 5000; // Fallback si no hay coordenadas
           }
+        }
+
+        // Aplicar tarifa nocturna a cada orden si corresponde
+        if (isNightFeeTime()) {
+          bFee += 2000;
         }
 
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
@@ -537,7 +544,7 @@ const Checkout = () => {
               )}
               {latitude && longitude && (
                 <div className="text-[10px] text-muted-foreground italic text-right mt-1">
-                  * Tarifa calculada según distancia.
+                  * Tarifa calculada según distancia{isNightFeeTime() ? " + recargo nocturno" : ""}.
                 </div>
               )}
               <div className="flex justify-between font-display font-bold text-xl pt-2"><span>Total</span><span>{formatCOP(total)}</span></div>

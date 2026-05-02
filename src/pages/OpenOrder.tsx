@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import Receipt from "@/components/Receipt";
+import { isNightFeeTime } from "@/lib/utils";
 
 const OpenOrder = () => {
   const navigate = useNavigate();
@@ -95,8 +96,8 @@ const OpenOrder = () => {
           emoji: "🛍️"
         }],
         subtotal: 0,
-        fee: 5000, // Tarifa base para pedidos abiertos
-        total: 5000
+        fee: 5000 + (isNightFeeTime() ? 2000 : 0), // Tarifa base para pedidos abiertos + recargo nocturno
+        total: 5000 + (isNightFeeTime() ? 2000 : 0)
       });
       setDone(data.id);
       toast({ title: "¡Pedido enviado!", description: "Un domiciliario se encargará de tu compra." });

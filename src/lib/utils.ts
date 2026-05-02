@@ -90,3 +90,15 @@ export async function registerPush(userId: number) {
     return false;
   }
 }
+
+/**
+ * Checks if the current time in Bogotá is between 7:00 PM and 6:00 AM
+ */
+export function isNightFeeTime() {
+  const now = new Date();
+  const bogotaTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Bogota" }));
+  const hours = bogotaTime.getHours();
+  // 7 PM (19:00) until 6 AM
+  return hours >= 19 || hours < 6;
+}
+

@@ -134,9 +134,13 @@ def get_courier_stats(user_id: int):
         rating = float(courier_data["rating"])
 
         # Ganancias hoy (Hora Bogotá)
+        # Se añade el recargo nocturno de 2000 si el pedido se creó entre las 7pm y 6am
+        # Como ya reciben el 10% del total (que incluye los 2000), sumamos los 1800 restantes
         today = get_bogota_time().date()
         cursor.execute("""
-            SELECT SUM(total * 0.1) as earnings, COUNT(*) as deliveries 
+            SELECT 
+                SUM(total * 0.1 + (CASE WHEN HOUR(CONVERT_TZ(created_at, '+00:00', '-05:00')) >= 19 OR HOUR(CONVERT_TZ(created_at, '+00:00', '-05:00')) < 6 THEN 1800 ELSE 0 END)) as earnings, 
+                COUNT(*) as deliveries 
             FROM orders 
             WHERE courier_id = %s AND status = 'delivered' AND DATE(created_at) = %s
         """, (real_courier_id, today))
@@ -536,11 +540,19 @@ def complete_order(user_id: int, order_id: str, data: dict = None):
             if delivery_fee is not None:
                 order_earnings = float(delivery_fee)
             else:
-                # 10% del total de las órdenes del paquete
-                cursor.execute("SELECT SUM(total) as batch_total FROM orders WHERE batch_id = %s", (order_id,))
+                # 10% del total de las órdenes del paquete + recargo nocturno si aplica
+                cursor.execute("SELECT SUM(total) as batch_total, MIN(created_at) as created_at FROM orders WHERE batch_id = %s", (order_id,))
                 batch_data = cursor.fetchone()
                 batch_total = batch_data["batch_total"] if batch_data and batch_data["batch_total"] else 0
                 order_earnings = batch_total * 0.1
+                
+                # Verificar si es horario nocturno para añadir los 1800 restantes del recargo
+                created_at = batch_data["created_at"]
+                if created_at:
+                    # Convertir a hora de Bogotá
+                    bogota_hour = (created_at + timedelta(hours=-5)).hour
+                    if bogota_hour >= 19 or bogota_hour < 6:
+                        order_earnings += 1800
 
             cursor.execute("UPDATE couriers SET deliveries = deliveries + %s, earnings = earnings + %s WHERE id = %s", (len(batch_orders), order_earnings, real_courier_id))
         else:
@@ -561,9 +573,17 @@ def complete_order(user_id: int, order_id: str, data: dict = None):
             if delivery_fee is not None:
                 order_earnings = float(delivery_fee)
             else:
-                # Calcular ganancias (10% del total)
+                # Calcular ganancias (10% del total) + recargo nocturno si aplica
                 order_total = order_info['total'] if order_info else 0
                 order_earnings = order_total * 0.1
+                
+                # Verificar horario nocturno
+                cursor.execute("SELECT created_at FROM orders WHERE id = %s", (order_id,))
+                created_row = cursor.fetchone()
+                if created_row and created_row['created_at']:
+                    bogota_hour = (created_row['created_at'] + timedelta(hours=-5)).hour
+                    if bogota_hour >= 19 or bogota_hour < 6:
+                        order_earnings += 1800
 
             # Actualizar estadísticas del domiciliario
             cursor.execute("UPDATE couriers SET deliveries = deliveries + 1, earnings = earnings + %s WHERE id = %s", (order_earnings, real_courier_id))
