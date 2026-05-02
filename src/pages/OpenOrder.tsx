@@ -70,7 +70,6 @@ const OpenOrder = () => {
     setLoading(true);
     try {
       const nightFee = isNightFeeTime() ? 2000 : 0;
-      const deliveryFeeOnly = (dynamicFee || 5000) - nightFee;
 
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -87,10 +86,10 @@ const OpenOrder = () => {
           open_order_description: formData.description,
           payment_method: formData.paymentMethod,
           order_type: "open",
-          total: dynamicFee || 5000,
+          total: 0,
           latitude: latitude,
           longitude: longitude,
-          delivery_fee: deliveryFeeOnly,
+          delivery_fee: 0,
           night_fee: nightFee,
           items: []
         })
@@ -112,8 +111,8 @@ const OpenOrder = () => {
           emoji: "🛍️"
         }],
         subtotal: 0,
-        fee: dynamicFee || 5000,
-        total: dynamicFee || 5000
+        fee: 0,
+        total: 0
       });
       setDone(data.id);
       toast({ title: "¡Pedido enviado!", description: "Un domiciliario se encargará de tu compra." });

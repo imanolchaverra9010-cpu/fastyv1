@@ -101,6 +101,8 @@ const CourierPanel = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [completingOrder, setCompletingOrder] = useState<Order | null>(null);
+  const [offeringOrder, setOfferingOrder] = useState<Order | null>(null);
+  const [offerAmountInput, setOfferAmountInput] = useState("");
   const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -433,7 +435,7 @@ const CourierPanel = () => {
     }
   };
 
-  const handleAction = async (action: 'accept' | 'reject' | 'start_trip' | 'complete', orderId: string, deliveryFee?: number) => {
+  const handleAction = async (action: 'accept' | 'reject' | 'offer' | 'start_trip' | 'complete', orderId: string, deliveryFee?: number) => {
     if (!user?.id) return;
 
     let url = ``;
@@ -442,6 +444,15 @@ const CourierPanel = () => {
     if (action === 'accept') {
       url = `/api/couriers/${user.id}/accept-order/${orderId}`;
       successMessage = `Pedido ${orderId} aceptado. ¡Prepárate para el viaje!`;
+    } else if (action === 'offer') {
+      const order = [...availableOrders, ...myOrders].find(o => o.id === orderId);
+      if (order?.order_type === 'open' && deliveryFee === undefined) {
+        setOfferingOrder(order);
+        setOfferAmountInput("");
+        return;
+      }
+      url = `/api/couriers/${user.id}/offer/${orderId}`;
+      successMessage = `Oferta enviada al cliente.`;
     } else if (action === 'reject') {
       url = `/api/couriers/${user.id}/reject-order/${orderId}`;
       successMessage = `Pedido ${orderId} rechazado.`;
@@ -488,7 +499,7 @@ const CourierPanel = () => {
     }
 
     try {
-      const body = deliveryFee !== undefined ? JSON.stringify({ delivery_fee: deliveryFee }) : undefined;
+      const body = deliveryFee !== undefined ? JSON.stringify(action === 'offer' ? { amount: deliveryFee } : { delivery_fee: deliveryFee }) : undefined;
       const response = await fetch(url, { 
         method: "POST",
         headers: body ? { "Content-Type": "application/json" } : {},
@@ -565,9 +576,9 @@ const CourierPanel = () => {
                     <Button
                       variant="hero"
                       className="flex-1 rounded-xl h-11 font-bold shadow-glow"
-                      onClick={() => handleAction('accept', currentNotification.order_id)}
+                      onClick={() => handleAction(currentNotification.order_type === 'open' ? 'offer' : 'accept', currentNotification.order_id)}
                     >
-                      <Check className="mr-2 h-4 w-4" /> Aceptar
+                      <Check className="mr-2 h-4 w-4" /> {currentNotification.order_type === 'open' ? 'Ofertar' : 'Aceptar'}
                     </Button>
                     <Button
                       variant="outline"
@@ -906,9 +917,9 @@ const CourierPanel = () => {
                           <Button
                             variant="hero"
                             className="flex-1 rounded-lg font-bold"
-                            onClick={() => handleAction('accept', order.id)}
+                            onClick={() => handleAction(order.order_type === 'open' ? 'offer' : 'accept', order.id)}
                           >
-                            <Check className="mr-2 h-4 w-4" /> Aceptar
+                            <Check className="mr-2 h-4 w-4" /> {order.order_type === 'open' ? 'Enviar oferta' : 'Aceptar'}
                           </Button>
                           <Button
                             variant="outline"
@@ -1335,6 +1346,54 @@ const CourierPanel = () => {
         )}
       </div>
     </SidebarProvider>
+
+    {/* MODAL PARA COMPLETAR PEDIDO ABIERTO (Cobro de domicilio) */}
+    {offeringOrder && (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-card w-full max-w-md rounded-3xl border-2 border-primary shadow-2xl p-6 space-y-6">
+          <div className="text-center">
+            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+              <DollarSign className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-display font-bold">Enviar oferta</h2>
+            <p className="text-muted-foreground mt-2">Indica cuanto cobraras por hacer este encargo.</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-muted-foreground uppercase ml-1">Tu oferta ($)</label>
+            <Input
+              type="number"
+              placeholder="ej: 8000"
+              value={offerAmountInput}
+              onChange={(e) => setOfferAmountInput(e.target.value)}
+              className="h-14 text-xl font-bold text-center rounded-2xl border-primary/20 focus:border-primary"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl h-12"
+              onClick={() => setOfferingOrder(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="hero"
+              className="flex-[2] rounded-xl h-12 font-bold shadow-glow"
+              disabled={!offerAmountInput || isNaN(Number(offerAmountInput)) || Number(offerAmountInput) <= 0}
+              onClick={() => {
+                handleAction('offer', offeringOrder.id, Number(offerAmountInput));
+                setOfferingOrder(null);
+              }}
+            >
+              Enviar oferta
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* MODAL PARA COMPLETAR PEDIDO ABIERTO (Cobro de domicilio) */}
     {completingOrder && (

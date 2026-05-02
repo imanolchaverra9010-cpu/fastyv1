@@ -109,6 +109,7 @@ class OrderResponse(BaseModel):
     courier_name: Optional[str] = None
     estimated_delivery_minutes: Optional[int] = None
     eta_text: Optional[str] = None
+    offers: Optional[List[dict]] = None
 
 class OrderDetailResponse(OrderResponse):
     items: List[OrderItemCreate]

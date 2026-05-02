@@ -37,6 +37,7 @@ interface OrderItem {
 interface OrderDetail {
   id: string;
   user_id: number;
+  order_type?: "standard" | "open";
   status: "pending" | "preparing" | "shipped" | "in_transit" | "delivered" | "cancelled";
   customer_name: string;
   delivery_address: string;
@@ -61,6 +62,14 @@ interface OrderDetail {
   courier_rating?: number;
   estimated_delivery_minutes?: number | null;
   eta_text?: string | null;
+  offers?: Array<{
+    id: number;
+    courier_name?: string;
+    courier_vehicle?: string;
+    courier_rating?: number;
+    amount: number;
+    status: string;
+  }>;
 }
 
 const OrderTracking = () => {
@@ -183,6 +192,31 @@ const OrderTracking = () => {
       console.error("Error rating:", err);
     } finally {
       setSubmittingRating(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offerId: number) => {
+    if (!order) return;
+    try {
+      const response = await fetch(`/api/orders/${order.id}/offers/${offerId}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "No se pudo aceptar la oferta");
+      }
+      toast({
+        title: "Oferta aceptada",
+        description: "El domiciliario fue notificado."
+      });
+      fetchOrder(order.id, true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 
@@ -331,6 +365,33 @@ const OrderTracking = () => {
 
               {/* Order Info */}
               <div className="bg-card border rounded-3xl p-5 shadow-card space-y-5 overflow-hidden min-w-0">
+                {order.order_type === 'open' && !order.courier_id && (
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-lg">Ofertas de domiciliarios</h3>
+                    {(order.offers || []).filter(offer => offer.status === 'pending').length === 0 ? (
+                      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+                        Aun no hay ofertas. Te notificaremos cuando un domiciliario proponga un valor.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(order.offers || []).filter(offer => offer.status === 'pending').map((offer) => (
+                          <div key={offer.id} className="rounded-2xl border border-border/60 bg-muted/20 p-3 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-bold text-sm truncate">{offer.courier_name || "Domiciliario"}</p>
+                              <p className="text-xs text-muted-foreground truncate">{offer.courier_vehicle || "Vehiculo de entrega"}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-bold text-primary">{formatCOP(offer.amount)}</p>
+                              <Button size="sm" variant="hero" className="mt-1 h-8 rounded-xl" onClick={() => handleAcceptOffer(offer.id)}>
+                                Aceptar
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Items */}
                 <div>
                   <h3 className="font-bold text-lg mb-3">Resumen</h3>

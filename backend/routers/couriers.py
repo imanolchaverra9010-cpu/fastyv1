@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, BackgroundTasks
+from pydantic import BaseModel
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
@@ -8,6 +9,32 @@ import shutil
 from .push import send_push_notification
 
 router = APIRouter()
+
+class CourierOfferCreate(BaseModel):
+    amount: int
+
+def ensure_offer_schema(db):
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_courier_offers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                courier_id INT NOT NULL,
+                user_id INT NOT NULL,
+                amount INT NOT NULL,
+                status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_order_courier_offer (order_id, courier_id),
+                INDEX idx_order_courier_offers_order (order_id),
+                INDEX idx_order_courier_offers_courier (courier_id),
+                INDEX idx_order_courier_offers_user (user_id)
+            )
+        """)
+        db.commit()
+    finally:
+        cursor.close()
 
 # Variable global para el manager de conexiones WebSocket
 websocket_manager = None
@@ -467,6 +494,73 @@ async def accept_order(user_id: int, order_id: str, background_tasks: Background
                 })
 
         return {"message": "Order accepted"}
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/{user_id}/offer/{order_id}")
+def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCreate, background_tasks: BackgroundTasks):
+    if offer.amount <= 0:
+        raise HTTPException(status_code=400, detail="Offer amount must be greater than zero")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    ensure_offer_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, name FROM couriers WHERE user_id = %s", (user_id,))
+        courier = cursor.fetchone()
+        if not courier:
+            raise HTTPException(status_code=404, detail="Courier profile not found")
+
+        cursor.execute("""
+            SELECT id, user_id, order_type, status, courier_id, origin_name
+            FROM orders
+            WHERE id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        if order["order_type"] != "open":
+            raise HTTPException(status_code=400, detail="Offers are only available for open orders")
+        if order.get("courier_id"):
+            raise HTTPException(status_code=400, detail="Order already has an accepted courier")
+        if order["status"] not in ["pending", "preparing"]:
+            raise HTTPException(status_code=400, detail="Order is not accepting offers")
+
+        cursor.execute("""
+            INSERT INTO order_courier_offers (order_id, courier_id, user_id, amount, status)
+            VALUES (%s, %s, %s, %s, 'pending')
+            ON DUPLICATE KEY UPDATE amount = VALUES(amount), status = 'pending', updated_at = CURRENT_TIMESTAMP
+        """, (order_id, courier["id"], user_id, offer.amount))
+        db.commit()
+
+        if order.get("user_id"):
+            background_tasks.add_task(send_push_notification, order["user_id"], {
+                "title": "Nueva oferta de domiciliario",
+                "body": f"{courier['name']} ofrece hacer tu encargo por ${offer.amount:,}.",
+                "url": f"/rastreo/{order_id}"
+            })
+
+        if websocket_manager and order.get("user_id"):
+            # Fire-and-forget websockets are not guaranteed in Vercel, push is the source of truth.
+            pass
+
+        return {
+            "message": "Offer submitted",
+            "order_id": order_id,
+            "courier_id": courier["id"],
+            "courier_name": courier["name"],
+            "amount": offer.amount
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()

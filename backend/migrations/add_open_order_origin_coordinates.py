@@ -33,6 +33,23 @@ def run():
     try:
         add_column_safe(cursor, db, "origin_latitude", "DECIMAL(10, 8) NULL")
         add_column_safe(cursor, db, "origin_longitude", "DECIMAL(11, 8) NULL")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_courier_offers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                courier_id INT NOT NULL,
+                user_id INT NOT NULL,
+                amount INT NOT NULL,
+                status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_order_courier_offer (order_id, courier_id),
+                INDEX idx_order_courier_offers_order (order_id),
+                INDEX idx_order_courier_offers_courier (courier_id),
+                INDEX idx_order_courier_offers_user (user_id)
+            )
+        """)
+        db.commit()
         print("Migracion completada exitosamente.")
     finally:
         cursor.close()

@@ -16,6 +16,41 @@ DELIVERY_SPEED_KMH = 22
 PICKUP_HANDOFF_MINUTES = 4
 PREPARING_BUFFER_MINUTES = 12
 
+def ensure_open_order_support_schema(db):
+    cursor = db.cursor()
+    try:
+        for column_name, column_def in [
+            ("origin_latitude", "DECIMAL(10, 8) NULL"),
+            ("origin_longitude", "DECIMAL(11, 8) NULL"),
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE orders ADD COLUMN {column_name} {column_def}")
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                if "Duplicate column name" not in str(e) and "1060" not in str(e):
+                    raise
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_courier_offers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                courier_id INT NOT NULL,
+                user_id INT NOT NULL,
+                amount INT NOT NULL,
+                status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_order_courier_offer (order_id, courier_id),
+                INDEX idx_order_courier_offers_order (order_id),
+                INDEX idx_order_courier_offers_courier (courier_id),
+                INDEX idx_order_courier_offers_user (user_id)
+            )
+        """)
+        db.commit()
+    finally:
+        cursor.close()
+
 def _as_float(value):
     return float(value) if value is not None else None
 
@@ -137,6 +172,9 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     order_id = str(uuid.uuid4())[:8]
     
     try:
+        if order.order_type == "open":
+            ensure_open_order_support_schema(db)
+
         # Insertar pedido
         cursor.execute(
             """INSERT INTO orders (id, business_id, user_id, customer_name, customer_phone, 
@@ -239,10 +277,14 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
             """)
             subscribed_couriers = cursor.fetchall()
             for courier in subscribed_couriers:
+                push_title = f"Nuevo encargo: {notification_data['business_name']}" if order.order_type == "open" else f"Nuevo pedido: {notification_data['business_name']}"
+                push_body = "Envia tu oferta para hacer este domicilio." if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${order.total}"
                 background_tasks.add_task(send_push_notification, courier['user_id'], {
                     "title": f"🚨 ¡NUEVO PEDIDO: {notification_data['business_name']}!",
                     "body": f"Destino: {order.delivery_address} | Valor aprox: ${order.total}",
-                    "url": "/domiciliario"
+                    "url": "/domiciliario",
+                    "title": push_title,
+                    "body": push_body
                 })
 
         return {"id": order_id, "message": "Order created successfully"}
@@ -407,6 +449,21 @@ def get_order_detail(order_id: str):
         # Logs
         cursor.execute("SELECT status, changed_at FROM order_status_logs WHERE order_id = %s ORDER BY changed_at ASC", (order_id,))
         order['logs'] = cursor.fetchall()
+        if order.get("order_type") == "open":
+            ensure_open_order_support_schema(db)
+            cursor.execute("""
+                SELECT oco.id, oco.order_id, oco.courier_id, oco.user_id, oco.amount, oco.status,
+                       oco.created_at, c.name as courier_name, c.vehicle as courier_vehicle,
+                       c.rating as courier_rating
+                FROM order_courier_offers oco
+                LEFT JOIN couriers c ON c.id = oco.courier_id
+                WHERE oco.order_id = %s
+                ORDER BY
+                    CASE oco.status WHEN 'accepted' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END,
+                    oco.amount ASC,
+                    oco.created_at ASC
+            """, (order_id,))
+            order['offers'] = cursor.fetchall()
         _attach_eta(order)
         
         db.close()
@@ -414,6 +471,82 @@ def get_order_detail(order_id: str):
     except Exception as e:
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{order_id}/offers/{offer_id}/accept")
+def accept_open_order_offer(order_id: str, offer_id: int, background_tasks: BackgroundTasks):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    ensure_open_order_support_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT o.id, o.user_id, o.order_type, o.status, o.courier_id,
+                   oco.id as offer_id, oco.courier_id as offer_courier_id,
+                   oco.user_id as courier_user_id, oco.amount,
+                   c.name as courier_name
+            FROM orders o
+            INNER JOIN order_courier_offers oco ON oco.order_id = o.id
+            INNER JOIN couriers c ON c.id = oco.courier_id
+            WHERE o.id = %s AND oco.id = %s
+        """, (order_id, offer_id))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Offer not found")
+        if row["order_type"] != "open":
+            raise HTTPException(status_code=400, detail="Only open orders can accept offers")
+        if row.get("courier_id"):
+            raise HTTPException(status_code=400, detail="Order already has a courier assigned")
+        if row["status"] not in ["pending", "preparing"]:
+            raise HTTPException(status_code=400, detail="Order is not accepting offers")
+
+        cursor.execute("""
+            UPDATE orders
+            SET courier_id = %s, status = 'shipped', total = %s, delivery_fee = %s
+            WHERE id = %s
+        """, (row["offer_courier_id"], row["amount"], row["amount"], order_id))
+        cursor.execute("UPDATE order_courier_offers SET status = 'accepted' WHERE id = %s", (offer_id,))
+        cursor.execute("""
+            UPDATE order_courier_offers
+            SET status = 'rejected'
+            WHERE order_id = %s AND id != %s AND status = 'pending'
+        """, (order_id, offer_id))
+        cursor.execute(
+            "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
+            (order_id, 'shipped')
+        )
+        db.commit()
+
+        background_tasks.add_task(send_push_notification, row["courier_user_id"], {
+            "title": "Oferta aceptada",
+            "body": "El cliente acepto tu oferta. Ve a recoger el encargo.",
+            "url": "/domiciliario"
+        })
+        if row.get("user_id"):
+            background_tasks.add_task(send_push_notification, row["user_id"], {
+                "title": "Domiciliario asignado",
+                "body": f"Aceptaste la oferta de {row['courier_name']} por ${row['amount']:,}.",
+                "url": f"/rastreo/{order_id}"
+            })
+
+        return {
+            "message": "Offer accepted",
+            "order_id": order_id,
+            "courier_id": row["offer_courier_id"],
+            "courier_name": row["courier_name"],
+            "amount": row["amount"]
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 
 @router.patch("/{order_id}/status")
