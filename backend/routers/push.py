@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 from database import get_db
 import json
 import os
+from urllib.parse import urlparse
 try:
     from pywebpush import webpush, WebPushException
     PUSH_SUPPORTED = True
@@ -15,6 +16,7 @@ router = APIRouter()
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 VAPID_PUBLIC_KEY = os.getenv("VITE_VAPID_PUBLIC_KEY")
 VAPID_EMAIL = os.getenv("VAPID_EMAIL", "mailto:admin@rapidito.com")
+PUSH_DEBUG_TOKEN = os.getenv("PUSH_DEBUG_TOKEN")
 if VAPID_EMAIL and not VAPID_EMAIL.startswith("mailto:"):
     VAPID_EMAIL = f"mailto:{VAPID_EMAIL}"
 
@@ -22,9 +24,24 @@ class PushSubscription(BaseModel):
     user_id: int
     subscription: dict
 
+class PushTestRequest(BaseModel):
+    user_id: int
+    title: str = "Prueba Fasty"
+    body: str = "Prueba de notificacion push"
+    url: str = "/"
+
 def _subscription_endpoint(subscription: dict) -> str | None:
     endpoint = subscription.get("endpoint")
     return endpoint if isinstance(endpoint, str) and endpoint else None
+
+def _endpoint_provider(endpoint: str | None) -> str | None:
+    if not endpoint:
+        return None
+    return urlparse(endpoint).netloc or None
+
+def _require_debug_token(x_push_debug_token: str | None):
+    if not PUSH_DEBUG_TOKEN or x_push_debug_token != PUSH_DEBUG_TOKEN:
+        raise HTTPException(status_code=403, detail="Push diagnostics are not enabled")
 
 @router.post("/subscribe")
 def subscribe(data: PushSubscription):
@@ -61,13 +78,67 @@ def subscribe(data: PushSubscription):
             (data.user_id, subscription_json)
         )
         db.commit()
-        return {"message": "Subscription saved"}
+        return {
+            "message": "Subscription saved",
+            "user_id": data.user_id,
+            "provider": _endpoint_provider(endpoint)
+        }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()
+
+@router.get("/diagnostics/{user_id}")
+def diagnostics(user_id: int, x_push_debug_token: str | None = Header(default=None)):
+    _require_debug_token(x_push_debug_token)
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT subscription_json, created_at FROM push_subscriptions WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+        providers = []
+        for row in rows:
+            try:
+                endpoint = _subscription_endpoint(json.loads(row["subscription_json"]))
+                provider = _endpoint_provider(endpoint)
+                if provider and provider not in providers:
+                    providers.append(provider)
+            except Exception:
+                continue
+
+        return {
+            "push_supported": PUSH_SUPPORTED,
+            "vapid_private_key_configured": bool(VAPID_PRIVATE_KEY),
+            "vapid_public_key_configured": bool(VAPID_PUBLIC_KEY),
+            "vapid_email_configured": bool(VAPID_EMAIL),
+            "subscription_count": len(rows),
+            "providers": providers,
+            "last_subscription_at": rows[0]["created_at"].isoformat() if rows else None
+        }
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/test")
+def test_push(data: PushTestRequest, x_push_debug_token: str | None = Header(default=None)):
+    _require_debug_token(x_push_debug_token)
+
+    success = send_push_notification(data.user_id, {
+        "title": data.title,
+        "body": data.body,
+        "url": data.url
+    })
+
+    return {"sent": success}
 
 def send_push_notification(user_id: int, message_body: dict):
     if not PUSH_SUPPORTED:
