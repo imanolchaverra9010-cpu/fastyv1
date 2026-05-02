@@ -141,12 +141,17 @@ def get_orders(status_filter: Optional[str] = None):
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
-    query = "SELECT * FROM orders"
+    query = """
+        SELECT o.*, b.name as business_name, c.name as courier_name 
+        FROM orders o
+        LEFT JOIN businesses b ON o.business_id = b.id
+        LEFT JOIN couriers c ON o.courier_id = c.id
+    """
     params = []
     if status_filter:
-        query += " WHERE status = %s"
+        query += " WHERE o.status = %s"
         params.append(status_filter)
-    query += " ORDER BY created_at DESC"
+    query += " ORDER BY o.created_at DESC"
     
     cursor.execute(query, params)
     orders = cursor.fetchall()

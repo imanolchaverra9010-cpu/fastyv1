@@ -125,6 +125,7 @@ const Pedidos = () => {
                     <tr>
                       <th className="text-left px-5 py-3 font-medium">Pedido</th>
                       <th className="text-left px-5 py-3 font-medium">Negocio</th>
+                      <th className="text-left px-5 py-3 font-medium">Repartidor</th>
                       <th className="text-left px-5 py-3 font-medium">Productos</th>
                       <th className="text-left px-5 py-3 font-medium">Cliente</th>
                       <th className="text-right px-5 py-3 font-medium">Total</th>
@@ -156,7 +157,15 @@ const Pedidos = () => {
                     ) : (orders || []).map((o) => (
                       <tr key={o.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-3 font-mono text-xs font-bold text-primary">#{o.id}</td>
-                        <td className="px-5 py-3 font-medium">{o.businessName || 'Negocio'}</td>
+                        <td className="px-5 py-3 font-medium">
+                          {o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio')}
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-xs">{o.courier_name || (o.courier_id ? 'Asignado' : 'Sin asignar')}</span>
+                            {o.courier_id && <span className="text-[10px] text-muted-foreground">ID: {o.courier_id}</span>}
+                          </div>
+                        </td>
                         <td className="px-5 py-3">
                           <div className="max-w-[200px] space-y-0.5">
                             {(o.items || []).map((item: any, idx: number) => (
@@ -225,7 +234,8 @@ const Pedidos = () => {
                     
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-bold text-sm">{o.businessName || 'Negocio'}</p>
+                        <p className="font-bold text-sm">{o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio')}</p>
+                        <p className="text-[10px] text-primary font-medium">{o.courier_name || 'Sin repartidor'}</p>
                         <p className="text-xs text-muted-foreground">{o.customer_name || o.customer}</p>
                       </div>
                       <p className="font-bold text-sm text-right">{formatCOP(o.total)}</p>

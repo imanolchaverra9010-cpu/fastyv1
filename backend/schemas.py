@@ -88,6 +88,8 @@ class OrderResponse(BaseModel):
     open_order_description: Optional[str] = None
     batch_id: Optional[str] = None
     items: Optional[List[OrderItemCreate]] = []
+    business_name: Optional[str] = None
+    courier_name: Optional[str] = None
 
 class OrderDetailResponse(OrderResponse):
     items: List[OrderItemCreate]
