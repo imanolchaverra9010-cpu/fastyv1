@@ -37,7 +37,7 @@ interface OrderItem {
 interface OrderDetail {
   id: string;
   user_id: number;
-  status: "pending" | "preparing" | "shipped" | "delivered" | "cancelled";
+  status: "pending" | "preparing" | "shipped" | "in_transit" | "delivered" | "cancelled";
   customer_name: string;
   delivery_address: string;
   total: number;
@@ -75,8 +75,10 @@ const OrderTracking = () => {
   const [ratedLocally, setRatedLocally] = useState(false);
   const orderRef = useRef<OrderDetail | null>(null);
 
-  const fetchOrder = async (id: string) => {
-    setLoading(true);
+  const fetchOrder = async (id: string, silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch(`/api/orders/${id}`);
@@ -97,7 +99,9 @@ const OrderTracking = () => {
   useEffect(() => {
     if (urlOrderId) {
       fetchOrder(urlOrderId);
-      const interval = setInterval(() => fetchOrder(urlOrderId), 30000); // 30s
+      const interval = setInterval(() => {
+        fetchOrder(urlOrderId, true);
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [urlOrderId]);
@@ -183,7 +187,8 @@ const OrderTracking = () => {
   const statusSteps = [
     { id: "pending", label: "Confirmado", icon: CheckCircle2 },
     { id: "preparing", label: "Preparando", icon: Clock },
-    { id: "shipped", label: "En camino", icon: Bike },
+    { id: "shipped", label: "Asignado", icon: Bike },
+    { id: "in_transit", label: "En camino", icon: Bike },
     { id: "delivered", label: "Entregado", icon: Package },
   ];
 
@@ -511,6 +516,7 @@ const OrderTracking = () => {
                       <p className="text-sm font-bold capitalize">Estado: {log.status === 'pending' ? 'Pendiente' : 
                          log.status === 'preparing' ? 'Preparando' :
                          log.status === 'shipped' ? 'En camino' :
+                         log.status === 'in_transit' ? 'En camino al destino' :
                          log.status === 'delivered' ? 'Entregado' :
                          log.status === 'cancelled' ? 'Cancelado' : log.status}</p>
                       <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleString()}</p>
