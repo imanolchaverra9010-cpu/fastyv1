@@ -105,11 +105,14 @@ class ConnectionManager:
             del self.user_connections[user_id]
 
     async def notify_couriers(self, message: dict):
+        import asyncio
+        tasks = []
         for connection in self.courier_connections.values():
-            try:
-                await connection.send_json(message)
-            except:
-                pass
+            tasks.append(connection.send_json(message))
+        
+        if tasks:
+            # Enviar a todos en paralelo, ignorando errores individuales
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def notify_business(self, business_id: str, message: dict):
         if business_id in self.business_connections:

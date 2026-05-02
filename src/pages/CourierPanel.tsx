@@ -86,6 +86,8 @@ const CourierPanel = () => {
   const [stats, setStats] = useState<CourierStats | null>(null);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const availableOrdersRef = useRef<Order[]>([]);
+  const myOrdersRef = useRef<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [t, setT] = useState(0);
   const [activeTab, setActiveTab] = useState<"dashboard" | "available" | "in_progress" | "history" | "profile">("dashboard");
@@ -188,6 +190,7 @@ const CourierPanel = () => {
       if (myOrdersRes.ok) {
         const newMyOrders = await myOrdersRes.json();
         setMyOrders(newMyOrders);
+        myOrdersRef.current = newMyOrders;
       }
 
       if (availableRes.ok) {
@@ -196,7 +199,7 @@ const CourierPanel = () => {
         // Detectar nuevos pedidos para notificar (si no estamos usando WebSockets)
         if (!initialLoad && !wsRef.current) {
           const newOrders = newAvailable.filter((order: any) => 
-            !(availableOrders || []).some((existing: any) => existing.id === order.id)
+            !(availableOrdersRef.current || []).some((existing: any) => existing.id === order.id)
           );
           
           if (newOrders.length > 0) {
@@ -217,6 +220,7 @@ const CourierPanel = () => {
         }
         
         setAvailableOrders(newAvailable);
+        availableOrdersRef.current = newAvailable;
       }
 
       if (profileRes.ok) {
@@ -344,7 +348,7 @@ const CourierPanel = () => {
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "new_order") {
-          const isKnown = availableOrders.some(o => o.id === message.order_id) || myOrders.some(o => o.id === message.order_id);
+          const isKnown = (availableOrdersRef.current || []).some(o => o.id === message.order_id) || (myOrdersRef.current || []).some(o => o.id === message.order_id);
           if (!isKnown) {
             setCurrentNotification(message);
             playNotificationSound();
@@ -372,7 +376,7 @@ const CourierPanel = () => {
         wsRef.current.close();
       }
     };
-  }, [user?.id, availableOrders, myOrders]);
+   }, [user?.id]);
 
   // Animate the courier marker along the route while there's an active delivery in transit
   useEffect(() => {

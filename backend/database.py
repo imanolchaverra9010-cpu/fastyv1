@@ -21,11 +21,12 @@ db_config = {
 }
 
 def create_pool():
-    """Crear el pool de conexiones optimizado para Serverless."""
+    """Crear el pool de conexiones optimizado para alta concurrencia."""
     try:
+        # Aumentamos el pool para soportar más usuarios simultáneos
         return pooling.MySQLConnectionPool(
             pool_name="mypool",
-            pool_size=2, # Mantenerlo bajo para Vercel
+            pool_size=15, # Aumentado de 2 a 15 para soportar carga masiva
             pool_reset_session=True,
             **db_config
         )

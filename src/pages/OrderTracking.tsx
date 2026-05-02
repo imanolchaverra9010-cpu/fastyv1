@@ -73,6 +73,7 @@ const OrderTracking = () => {
   const [comment, setComment] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratedLocally, setRatedLocally] = useState(false);
+  const orderRef = useRef<OrderDetail | null>(null);
 
   const fetchOrder = async (id: string) => {
     setLoading(true);
@@ -84,6 +85,7 @@ const OrderTracking = () => {
       }
       const data = await response.json();
       setOrder(data);
+      orderRef.current = data;
     } catch (err: any) {
       setError(err.message);
       setOrder(null);
@@ -102,28 +104,38 @@ const OrderTracking = () => {
 
   // WebSocket for real-time notifications
   useEffect(() => {
-    if (!order?.user_id) return;
+    // Usamos urlOrderId o el id del pedido actual
+    const targetUserId = orderRef.current?.user_id;
+    if (!targetUserId) return;
 
     const connect = () => {
-      const url = getWebSocketUrl(`/ws/user/${order.user_id}`);
+      const url = getWebSocketUrl(`/ws/user/${targetUserId}`);
       if (!url) return;
 
       const ws = new WebSocket(url);
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
+        const currentOrder = orderRef.current;
 
-        if (message.type === "courier_location_update" && message.order_id === order.id) {
+        if (message.type === "courier_location_update" && currentOrder && message.order_id === currentOrder.id) {
           setOrder(prev => prev ? {
             ...prev,
             courier_lat: message.lat,
             courier_lng: message.lng
           } : null);
-        } else if (message.type === "order_status_update" && message.order_id === order.id) {
+          if (orderRef.current) {
+            orderRef.current.courier_lat = message.lat;
+            orderRef.current.courier_lng = message.lng;
+          }
+        } else if (message.type === "order_status_update" && currentOrder && message.order_id === currentOrder.id) {
           setOrder(prev => prev ? {
             ...prev,
             status: message.status as any
           } : null);
+          if (orderRef.current) {
+            orderRef.current.status = message.status as any;
+          }
 
           toast({
             title: "Pedido actualizado",
@@ -136,7 +148,7 @@ const OrderTracking = () => {
     };
 
     connect();
-  }, [order?.id, order?.user_id]);
+  }, [order?.user_id]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
