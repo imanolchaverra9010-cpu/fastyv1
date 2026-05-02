@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from typing import List, Optional
+from datetime import timedelta
 import uuid
 from database import get_db
 from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate, FeeCalculationRequest, FeeCalculationResponse
@@ -9,6 +10,115 @@ import math
 from .push import send_push_notification
 
 router = APIRouter()
+
+COURIER_TO_PICKUP_SPEED_KMH = 25
+DELIVERY_SPEED_KMH = 22
+PICKUP_HANDOFF_MINUTES = 4
+PREPARING_BUFFER_MINUTES = 12
+
+def _as_float(value):
+    return float(value) if value is not None else None
+
+def _estimate_minutes(distance_km: float, speed_kmh: float) -> int:
+    if distance_km <= 0:
+        return 0
+    return max(1, int(math.ceil((distance_km / speed_kmh) * 60)))
+
+def _estimate_order_eta(order: dict) -> dict:
+    business_lat = _as_float(order.get("business_lat") or order.get("origin_latitude"))
+    business_lng = _as_float(order.get("business_lng") or order.get("origin_longitude"))
+    customer_lat = _as_float(order.get("latitude"))
+    customer_lng = _as_float(order.get("longitude"))
+    courier_lat = _as_float(order.get("courier_lat"))
+    courier_lng = _as_float(order.get("courier_lng"))
+    status_value = order.get("status")
+
+    if status_value == "delivered":
+        return {"estimated_delivery_minutes": 0, "eta_text": "Entregado"}
+    if status_value == "cancelled":
+        return {"estimated_delivery_minutes": None, "eta_text": "Cancelado"}
+    if customer_lat is None or customer_lng is None:
+        return {"estimated_delivery_minutes": None, "eta_text": None}
+
+    minutes = 0
+    if status_value in ["pending", "preparing"]:
+        minutes += PREPARING_BUFFER_MINUTES
+
+    if status_value == "in_transit":
+        if courier_lat is not None and courier_lng is not None:
+            distance_to_customer = calculate_distance(courier_lat, courier_lng, customer_lat, customer_lng)
+            minutes += _estimate_minutes(distance_to_customer, DELIVERY_SPEED_KMH)
+        elif business_lat is not None and business_lng is not None:
+            delivery_distance = calculate_distance(business_lat, business_lng, customer_lat, customer_lng)
+            minutes += _estimate_minutes(delivery_distance, DELIVERY_SPEED_KMH)
+    else:
+        if courier_lat is not None and courier_lng is not None and business_lat is not None and business_lng is not None:
+            pickup_distance = calculate_distance(courier_lat, courier_lng, business_lat, business_lng)
+            minutes += _estimate_minutes(pickup_distance, COURIER_TO_PICKUP_SPEED_KMH)
+            minutes += PICKUP_HANDOFF_MINUTES
+        if business_lat is not None and business_lng is not None:
+            delivery_distance = calculate_distance(business_lat, business_lng, customer_lat, customer_lng)
+            minutes += _estimate_minutes(delivery_distance, DELIVERY_SPEED_KMH)
+
+    if minutes <= 0:
+        return {"estimated_delivery_minutes": None, "eta_text": None}
+
+    return {
+        "estimated_delivery_minutes": minutes,
+        "eta_text": f"{minutes}-{minutes + 5} min"
+    }
+
+def _attach_eta(order: dict) -> dict:
+    order.update(_estimate_order_eta(order))
+    return order
+
+def _rank_couriers_for_order(cursor, order: dict) -> list[dict]:
+    business_lat = _as_float(order.get("business_lat") or order.get("origin_latitude"))
+    business_lng = _as_float(order.get("business_lng") or order.get("origin_longitude"))
+
+    if business_lat is None or business_lng is None:
+        return []
+
+    cursor.execute("""
+        SELECT
+            c.id,
+            c.user_id,
+            c.name,
+            c.status,
+            c.lat,
+            c.lng,
+            c.rating,
+            COUNT(o.id) AS active_load
+        FROM couriers c
+        LEFT JOIN orders o
+            ON o.courier_id = c.id
+            AND o.status IN ('pending', 'preparing', 'shipped', 'in_transit')
+        WHERE c.user_id IS NOT NULL
+          AND c.lat IS NOT NULL
+          AND c.lng IS NOT NULL
+          AND c.status IN ('online', 'busy')
+        GROUP BY c.id, c.user_id, c.name, c.status, c.lat, c.lng, c.rating
+    """)
+    candidates = cursor.fetchall()
+
+    ranked = []
+    for courier in candidates:
+        distance_km = calculate_distance(
+            business_lat,
+            business_lng,
+            float(courier["lat"]),
+            float(courier["lng"])
+        )
+        active_load = int(courier.get("active_load") or 0)
+        rating = float(courier.get("rating") or 5)
+        status_penalty = 0 if courier["status"] == "online" else 8
+        score = (distance_km * 10) + (active_load * 12) + status_penalty - (rating * 2)
+        courier["distance_to_pickup_km"] = round(distance_km, 2)
+        courier["estimated_pickup_minutes"] = _estimate_minutes(distance_km, COURIER_TO_PICKUP_SPEED_KMH)
+        courier["assignment_score"] = round(score, 2)
+        ranked.append(courier)
+
+    return sorted(ranked, key=lambda c: c["assignment_score"])
 
 # Variable global para el manager de conexiones WebSocket
 websocket_manager = None
@@ -151,7 +261,9 @@ def get_orders(status_filter: Optional[str] = None):
     cursor = db.cursor(dictionary=True)
     try:
         query = """
-            SELECT o.*, b.name as business_name, c.name as courier_name 
+            SELECT o.*, b.name as business_name, c.name as courier_name,
+                   b.latitude as business_lat, b.longitude as business_lng,
+                   c.lat as courier_lat, c.lng as courier_lng
             FROM orders o
             LEFT JOIN businesses b ON o.business_id = b.id
             LEFT JOIN couriers c ON o.courier_id = c.id
@@ -181,6 +293,9 @@ def get_orders(status_filter: Optional[str] = None):
                 
             for o in orders:
                 o['items'] = items_map.get(o['id'], [])
+
+        for o in orders:
+            _attach_eta(o)
                 
         return orders
     finally:
@@ -240,13 +355,18 @@ def get_user_orders(user_id: int):
     cursor = db.cursor(dictionary=True)
     try:
         cursor.execute("""
-            SELECT o.*, b.name as business_name, b.emoji as business_emoji 
+            SELECT o.*, b.name as business_name, b.emoji as business_emoji,
+                   b.latitude as business_lat, b.longitude as business_lng,
+                   c.lat as courier_lat, c.lng as courier_lng
             FROM orders o 
             LEFT JOIN businesses b ON o.business_id = b.id 
+            LEFT JOIN couriers c ON o.courier_id = c.id
             WHERE o.user_id = %s 
             ORDER BY o.created_at DESC
         """, (user_id,))
         orders = cursor.fetchall()
+        for order in orders:
+            _attach_eta(order)
         return orders
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -287,6 +407,7 @@ def get_order_detail(order_id: str):
         # Logs
         cursor.execute("SELECT status, changed_at FROM order_status_logs WHERE order_id = %s ORDER BY changed_at ASC", (order_id,))
         order['logs'] = cursor.fetchall()
+        _attach_eta(order)
         
         db.close()
         return order
@@ -408,6 +529,107 @@ async def update_order_status(order_id: str, status_data: dict):
         db.rollback()
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{order_id}/smart-assign")
+def smart_assign_courier(order_id: str):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT o.*, b.latitude as business_lat, b.longitude as business_lng,
+                   b.name as business_name
+            FROM orders o
+            LEFT JOIN businesses b ON o.business_id = b.id
+            WHERE o.id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        if order.get("courier_id"):
+            raise HTTPException(status_code=400, detail="Order already has a courier assigned")
+
+        candidates = _rank_couriers_for_order(cursor, order)
+        if not candidates:
+            raise HTTPException(status_code=404, detail="No eligible couriers with location available")
+
+        selected = candidates[0]
+        order_with_courier = {
+            **order,
+            "courier_lat": selected.get("lat"),
+            "courier_lng": selected.get("lng"),
+        }
+        eta = _estimate_order_eta(order_with_courier)
+        eta_minutes = eta.get("estimated_delivery_minutes")
+        estimated_delivery_time = None
+        if eta_minutes:
+            estimated_delivery_time = (get_bogota_time() + timedelta(minutes=eta_minutes)).replace(tzinfo=None)
+
+        cursor.execute(
+            "UPDATE orders SET courier_id = %s, status = 'shipped', estimated_delivery_time = %s WHERE id = %s",
+            (selected["id"], estimated_delivery_time, order_id)
+        )
+        cursor.execute(
+            "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
+            (order_id, 'shipped')
+        )
+        db.commit()
+
+        if order.get("user_id"):
+            send_push_notification(order["user_id"], {
+                "title": "Domiciliario asignado",
+                "body": f"{selected['name']} fue asignado a tu pedido. ETA: {eta.get('eta_text') or 'calculando'}",
+                "url": f"/rastreo/{order_id}"
+            })
+
+        if selected.get("user_id"):
+            send_push_notification(selected["user_id"], {
+                "title": "Pedido asignado",
+                "body": f"Te asignamos un pedido en {order.get('business_name') or 'un negocio'}.",
+                "url": "/domiciliario"
+            })
+
+        return {
+            "message": "Courier assigned",
+            "order_id": order_id,
+            "courier": {
+                "id": selected["id"],
+                "user_id": selected["user_id"],
+                "name": selected["name"],
+                "status": selected["status"],
+                "rating": float(selected.get("rating") or 0),
+                "active_load": int(selected.get("active_load") or 0),
+                "distance_to_pickup_km": selected["distance_to_pickup_km"],
+                "estimated_pickup_minutes": selected["estimated_pickup_minutes"],
+                "assignment_score": selected["assignment_score"],
+            },
+            "eta": eta,
+            "alternatives": [
+                {
+                    "id": c["id"],
+                    "user_id": c["user_id"],
+                    "name": c["name"],
+                    "status": c["status"],
+                    "rating": float(c.get("rating") or 0),
+                    "active_load": int(c.get("active_load") or 0),
+                    "distance_to_pickup_km": c["distance_to_pickup_km"],
+                    "estimated_pickup_minutes": c["estimated_pickup_minutes"],
+                    "assignment_score": c["assignment_score"],
+                }
+                for c in candidates[1:4]
+            ]
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 @router.patch("/{order_id}/assign")
 def assign_courier(order_id: str, data: dict):

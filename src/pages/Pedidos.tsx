@@ -62,6 +62,28 @@ const Pedidos = () => {
     }
   };
 
+  const smartAssignOrder = async (orderId: string) => {
+    const response = await fetch(`/api/orders/${orderId}/smart-assign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "No se pudo asignar un domiciliario");
+    }
+
+    const result = await response.json();
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      status: "shipped",
+      courier_id: result.courier?.id,
+      courier_name: result.courier?.name,
+      eta_text: result.eta?.eta_text,
+      estimated_delivery_minutes: result.eta?.estimated_delivery_minutes,
+    } : o));
+  };
+
   const getTimerColor = (createdAt: string) => {
     const elapsed = (new Date().getTime() - new Date(createdAt).getTime()) / 1000 / 60;
     if (elapsed > 45) return "text-destructive";
@@ -380,6 +402,7 @@ const Pedidos = () => {
           <OrderDetailModal
             orderId={selectedOrderId}
             onClose={() => setSelectedOrderId(null)}
+            onSmartAssign={smartAssignOrder}
             onStatusUpdate={(id, status, courierId) => {
               updateOrderStatus(id, status, courierId);
               setSelectedOrderId(null);

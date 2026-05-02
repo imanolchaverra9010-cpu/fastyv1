@@ -12,13 +12,15 @@ interface OrderDetailModalProps {
   orderId: string;
   onClose: () => void;
   onStatusUpdate: (id: string, status: string, courierId?: number) => void;
+  onSmartAssign?: (id: string) => Promise<void>;
 }
 
-export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDetailModalProps) {
+export function OrderDetailModal({ orderId, onClose, onStatusUpdate, onSmartAssign }: OrderDetailModalProps) {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [couriers, setCouriers] = useState<any[]>([]);
   const [selectedCourierId, setSelectedCourierId] = useState<string>("");
+  const [smartAssigning, setSmartAssigning] = useState(false);
 
   useEffect(() => {
     // Cargar pedido
@@ -144,6 +146,11 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
               <div className="p-4 rounded-2xl border border-border/60 bg-muted/20">
                 <div className="flex items-center justify-between mb-4">
                   <StatusBadge status={order.status} />
+                  {order.eta_text && order.status !== 'delivered' && order.status !== 'cancelled' && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                      <Clock className="h-3.5 w-3.5" /> ETA {order.eta_text}
+                    </span>
+                  )}
                   {order.status !== 'delivered' && order.status !== 'cancelled' && (
                     <div className="flex gap-2">
                       <Button size="sm" variant="soft" onClick={() => onStatusUpdate(order.id, 'cancelled')}>Cancelar</Button>
@@ -199,6 +206,26 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate }: OrderDeta
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs text-muted-foreground italic">No hay domiciliario asignado a este pedido.</p>
+                    {onSmartAssign && (
+                      <Button
+                        variant="hero"
+                        className="w-full rounded-xl"
+                        disabled={smartAssigning}
+                        onClick={async () => {
+                          setSmartAssigning(true);
+                          try {
+                            await onSmartAssign(order.id);
+                            onClose();
+                          } catch (error: any) {
+                            alert(error.message || "No se pudo asignar un domiciliario");
+                          } finally {
+                            setSmartAssigning(false);
+                          }
+                        }}
+                      >
+                        {smartAssigning ? "Asignando..." : "Asignar inteligente"}
+                      </Button>
+                    )}
                     <div className="flex gap-2">
                       <select
                         className="flex-1 text-sm border rounded-xl px-3 bg-background shadow-soft outline-none focus:ring-2 focus:ring-primary/20 h-10"

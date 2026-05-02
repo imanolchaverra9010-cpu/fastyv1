@@ -59,6 +59,8 @@ interface OrderDetail {
   courier_vehicle?: string;
   courier_phone?: string;
   courier_rating?: number;
+  estimated_delivery_minutes?: number | null;
+  eta_text?: string | null;
 }
 
 const OrderTracking = () => {
@@ -236,6 +238,12 @@ const OrderTracking = () => {
                 <p className="text-muted-foreground">ID: <span className="font-mono text-foreground font-bold">{order.id}</span></p>
               </div>
               <div className="flex gap-2">
+                {order.eta_text && order.status !== 'delivered' && order.status !== 'cancelled' && (
+                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
+                    <Clock className="h-4 w-4" />
+                    ETA {order.eta_text}
+                  </div>
+                )}
                 <Button variant="soft" size="sm" onClick={() => fetchOrder(order.id)} className="rounded-xl">
                   Actualizar
                 </Button>
@@ -364,6 +372,15 @@ const OrderTracking = () => {
                       <p className="text-sm font-medium truncate">{order.customer_name}</p>
                     </div>
                   </div>
+                  {order.eta_text && order.status !== 'delivered' && order.status !== 'cancelled' && (
+                    <div className="flex gap-3 min-w-0">
+                      <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Tiempo estimado</p>
+                        <p className="text-sm font-bold text-primary">{order.eta_text}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Courier Info */}

@@ -103,6 +103,8 @@ class OrderResponse(BaseModel):
     items: Optional[List[OrderItemCreate]] = []
     business_name: Optional[str] = None
     courier_name: Optional[str] = None
+    estimated_delivery_minutes: Optional[int] = None
+    eta_text: Optional[str] = None
 
 class OrderDetailResponse(OrderResponse):
     items: List[OrderItemCreate]
