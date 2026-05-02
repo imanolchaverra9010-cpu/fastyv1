@@ -72,32 +72,73 @@ const Pedidos = () => {
   const exportOrders = () => {
     if (orders.length === 0) return;
     
-    const headers = ["ID Pedido", "Negocio", "Repartidor", "Cliente", "Total", "Estado", "Fecha"];
-    const rows = orders.map(o => [
-      o.id,
-      o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio'),
-      o.courier_name || 'Sin asignar',
-      o.customer_name || o.customer,
-      o.total,
-      o.status,
-      new Date(o.created_at || o.createdAt).toLocaleString()
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().split('T')[0];
     
-    link.setAttribute("href", url);
-    link.setAttribute("download", `pedidos_${filter}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    // Generar XML para Excel con estilos
+    const xmlHeader = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="sHeader">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#f97316" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sDefault">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+  </Style>
+  <Style ss:ID="sMoney">
+   <NumberFormat ss:Format="Currency"/>
+  </Style>
+  <Style ss:ID="sDate">
+   <NumberFormat ss:Format="Short Date"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Pedidos">
+  <Table>
+   <Column ss:Width="80"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="120"/>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">ID Pedido</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Negocio</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Repartidor</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Cliente</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Total</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Estado</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Fecha</Data></Cell>
+   </Row>`;
+
+    const xmlRows = orders.map(o => `
+   <Row>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.id}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio')}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.courier_name || 'Sin asignar'}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.customer_name || o.customer}</Data></Cell>
+    <Cell ss:StyleID="sMoney"><Data ss:Type="Number">${o.total}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.status}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${new Date(o.created_at || o.createdAt).toLocaleString()}</Data></Cell>
+   </Row>`).join("");
+
+    const xmlFooter = `
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const xmlContent = xmlHeader + xmlRows + xmlFooter;
+    const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `pedidos_${filter}_${today}.xls`;
     link.click();
-    document.body.removeChild(link);
   };
 
   return (

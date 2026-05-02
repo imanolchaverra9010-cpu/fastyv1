@@ -83,30 +83,61 @@ const AdminPanel = () => {
   const exportDailyReport = () => {
     if (dailyReport.length === 0) return;
     
-    const headers = ["ID Repartidor", "Nombre", "Entregas Hoy", "Total Recaudado"];
-    const rows = dailyReport.map(c => [
-      c.id,
-      c.name,
-      c.total_deliveries,
-      c.total_revenue
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
     const today = new Date().toISOString().split('T')[0];
     
-    link.setAttribute("href", url);
-    link.setAttribute("download", `reporte_diario_${today}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    // Generar XML para Excel con estilos básicos
+    const xmlHeader = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="sHeader">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#f97316" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sDefault">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+  </Style>
+  <Style ss:ID="sMoney">
+   <NumberFormat ss:Format="Currency"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Reporte Diario">
+  <Table>
+   <Column ss:Width="100"/>
+   <Column ss:Width="200"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="120"/>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">ID Repartidor</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Nombre</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Entregas Hoy</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Total Recaudado</Data></Cell>
+   </Row>`;
+
+    const xmlRows = dailyReport.map(c => `
+   <Row>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${c.id}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="String">${c.name}</Data></Cell>
+    <Cell ss:StyleID="sDefault"><Data ss:Type="Number">${c.total_deliveries}</Data></Cell>
+    <Cell ss:StyleID="sMoney"><Data ss:Type="Number">${c.total_revenue || 0}</Data></Cell>
+   </Row>`).join("");
+
+    const xmlFooter = `
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const xmlContent = xmlHeader + xmlRows + xmlFooter;
+    const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `reporte_diario_${today}.xls`;
     link.click();
-    document.body.removeChild(link);
   };
 
   if (loading) {
