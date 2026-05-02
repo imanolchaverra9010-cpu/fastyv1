@@ -117,11 +117,17 @@ async def create_order(order: OrderCreate):
                 "url": "/negocio/pedidos"
             })
 
-        # Notify Couriers via Enhanced Web Push
+        # Notify every courier with a saved push subscription. A locked phone or
+        # closed PWA should not depend on the courier being marked "online".
         if should_notify_couriers:
-            cursor.execute("SELECT user_id FROM couriers WHERE status = 'online'")
-            online_couriers = cursor.fetchall()
-            for courier in online_couriers:
+            cursor.execute("""
+                SELECT DISTINCT c.user_id
+                FROM couriers c
+                INNER JOIN push_subscriptions ps ON ps.user_id = c.user_id
+                WHERE c.user_id IS NOT NULL
+            """)
+            subscribed_couriers = cursor.fetchall()
+            for courier in subscribed_couriers:
                 send_push_notification(courier['user_id'], {
                     "title": f"🚨 ¡NUEVO PEDIDO: {notification_data['business_name']}!",
                     "body": f"Destino: {order.delivery_address} | Valor aprox: ${order.total}",
