@@ -164,7 +164,7 @@ def get_business_stats(user_id: int):
         """, (business_id,))
         top_products = cursor.fetchall()
 
-        # Pedidos recientes
+        # Pedidos recientes con items
         cursor.execute("""
             SELECT * FROM orders 
             WHERE business_id = %s 
@@ -173,13 +173,27 @@ def get_business_stats(user_id: int):
         """, (business_id,))
         recent_orders = cursor.fetchall()
 
+        if recent_orders:
+            order_ids = [o['id'] for o in recent_orders]
+            placeholders = ', '.join(['%s'] * len(order_ids))
+            cursor.execute(f"SELECT * FROM order_items WHERE order_id IN ({placeholders})", order_ids)
+            all_items = cursor.fetchall()
+            
+            from collections import defaultdict
+            items_by_order = defaultdict(list)
+            for item in all_items:
+                items_by_order[item['order_id']].append(item)
+            
+            for o in recent_orders:
+                o['items'] = items_by_order.get(o['id'], [])
+
         db.close()
         return {
             "business_id": business_id,
             "revenue_today": float(today_stats['revenue'] or 0),
             "orders_today": int(today_stats['orders'] or 0),
             "top_products": top_products,
-            "recent_orders": recent_orders
+            "recent_orders": format_business_data(recent_orders)
         }
     except Exception as e:
         db.close()
@@ -218,8 +232,24 @@ def get_business_orders(business_id: str, status_filter: Optional[str] = None):
         
         cursor.execute(query, params)
         orders = cursor.fetchall()
+        
+        if orders:
+            order_ids = [o['id'] for o in orders]
+            # Procesar en lotes si hay muchos pedidos
+            placeholders = ', '.join(['%s'] * len(order_ids))
+            cursor.execute(f"SELECT * FROM order_items WHERE order_id IN ({placeholders})", order_ids)
+            all_items = cursor.fetchall()
+            
+            from collections import defaultdict
+            items_by_order = defaultdict(list)
+            for item in all_items:
+                items_by_order[item['order_id']].append(item)
+                
+            for o in orders:
+                o['items'] = items_by_order.get(o['id'], [])
+
         db.close()
-        return orders
+        return format_business_data(orders)
     except Exception as e:
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
