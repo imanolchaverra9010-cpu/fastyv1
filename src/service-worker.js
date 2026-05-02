@@ -10,6 +10,10 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/pwa-192x192.png',
     badge: '/favicon.ico',
+    vibrate: [500, 200, 500, 200, 500, 200, 1000], // Patrón de vibración agresivo estilo llamada
+    requireInteraction: true, // Obliga a tocarla para que desaparezca
+    silent: false, // Asegura que no esté silenciada (suena el tono por defecto)
+    tag: data.title.includes('Pedido') ? 'nuevo-pedido' : 'notificacion-general', // Evita spam
     data: {
       url: data.url || '/'
     }
