@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import shutil
 
