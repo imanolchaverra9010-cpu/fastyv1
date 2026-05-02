@@ -403,8 +403,7 @@ def get_daily_report():
             """, (courier['id'], today))
             courier['orders'] = cursor.fetchall()
             
-        db.close()
         return report
-    except Exception as e:
+    finally:
+        cursor.close()
         db.close()
-        raise HTTPException(status_code=500, detail=str(e))

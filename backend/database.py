@@ -23,10 +23,11 @@ db_config = {
 def create_pool():
     """Crear el pool de conexiones optimizado para alta concurrencia."""
     try:
-        # Aumentamos el pool para soportar más usuarios simultáneos
+        # En Serverless (Vercel), un pool muy grande es contraproducente
+        # porque cada instancia tiene su propio pool.
         return pooling.MySQLConnectionPool(
-            pool_name="mypool",
-            pool_size=25, # Aumentado a 25 para mayor capacidad
+            pool_name="fasty_pool",
+            pool_size=5, # Reducido de 25 a 5 para evitar colapso en Vercel
             pool_reset_session=True,
             **db_config
         )
@@ -47,22 +48,25 @@ def get_db():
         return None
 
     # Intentar obtener conexión con reintentos
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             conn = db_pool.get_connection()
-            if conn.is_connected():
-                conn.ping(reconnect=True)
-                # Establecer zona horaria de Bogotá
-                cursor = conn.cursor()
-                cursor.execute("SET time_zone = '-05:00'")
-                cursor.close()
-                return conn
+            if conn:
+                # Validar conexión
+                try:
+                    conn.ping(reconnect=True)
+                    cursor = conn.cursor()
+                    cursor.execute("SET time_zone = '-05:00'")
+                    cursor.close()
+                    return conn
+                except:
+                    conn.close()
+                    continue
         except mysql.connector.errors.PoolError:
-            print(f"Pool exhausto (intento {attempt + 1}/3). Esperando...")
             import time
-            time.sleep(0.1)
+            time.sleep(0.2)
         except Exception as e:
-            print(f"Error obteniendo conexión: {e}")
+            print(f"Error crítico DB: {e}")
             break
             
     return None

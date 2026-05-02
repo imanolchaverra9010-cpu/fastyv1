@@ -19,29 +19,25 @@ def register(request: Request, user: UserCreate):
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
     
     cursor = db.cursor(dictionary=True)
-    
-    # Verificar si ya existe
-    cursor.execute("SELECT id FROM users WHERE email = %s OR username = %s", (user.email, user.username))
-    if cursor.fetchone():
-        db.close()
-        raise HTTPException(status_code=400, detail="El usuario ya existe")
-    
-    # Hashear password
-    hashed_password = hash_password(user.password)
-    
-    # Insertar
     try:
+        # Verificar si ya existe
+        cursor.execute("SELECT id FROM users WHERE email = %s OR username = %s", (user.email, user.username))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="El usuario ya existe")
+        
+        # Hashear password
+        hashed_password = hash_password(user.password)
+        
+        # Insertar
         cursor.execute(
             "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",
             (user.username, user.email, hashed_password, user.role)
         )
         db.commit()
-        db.close()
         return {"message": "Usuario creado exitosamente"}
-    except Exception as e:
-        db.rollback()
+    finally:
+        cursor.close()
         db.close()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login", response_model=Token)
 @limiter.limit("5/minute")
@@ -55,6 +51,7 @@ def login(request: Request, user_login: UserLogin):
         cursor.execute("SELECT * FROM users WHERE email = %s", (user_login.email,))
         user = cursor.fetchone()
     finally:
+        cursor.close()
         db.close()
     
     if not user:
