@@ -91,27 +91,20 @@ export async function registerPush(userId: number) {
   }
 }
 
-// v1.0.2 - Force update for Night Fee
+// v1.0.3 - Manual UTC Shift for Night Fee
 export function isNightFeeTime() {
   try {
     const now = new Date();
-    // Usamos Intl.DateTimeFormat con hourCycle h23 para asegurar 0-23
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      hourCycle: 'h23',
-      timeZone: 'America/Bogota'
-    });
+    // Bogotá es UTC-5
+    const bogotaHour = (now.getUTCHours() - 5 + 24) % 24;
     
-    const bogotaHour = parseInt(formatter.format(now));
+    console.log("Detección RAPIDITO - Hora UTC:", now.getUTCHours());
+    console.log("Detección RAPIDITO - Hora Bogotá (Calculada):", bogotaHour);
     
-    console.log("RAPIDITO DEBUG - Hora Bogotá:", bogotaHour);
-    
-    // Rango: 7 PM (19) a 6 AM (5:59)
-    const isNight = bogotaHour >= 19 || bogotaHour < 6;
-    
-    return isNight;
+    // 7 PM (19) a 6 AM (5:59)
+    return bogotaHour >= 19 || bogotaHour < 6;
   } catch (error) {
-    console.error("RAPIDITO ERROR - Falló detección Bogotá:", error);
+    console.error("Error en isNightFeeTime:", error);
     const localHour = new Date().getHours();
     return localHour >= 19 || localHour < 6;
   }

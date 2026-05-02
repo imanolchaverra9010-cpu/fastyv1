@@ -1,4 +1,4 @@
-// v1.0.2 - Force update for Night Fee
+// v1.0.3 - Manual UTC Shift for Night Fee
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
