@@ -43,6 +43,45 @@ def set_websocket_manager(manager):
     global websocket_manager
     websocket_manager = manager
 
+def attach_order_items(cursor, orders):
+    if not orders:
+        return orders
+
+    order_ids = []
+    for order in orders:
+        if order.get("is_batch"):
+            order_ids.extend([store["id"] for store in order.get("orders", []) if store.get("id")])
+        elif order.get("id"):
+            order_ids.append(order["id"])
+
+    if not order_ids:
+        return orders
+
+    placeholders = ",".join(["%s"] * len(order_ids))
+    cursor.execute(f"SELECT order_id, name, price, quantity, emoji FROM order_items WHERE order_id IN ({placeholders})", tuple(order_ids))
+    items = cursor.fetchall()
+
+    items_by_order = {}
+    for item in items:
+        order_id = item.pop("order_id")
+        items_by_order.setdefault(order_id, []).append(item)
+
+    for order in orders:
+        if order.get("is_batch"):
+            bundle_items = []
+            for store in order.get("orders", []):
+                store_items = items_by_order.get(store.get("id"), [])
+                store["items"] = store_items
+                store["items_summary"] = [
+                    f"{item['quantity']}x {item['name']}" for item in store_items
+                ]
+                bundle_items.extend(store_items)
+            order["items"] = bundle_items
+        else:
+            order["items"] = items_by_order.get(order.get("id"), [])
+
+    return orders
+
 @router.post("/{user_id}/photo")
 async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
     try:
@@ -249,7 +288,7 @@ def get_available_orders(response: Response):
                 order["orders"] = []
                 standalone.append(order)
 
-        return list(bundles.values()) + standalone
+        return attach_order_items(cursor, list(bundles.values()) + standalone)
     finally:
         cursor.close()
         db.close()
@@ -320,7 +359,7 @@ def get_my_orders(user_id: int, response: Response):
                 standalone.append(order)
 
         result = list(bundles.values()) + standalone
-        return result
+        return attach_order_items(cursor, result)
     finally:
         cursor.close()
         db.close()

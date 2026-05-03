@@ -56,6 +56,8 @@ interface OrderStore {
   business_address: string;
   business_emoji: string;
   total: number;
+  items?: OrderItem[];
+  items_summary?: string[];
 }
 
 interface Order {
