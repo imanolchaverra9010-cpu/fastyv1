@@ -90,6 +90,8 @@ class OrderResponse(BaseModel):
     total: int
     status: str
     payment_method: Optional[str] = "card"
+    delivery_fee: int = 0
+    night_fee: int = 0
     courier_id: Optional[int] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None

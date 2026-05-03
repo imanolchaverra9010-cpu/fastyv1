@@ -383,7 +383,7 @@ def get_daily_report():
             SELECT 
                 c.id, c.name,
                 COUNT(o.id) as total_deliveries,
-                SUM(o.total) as total_revenue
+                SUM(COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)) as total_revenue
             FROM couriers c
             LEFT JOIN orders o ON c.id = o.courier_id AND o.status = 'delivered' AND DATE(o.created_at) = %s
             GROUP BY c.id
@@ -395,7 +395,9 @@ def get_daily_report():
         # Detalle de pedidos por repartidor
         for courier in report:
             cursor.execute("""
-                SELECT o.id, o.customer_name, o.total, o.created_at, b.name as business_name
+                SELECT o.id, o.customer_name,
+                       COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) as total,
+                       o.created_at, b.name as business_name
                 FROM orders o
                 JOIN businesses b ON o.business_id = b.id
                 WHERE o.courier_id = %s AND o.status = 'delivered' AND DATE(o.created_at) = %s
