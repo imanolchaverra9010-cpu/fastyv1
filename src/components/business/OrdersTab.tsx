@@ -217,15 +217,6 @@ export const OrdersTab = () => {
   const deliveredOrders = orders.filter(o => o.status === "delivered");
   const cancelledOrders = orders.filter(o => o.status === "cancelled");
 
-  if ((orders || []).length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-        <p className="text-muted-foreground">No tienes pedidos activos en este momento.</p>
-      </div>
-    );
-  }
-
   const Section = ({ title, icon, orders: sectionOrders, collapsed = false }: { title: string; icon: React.ReactNode; orders: Order[]; collapsed?: boolean }) => {
     const [isCollapsed, setIsCollapsed] = useState(collapsed);
     
@@ -285,6 +276,13 @@ export const OrdersTab = () => {
       <Section title="En Camino" icon={<Package className="h-4 w-4 text-warning" />} orders={shippedOrders} />
       <Section title="Entregados" icon={<Check className="h-4 w-4 text-success" />} orders={deliveredOrders.slice(0, 5)} collapsed />
       <Section title="Cancelados" icon={<X className="h-4 w-4 text-muted-foreground" />} orders={cancelledOrders.slice(0, 5)} collapsed />
+
+      {(orders || []).length === 0 && (
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+          <p className="text-muted-foreground">No tienes pedidos activos en este momento.</p>
+        </div>
+      )}
 
       {isDeliveryModalOpen && business && (
         <RequestDeliveryModal 
