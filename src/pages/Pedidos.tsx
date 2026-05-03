@@ -16,15 +16,68 @@ const Pedidos = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [courierFilter, setCourierFilter] = useState("all");
+
+  const getOrderDateValue = (date: string) => {
+    if (!date) return "";
+    const parsed = new Date(date);
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getCourierKey = (order: any) => {
+    if (order.courier_id) return String(order.courier_id);
+    if (order.courier_name) return `name:${order.courier_name}`;
+    return "unassigned";
+  };
+
+  const getCourierName = (order: any) => {
+    if (order.courier_name) return order.courier_name;
+    if (order.courier_id) return "Asignado";
+    return "Sin asignar";
+  };
 
   const filteredOrders = (orders || []).filter(o => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const idMatch = String(o.id).toLowerCase().includes(term);
-    const customerMatch = (o.customer_name || o.customer || "").toLowerCase().includes(term);
-    const courierMatch = (o.courier_name || "").toLowerCase().includes(term);
-    return idMatch || customerMatch || courierMatch;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const idMatch = String(o.id).toLowerCase().includes(term);
+      const customerMatch = (o.customer_name || o.customer || "").toLowerCase().includes(term);
+      const courierMatch = (o.courier_name || "").toLowerCase().includes(term);
+      if (!idMatch && !customerMatch && !courierMatch) return false;
+    }
+
+    if (dateFilter) {
+      const orderDate = getOrderDateValue(o.created_at || o.createdAt);
+      if (orderDate !== dateFilter) return false;
+    }
+
+    if (courierFilter !== "all") {
+      if (getCourierKey(o) !== courierFilter) return false;
+    }
+
+    return true;
   });
+
+  const courierOptions = Array.from(
+    new Map(
+      (orders || [])
+        .map((o) => {
+          const key = getCourierKey(o);
+          const name = getCourierName(o);
+          return [key, { id: key, name }] as const;
+        })
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setDateFilter("");
+    setCourierFilter("all");
+    setFilter("all");
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -191,9 +244,9 @@ const Pedidos = () => {
                 <h1 className="text-4xl font-display font-bold tracking-tight">Pedidos</h1>
                 <p className="text-muted-foreground mt-1">{filteredOrders.length} pedidos encontrados. Monitorea el flujo de vida de las órdenes.</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <select
-                  className="h-10 rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="h-10 w-full sm:w-auto rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                 >
@@ -204,6 +257,22 @@ const Pedidos = () => {
                   <option value="delivered">Entregados</option>
                   <option value="cancelled">Cancelados</option>
                 </select>
+                <Input
+                  type="date"
+                  className="h-10 w-full sm:w-[150px] rounded-xl bg-card"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                />
+                <select
+                  className="h-10 w-full sm:w-auto rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  value={courierFilter}
+                  onChange={(e) => setCourierFilter(e.target.value)}
+                >
+                  <option value="all">Todos los repartidores</option>
+                  {courierOptions.map((courier) => (
+                    <option key={courier.id} value={courier.id}>{courier.name}</option>
+                  ))}
+                </select>
                 <div className="relative hidden md:block">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -213,6 +282,16 @@ const Pedidos = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                {(filter !== "all" || dateFilter || courierFilter !== "all" || searchTerm) && (
+                  <Button
+                    onClick={clearFilters}
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 rounded-xl"
+                  >
+                    Limpiar
+                  </Button>
+                )}
                 <Button 
                   onClick={exportOrders} 
                   variant="outline" 
@@ -256,7 +335,7 @@ const Pedidos = () => {
                   <tbody className="divide-y divide-border/60">
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-20 text-center">
+                        <td colSpan={9} className="px-5 py-20 text-center">
                           <div className="flex flex-col items-center gap-2">
                             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
                             <p className="text-muted-foreground animate-pulse">Cargando pedidos desde la base de datos...</p>
@@ -265,7 +344,7 @@ const Pedidos = () => {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-20 text-center">
+                        <td colSpan={9} className="px-5 py-20 text-center">
                           <div className="flex flex-col items-center gap-2 text-destructive">
                             <AlertCircle className="h-8 w-8" />
                             <p className="font-bold">Error de conexión con el servidor</p>
@@ -330,7 +409,7 @@ const Pedidos = () => {
                     ))}
                     {filteredOrders.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground italic">
+                        <td colSpan={9} className="px-5 py-10 text-center text-muted-foreground italic">
                           No se encontraron pedidos en esta categoría.
                         </td>
                       </tr>
