@@ -258,7 +258,7 @@ const Pedidos = () => {
                           </div>
                         </td>
                       </tr>
-                    ) : (orders || []).map((o) => (
+                    ) : filteredOrders.map((o) => (
                       <tr key={o.id} className="hover:bg-muted/30 transition-colors group">
                         <td className="px-5 py-3 font-mono text-xs font-bold text-primary">#{o.id}</td>
                         <td className="px-5 py-3 font-medium">
@@ -314,7 +314,7 @@ const Pedidos = () => {
                         </td>
                       </tr>
                     ))}
-                    {(orders || []).length === 0 && (
+                    {filteredOrders.length === 0 && (
                       <tr>
                         <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground italic">
                           No se encontraron pedidos en esta categoría.
@@ -329,7 +329,7 @@ const Pedidos = () => {
               <div className="md:hidden divide-y divide-border/60">
                 {loading ? (
                   <div className="p-10 text-center">Cargando pedidos...</div>
-                ) : (orders || []).map((o) => (
+                ) : filteredOrders.map((o) => (
                   <div key={o.id} className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs font-bold text-primary">#{o.id}</span>
