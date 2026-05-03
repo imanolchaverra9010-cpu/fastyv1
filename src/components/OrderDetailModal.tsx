@@ -118,7 +118,13 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate, onSmartAssi
                     <p className="text-sm font-bold">{formatCOP(item.price * item.quantity)}</p>
                   </div>
                 ))}
-                {!order.items?.length && (
+                {order.order_type === 'open' && order.open_order_description && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-primary/20">
+                    <p className="text-xs uppercase font-bold text-primary mb-1">Pedido Abierto / Personalizado</p>
+                    <p className="text-sm font-medium">{order.open_order_description}</p>
+                  </div>
+                )}
+                {(!order.items || order.items.length === 0) && order.order_type !== 'open' && (
                   <p className="text-sm text-muted-foreground italic">No hay productos en este pedido.</p>
                 )}
                 <div className="pt-3 border-t border-border/60 space-y-2">
