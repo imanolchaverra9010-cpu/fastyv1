@@ -42,6 +42,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  order_type?: string;
   customer_name: string;
   customer_phone: string;
   delivery_address: string;
@@ -75,6 +76,7 @@ export interface NewOrderNotification {
 export interface BusinessContextType {
   business: Business | null;
   fetchBusinessData: () => void;
+  fetchData: () => void;
   orders: Order[];
   menuItems: MenuItem[];
   stats: BusinessStats | null;

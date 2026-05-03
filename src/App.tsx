@@ -16,6 +16,7 @@ import BusinessRegister from "./pages/BusinessRegister.tsx";
 import CourierPanel from "./pages/CourierPanel.tsx";
 import BusinessPanel from "./pages/BusinessPanel.tsx";
 import { OrdersTab } from "@/components/business/OrdersTab";
+import { ExternalOrdersTab } from "@/components/business/ExternalOrdersTab";
 import { MenuTab } from "@/components/business/MenuTab";
 import { PromotionsTab } from "@/components/business/PromotionsTab";
 import { StatsTab } from "@/components/business/StatsTab";
@@ -162,6 +163,7 @@ const AppContent = () => {
         >
           <Route index element={<Navigate to="pedidos" replace />} />
           <Route path="pedidos" element={<OrdersTab />} />
+          <Route path="pedidos-externos" element={<ExternalOrdersTab />} />
           <Route path="menu" element={<MenuTab />} />
           <Route path="repartidores" element={<CouriersTab />} />
           <Route path="estadisticas" element={<StatsTab />} />

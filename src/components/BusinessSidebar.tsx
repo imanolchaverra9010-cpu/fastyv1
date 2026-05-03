@@ -1,4 +1,4 @@
-import { LogOut, Home, Package, Menu, BarChart3, Bike } from "lucide-react";
+import { LogOut, Home, Package, Menu, BarChart3, Bike, Navigation } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
@@ -74,6 +74,19 @@ export function BusinessSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <div className="p-4 border-t border-border/60">
+        <NavLink
+          to="/negocio/pedidos-externos"
+          className={({ isActive }) =>
+            `mb-3 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground shadow-glow"
+                : "bg-primary/10 text-primary hover:bg-primary/15"
+            }`
+          }
+        >
+          <Navigation className="h-4 w-4" />
+          <span>Pedidos externos</span>
+        </NavLink>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

@@ -306,6 +306,7 @@ const BusinessPanel = () => {
                   stats,
                   business,
                   fetchBusinessData,
+                  fetchData,
                   expandedOrder,
                   setExpandedOrder,
                   handleUpdateOrderStatus,

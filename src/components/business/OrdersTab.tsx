@@ -200,7 +200,7 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
 };
 
 export const OrdersTab = () => {
-  const { orders, expandedOrder, setExpandedOrder, handleUpdateOrderStatus, business, fetchBusinessData } = useOutletContext<BusinessContextType>();
+  const { orders, expandedOrder, setExpandedOrder, handleUpdateOrderStatus, business, fetchData } = useOutletContext<BusinessContextType>();
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
 
   const businessCoords = (business as any)?.latitude && (business as any)?.longitude 
@@ -288,7 +288,7 @@ export const OrdersTab = () => {
         <RequestDeliveryModal 
           business={business as any}
           onClose={() => setIsDeliveryModalOpen(false)}
-          onSuccess={fetchBusinessData}
+          onSuccess={fetchData}
         />
       )}
     </div>
