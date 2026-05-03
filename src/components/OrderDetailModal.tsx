@@ -199,7 +199,7 @@ export function OrderDetailModal({ orderId, onClose, onStatusUpdate, onSmartAssi
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-bold">Asignado correctamente</p>
-                      <p className="text-xs text-muted-foreground">ID Domiciliario: {order.courier_id}</p>
+                      <p className="text-xs text-muted-foreground">Repartidor: {order.courier_name || `ID ${order.courier_id}`}</p>
                     </div>
                     <Button size="sm" variant="soft" onClick={() => onStatusUpdate(order.id, order.status, undefined)}>Cambiar</Button>
                   </div>
