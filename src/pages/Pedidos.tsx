@@ -1,4 +1,4 @@
-import { Clock, Eye, Package, Search, TrendingUp, AlertCircle, Download } from "lucide-react";
+import { Clock, Eye, Search, TrendingUp, AlertCircle, Download, Edit, Trash2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
@@ -14,6 +14,9 @@ const Pedidos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -156,6 +159,67 @@ const Pedidos = () => {
       eta_text: result.eta?.eta_text,
       estimated_delivery_minutes: result.eta?.estimated_delivery_minutes,
     } : o));
+  };
+
+  const handleEditOrder = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      customer_name: String(formData.get("customer_name") || ""),
+      customer_phone: String(formData.get("customer_phone") || ""),
+      delivery_address: String(formData.get("delivery_address") || ""),
+      payment_method: String(formData.get("payment_method") || "cash"),
+      notes: String(formData.get("notes") || ""),
+      status: String(formData.get("status") || editingOrder.status),
+      delivery_fee: Math.max(Number(formData.get("delivery_fee") || 0), 0),
+      night_fee: Math.max(Number(formData.get("night_fee") || 0), 0),
+    };
+
+    setSavingEdit(true);
+    try {
+      const response = await fetch(`/api/orders/${editingOrder.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "No se pudo editar el pedido");
+      }
+
+      setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...payload } : o));
+      setEditingOrder(null);
+    } catch (error) {
+      console.error("Error editing order:", error);
+      alert(error instanceof Error ? error.message : "No se pudo editar el pedido");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    const confirmed = window.confirm(`¿Eliminar el pedido #${orderId}? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    setDeletingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "No se pudo eliminar el pedido");
+      }
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      if (selectedOrderId === orderId) setSelectedOrderId(null);
+      if (editingOrder?.id === orderId) setEditingOrder(null);
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      alert(error instanceof Error ? error.message : "No se pudo eliminar el pedido");
+    } finally {
+      setDeletingOrderId(null);
+    }
   };
 
   const getTimerColor = (createdAt: string) => {
@@ -403,6 +467,23 @@ const Pedidos = () => {
                             >
                               <Eye className="h-3.5 w-3.5" /> Detalle
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setEditingOrder(o)}
+                            >
+                              <Edit className="h-3.5 w-3.5" /> Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                              disabled={deletingOrderId === o.id}
+                              onClick={() => handleDeleteOrder(o.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> {deletingOrderId === o.id ? "..." : "Eliminar"}
+                            </Button>
                             <select
                               className="text-xs border rounded-lg p-1.5 bg-background shadow-soft outline-none focus:ring-2 focus:ring-primary/20"
                               value={o.status}
@@ -477,6 +558,23 @@ const Pedidos = () => {
                         >
                           <Eye className="h-3.5 w-3.5" /> Ver Detalle
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-[10px] font-bold gap-1"
+                          onClick={() => setEditingOrder(o)}
+                        >
+                          <Edit className="h-3.5 w-3.5" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-[10px] font-bold gap-1 text-destructive"
+                          disabled={deletingOrderId === o.id}
+                          onClick={() => handleDeleteOrder(o.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                        </Button>
                         <select
                           className="text-[10px] border rounded-md p-1 bg-background outline-none font-bold"
                           value={o.status}
@@ -512,6 +610,91 @@ const Pedidos = () => {
               setSelectedOrderId(null);
             }}
           />
+        )}
+
+        {editingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <div className="bg-card w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl border border-border/60 shadow-glow flex flex-col">
+              <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/30">
+                <div>
+                  <h2 className="text-xl font-display font-bold">Editar pedido #{editingOrder.id}</h2>
+                  <p className="text-xs text-muted-foreground">Actualiza datos de entrega, estado y tarifas.</p>
+                </div>
+                <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditOrder} className="p-5 overflow-y-auto space-y-5">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Cliente</label>
+                    <Input name="customer_name" defaultValue={editingOrder.customer_name || editingOrder.customer || ""} required />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Teléfono</label>
+                    <Input name="customer_phone" defaultValue={editingOrder.customer_phone || ""} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Dirección</label>
+                    <Input name="delivery_address" defaultValue={editingOrder.delivery_address || ""} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Método de pago</label>
+                    <select
+                      name="payment_method"
+                      defaultValue={editingOrder.payment_method || "cash"}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="cash">Efectivo</option>
+                      <option value="card">Tarjeta</option>
+                      <option value="wallet">Billetera</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Estado</label>
+                    <select
+                      name="status"
+                      defaultValue={editingOrder.status}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="pending">Pendiente</option>
+                      <option value="preparing">Preparando</option>
+                      <option value="shipped">Enviado</option>
+                      <option value="in_transit">En tránsito</option>
+                      <option value="delivered">Entregado</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Domicilio</label>
+                    <Input name="delivery_fee" type="number" min="0" defaultValue={editingOrder.delivery_fee || 0} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Tarifa nocturna</label>
+                    <Input name="night_fee" type="number" min="0" defaultValue={editingOrder.night_fee || 0} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Notas</label>
+                    <textarea
+                      name="notes"
+                      defaultValue={editingOrder.notes || ""}
+                      className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setEditingOrder(null)} disabled={savingEdit}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" variant="hero" disabled={savingEdit}>
+                    {savingEdit ? "Guardando..." : "Guardar cambios"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </SidebarProvider>

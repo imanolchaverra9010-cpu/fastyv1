@@ -415,6 +415,108 @@ def get_user_orders(user_id: int):
         cursor.close()
         db.close()
 
+@router.patch("/{order_id}")
+def update_order(order_id: str, order_data: dict):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM orders WHERE id = %s", (order_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        allowed_fields = {
+            "customer_name",
+            "customer_phone",
+            "delivery_address",
+            "payment_method",
+            "notes",
+            "status",
+            "delivery_fee",
+            "night_fee",
+            "latitude",
+            "longitude",
+        }
+        updates = []
+        params = []
+
+        for field in allowed_fields:
+            if field in order_data:
+                updates.append(f"{field} = %s")
+                params.append(order_data[field])
+
+        if "delivery_fee" in order_data or "night_fee" in order_data:
+            cursor.execute("SELECT SUM(price * quantity) as items_total FROM order_items WHERE order_id = %s", (order_id,))
+            items_total = cursor.fetchone()["items_total"] or 0
+            delivery_fee = order_data.get("delivery_fee")
+            night_fee = order_data.get("night_fee")
+
+            if delivery_fee is None or night_fee is None:
+                cursor.execute("SELECT delivery_fee, night_fee FROM orders WHERE id = %s", (order_id,))
+                current_fees = cursor.fetchone() or {}
+                delivery_fee = current_fees.get("delivery_fee") if delivery_fee is None else delivery_fee
+                night_fee = current_fees.get("night_fee") if night_fee is None else night_fee
+
+            updates.append("total = %s")
+            params.append(int(items_total or 0) + int(delivery_fee or 0) + int(night_fee or 0))
+
+        if not updates:
+            raise HTTPException(status_code=400, detail="No valid fields provided")
+
+        query = f"UPDATE orders SET {', '.join(updates)} WHERE id = %s"
+        params.append(order_id)
+        cursor.execute(query, params)
+
+        if "status" in order_data:
+            cursor.execute(
+                "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
+                (order_id, order_data["status"])
+            )
+
+        db.commit()
+        return {"message": "Order updated successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+@router.delete("/{order_id}")
+def delete_order(order_id: str):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM orders WHERE id = %s", (order_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        for table in ["order_courier_offers", "order_rejections", "order_ratings", "order_status_logs", "order_items"]:
+            cursor.execute("SHOW TABLES LIKE %s", (table,))
+            if cursor.fetchone():
+                cursor.execute(f"DELETE FROM {table} WHERE order_id = %s", (order_id,))
+
+        cursor.execute("DELETE FROM orders WHERE id = %s", (order_id,))
+        db.commit()
+        return {"message": "Order deleted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 def get_order_detail(order_id: str):
     db = get_db()

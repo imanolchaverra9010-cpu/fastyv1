@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { CATEGORIES } from "@/constants/categories";
+import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
 
 interface BusinessModalProps {
   onClose: () => void;
@@ -60,10 +61,10 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
   };
 
   const getCoords = () => {
-    if (navigator.geolocation) {
-      toast({ title: "Detectando ubicación...", description: "Por favor espera un momento." });
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
+    toast({ title: "Detectando ubicación precisa...", description: "Por favor espera un momento." });
+    getPreciseCurrentPosition({ desiredAccuracy: 20, fallbackAccuracy: 70, timeout: 18000 })
+      .then(async (pos) => {
+        const { latitude, longitude, accuracy } = pos;
         
         setFormData(prev => ({
           ...prev,
@@ -81,19 +82,17 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
                 ...prev,
                 address: data.display_name
               }));
-              toast({ title: "Ubicación detectada", description: "Dirección y coordenadas actualizadas." });
+              toast({ title: "Ubicación precisa detectada", description: `Dirección y coordenadas actualizadas. Precisión aprox: ${Math.round(accuracy || 0)} m.` });
             }
           }
         } catch (error) {
           console.error("Error en geocoding:", error);
           toast({ title: "Coordenadas obtenidas", description: "No se pudo obtener la dirección exacta, pero las coordenadas se actualizaron." });
         }
-      }, (error) => {
-        toast({ title: "Error de ubicación", description: "Asegúrate de dar permisos de GPS.", variant: "destructive" });
+      })
+      .catch((error) => {
+        toast({ title: "Error de ubicación", description: getPositionErrorMessage(error), variant: "destructive" });
       });
-    } else {
-      toast({ title: "Error", description: "Tu navegador no soporta geolocalización.", variant: "destructive" });
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

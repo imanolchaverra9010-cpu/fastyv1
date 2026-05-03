@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Business } from "@/types/business";
+import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
 
 interface RequestDeliveryModalProps {
   business: Business;
@@ -27,15 +28,9 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
 
   const getCurrentLocation = () => {
     setSearchingLocation(true);
-    if (!navigator.geolocation) {
-      toast({ title: "Error", description: "Tu navegador no soporta geolocalización", variant: "destructive" });
-      setSearchingLocation(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    getPreciseCurrentPosition({ desiredAccuracy: 30, fallbackAccuracy: 90, timeout: 18000 })
+      .then(async (position) => {
+        const { latitude, longitude, accuracy } = position;
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
@@ -45,18 +40,17 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
             latitude,
             longitude
           }));
-          toast({ title: "Ubicación detectada" });
+          toast({ title: "Ubicación precisa detectada", description: `Precisión aprox: ${Math.round(accuracy || 0)} m.` });
         } catch (error) {
           setFormData(prev => ({ ...prev, latitude, longitude }));
         } finally {
           setSearchingLocation(false);
         }
-      },
-      () => {
-        toast({ title: "Error", description: "No se pudo obtener tu ubicación actual", variant: "destructive" });
+      })
+      .catch((error) => {
+        toast({ title: "Error", description: getPositionErrorMessage(error), variant: "destructive" });
         setSearchingLocation(false);
-      }
-    );
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

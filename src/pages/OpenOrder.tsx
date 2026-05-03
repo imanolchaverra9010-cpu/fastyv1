@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import Receipt from "@/components/Receipt";
 import { isNightFeeTime } from "@/lib/utils";
+import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
 
 const OpenOrder = () => {
   const navigate = useNavigate();
@@ -119,12 +120,11 @@ const OpenOrder = () => {
   };
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setLocationLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+    setLocationLoading(true);
+    getPreciseCurrentPosition({ desiredAccuracy: 25, fallbackAccuracy: 80, timeout: 18000 })
+      .then(async (position) => {
+          const lat = position.latitude;
+          const lon = position.longitude;
           setLatitude(lat);
           setLongitude(lon);
           
@@ -151,38 +151,29 @@ const OpenOrder = () => {
               const data = await response.json();
               if (data.display_name) {
                 setFormData(prev => ({ ...prev, deliveryAddress: data.display_name }));
-                toast({ title: "Ubicación obtenida", description: "Dirección actualizada automáticamente." });
+                toast({ title: "Ubicación precisa obtenida", description: `Dirección actualizada. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
               } else {
                 setFormData(prev => ({ ...prev, deliveryAddress: `${lat.toFixed(6)}, ${lon.toFixed(6)}` }));
-                toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+                toast({ title: "Ubicación precisa obtenida", description: `Coordenadas actualizadas. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
               }
             }
           } catch (err) {
             console.error("Error in location tools:", err);
             setFormData(prev => ({ ...prev, deliveryAddress: `${lat.toFixed(6)}, ${lon.toFixed(6)}` }));
-            toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+            toast({ title: "Ubicación precisa obtenida", description: "Coordenadas actualizadas." });
           } finally {
             setLocationLoading(false);
           }
-        },
-        (error) => {
+        })
+        .catch((error) => {
           console.error("Error getting location:", error);
           setLocationLoading(false);
           toast({
             title: "Error de ubicación",
-            description: "No se pudo obtener la ubicación. Asegúrate de dar permisos de GPS.",
+            description: getPositionErrorMessage(error),
             variant: "destructive",
           });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      toast({
-        title: "Geolocalización no soportada",
-        description: "Tu navegador no soporta la geolocalización.",
-        variant: "destructive",
-      });
-    }
+        });
   };
 
 

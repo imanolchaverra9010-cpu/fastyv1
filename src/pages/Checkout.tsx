@@ -14,6 +14,7 @@ import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import MultiReceipt from "@/components/MultiReceipt";
 import { isNightFeeTime } from "@/lib/utils";
+import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
 
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // Radio de la tierra en km
@@ -164,12 +165,11 @@ const Checkout = () => {
   const total = subtotal + fee - discount;
 
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setLocationLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+    setLocationLoading(true);
+    getPreciseCurrentPosition({ desiredAccuracy: 25, fallbackAccuracy: 80, timeout: 18000 })
+      .then(async (position) => {
+          const lat = position.latitude;
+          const lon = position.longitude;
           setLatitude(lat);
           setLongitude(lon);
           
@@ -188,36 +188,27 @@ const Checkout = () => {
                 // Nominatim returns a very long display_name. We can try to simplify it.
                 // display_name: "Calle 123, Barrio, Ciudad, Departamento, Código Postal, País"
                 setAddressValue(data.display_name);
-                toast({ title: "Ubicación obtenida", description: "Dirección actualizada automáticamente." });
+                toast({ title: "Ubicación precisa obtenida", description: `Dirección actualizada. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
               } else {
-                toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas." });
+                toast({ title: "Ubicación precisa obtenida", description: `Coordenadas actualizadas. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
               }
             }
           } catch (err) {
             console.error("Error in reverse geocoding:", err);
-            toast({ title: "Ubicación obtenida", description: "Coordenadas actualizadas (no se pudo obtener la dirección)." });
+            toast({ title: "Ubicación precisa obtenida", description: "Coordenadas actualizadas (no se pudo obtener la dirección)." });
           } finally {
             setLocationLoading(false);
           }
-        },
-        (error) => {
+        })
+        .catch((error) => {
           console.error("Error getting location:", error);
           setLocationLoading(false);
           toast({
             title: "Error de ubicación",
-            description: "No se pudo obtener la ubicación. Asegúrate de dar permisos.",
+            description: getPositionErrorMessage(error),
             variant: "destructive",
           });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      toast({
-        title: "Geolocalización no soportada",
-        description: "Tu navegador no soporta la geolocalización.",
-        variant: "destructive",
-      });
-    }
+        });
   };
 
   const submit = async (e: React.FormEvent) => {

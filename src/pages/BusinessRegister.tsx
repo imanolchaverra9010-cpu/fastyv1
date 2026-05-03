@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { CATEGORIES } from "@/constants/categories";
+import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
 
 type Item = { name: string; price: string; desc: string };
 
@@ -27,17 +28,16 @@ const BusinessRegister = () => {
   const [gettingLocation, setGettingLocation] = useState(false);
   
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setGettingLocation(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+    setGettingLocation(true);
+    getPreciseCurrentPosition({ desiredAccuracy: 20, fallbackAccuracy: 70, timeout: 18000 })
+      .then((position) => {
           setCoords({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lat: position.latitude,
+            lng: position.longitude
           });
           
           // Reverse geocoding to get address
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.coords.latitude}&lon=${position.coords.longitude}`, {
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}`, {
             headers: { 'Accept-Language': 'es' }
           })
           .then(res => res.json())
@@ -51,19 +51,17 @@ const BusinessRegister = () => {
           .catch(err => console.error("Reverse geocoding error:", err))
           .finally(() => setGettingLocation(false));
           
-          toast({ title: "Ubicación obtenida", description: "Las coordenadas se han guardado correctamente." });
-        },
-        (error) => {
+          toast({ title: "Ubicación precisa obtenida", description: `Coordenadas guardadas. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
+        })
+        .catch((error) => {
           console.error("Error getting location:", error);
           setGettingLocation(false);
           toast({ 
             title: "Error de ubicación", 
-            description: "No se pudo obtener la ubicación. Por favor, ingrésala manualmente o inténtalo de nuevo.",
+            description: getPositionErrorMessage(error),
             variant: "destructive"
           });
-        }
-      );
-    }
+        });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

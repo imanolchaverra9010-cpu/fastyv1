@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { CourierSidebar } from "@/components/CourierSidebar";
 import { getWebSocketUrl } from "@/lib/utils";
+import { isUsablePosition } from "@/utils/geolocation";
 
 // Bogotá-ish coordinates for demo
 const PICKUP = { lat: 4.6533, lng: -74.0836, label: "Negocio" };
@@ -123,6 +124,11 @@ const CourierPanel = () => {
     if ("geolocation" in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         async (position) => {
+          if (!isUsablePosition(position, 100)) {
+            console.warn("Ignoring low accuracy courier position:", position.coords.accuracy);
+            return;
+          }
+
           const { latitude, longitude } = position.coords;
           setRealCourierPos({ lat: latitude, lng: longitude });
 
@@ -147,7 +153,7 @@ const CourierPanel = () => {
             variant: "destructive"
           });
         },
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
       );
     }
   };
