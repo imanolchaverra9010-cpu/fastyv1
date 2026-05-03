@@ -40,6 +40,17 @@ const Pedidos = () => {
     return "Sin asignar";
   };
 
+  const getDeliveryTotal = (order: any) => {
+    const savedFee = Number(order.delivery_fee || 0) + Number(order.night_fee || 0);
+    if (savedFee > 0) return savedFee;
+
+    const itemsTotal = (order.items || []).reduce((sum: number, item: any) => {
+      return sum + Number(item.price || 0) * Number(item.quantity || 0);
+    }, 0);
+
+    return Math.max(Number(order.total || 0) - itemsTotal, 0);
+  };
+
   const filteredOrders = (orders || []).filter(o => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -207,7 +218,7 @@ const Pedidos = () => {
     <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.business_name || (o.order_type === 'open' ? o.origin_name : 'Negocio')}</Data></Cell>
     <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.courier_name || 'Sin asignar'}</Data></Cell>
     <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.customer_name || o.customer}</Data></Cell>
-    <Cell ss:StyleID="sMoney"><Data ss:Type="Number">${(o.delivery_fee || 0) + (o.night_fee || 0)}</Data></Cell>
+    <Cell ss:StyleID="sMoney"><Data ss:Type="Number">${getDeliveryTotal(o)}</Data></Cell>
     <Cell ss:StyleID="sDefault"><Data ss:Type="String">${o.status}</Data></Cell>
     <Cell ss:StyleID="sDefault"><Data ss:Type="String">${new Date(o.created_at || o.createdAt).toLocaleString()}</Data></Cell>
    </Row>`).join("");
@@ -374,7 +385,7 @@ const Pedidos = () => {
                           </div>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{o.customer_name || o.customer}</td>
-                        <td className="px-5 py-3 text-right font-bold">{formatCOP((o.delivery_fee || 0) + (o.night_fee || 0))}</td>
+                        <td className="px-5 py-3 text-right font-bold">{formatCOP(getDeliveryTotal(o))}</td>
                         <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">
                           <div className={`flex items-center gap-1 font-semibold ${getTimerColor(o.created_at || o.createdAt)}`}>
@@ -435,7 +446,7 @@ const Pedidos = () => {
                         <p className="text-[10px] text-primary font-medium">{o.courier_name || 'Sin repartidor'}</p>
                         <p className="text-xs text-muted-foreground">{o.customer_name || o.customer}</p>
                       </div>
-                      <p className="font-bold text-sm text-right">{formatCOP((o.delivery_fee || 0) + (o.night_fee || 0))}</p>
+                      <p className="font-bold text-sm text-right">{formatCOP(getDeliveryTotal(o))}</p>
                     </div>
 
                     {/* Resumen de productos en móvil */}

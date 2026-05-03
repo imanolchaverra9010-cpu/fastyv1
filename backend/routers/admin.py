@@ -25,7 +25,31 @@ def get_admin_stats():
     cursor = db.cursor(dictionary=True)
     try:
         # 1. Ingresos Totales (solo domicilio + cuota nocturna) y Ticket Promedio de fees
-        cursor.execute("SELECT SUM(delivery_fee + night_fee) as total_revenue, COUNT(*) as total_orders, AVG(delivery_fee + night_fee) as avg_ticket FROM orders WHERE status != 'cancelled'")
+        cursor.execute("""
+            SELECT
+                SUM(
+                    CASE
+                        WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                        THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                        ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                    END
+                ) as total_revenue,
+                COUNT(*) as total_orders,
+                AVG(
+                    CASE
+                        WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                        THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                        ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                    END
+                ) as avg_ticket
+            FROM orders o
+            LEFT JOIN (
+                SELECT order_id, SUM(price * quantity) as items_total
+                FROM order_items
+                GROUP BY order_id
+            ) items ON items.order_id = o.id
+            WHERE o.status != 'cancelled'
+        """)
         revenue_data = cursor.fetchone()
         
         # 2. Pagos por Método
@@ -80,10 +104,23 @@ def get_revenue_chart_data():
         start_date = end_date - timedelta(days=6)
         
         cursor.execute("""
-            SELECT DATE(created_at) as date, SUM(total) as revenue 
-            FROM orders 
-            WHERE created_at >= %s AND status != 'cancelled'
-            GROUP BY DATE(created_at)
+            SELECT
+                DATE(o.created_at) as date,
+                SUM(
+                    CASE
+                        WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                        THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                        ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                    END
+                ) as revenue 
+            FROM orders o
+            LEFT JOIN (
+                SELECT order_id, SUM(price * quantity) as items_total
+                FROM order_items
+                GROUP BY order_id
+            ) items ON items.order_id = o.id
+            WHERE o.created_at >= %s AND o.status != 'cancelled'
+            GROUP BY DATE(o.created_at)
             ORDER BY date ASC
         """, (start_date.date(),))
         
@@ -148,9 +185,23 @@ def get_top_businesses_chart():
     cursor = db.cursor(dictionary=True)
     try:
         cursor.execute("""
-            SELECT b.name, COUNT(o.id) as orders, SUM(o.total) as revenue
+            SELECT
+                b.name,
+                COUNT(o.id) as orders,
+                SUM(
+                    CASE
+                        WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                        THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                        ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                    END
+                ) as revenue
             FROM businesses b
             JOIN orders o ON b.id = o.business_id
+            LEFT JOIN (
+                SELECT order_id, SUM(price * quantity) as items_total
+                FROM order_items
+                GROUP BY order_id
+            ) items ON items.order_id = o.id
             WHERE o.status != 'cancelled'
             GROUP BY b.id
             ORDER BY revenue DESC
@@ -383,9 +434,20 @@ def get_daily_report():
             SELECT 
                 c.id, c.name,
                 COUNT(o.id) as total_deliveries,
-                SUM(COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)) as total_revenue
+                SUM(
+                    CASE
+                        WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                        THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                        ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                    END
+                ) as total_revenue
             FROM couriers c
             LEFT JOIN orders o ON c.id = o.courier_id AND o.status = 'delivered' AND DATE(o.created_at) = %s
+            LEFT JOIN (
+                SELECT order_id, SUM(price * quantity) as items_total
+                FROM order_items
+                GROUP BY order_id
+            ) items ON items.order_id = o.id
             GROUP BY c.id
             ORDER BY total_deliveries DESC
         """, (today,))
@@ -395,11 +457,21 @@ def get_daily_report():
         # Detalle de pedidos por repartidor
         for courier in report:
             cursor.execute("""
-                SELECT o.id, o.customer_name,
-                       COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) as total,
+                SELECT
+                       o.id, o.customer_name,
+                       CASE
+                           WHEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) > 0
+                           THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)
+                           ELSE GREATEST(COALESCE(o.total, 0) - COALESCE(items.items_total, 0), 0)
+                       END as total,
                        o.created_at, b.name as business_name
                 FROM orders o
                 JOIN businesses b ON o.business_id = b.id
+                LEFT JOIN (
+                    SELECT order_id, SUM(price * quantity) as items_total
+                    FROM order_items
+                    GROUP BY order_id
+                ) items ON items.order_id = o.id
                 WHERE o.courier_id = %s AND o.status = 'delivered' AND DATE(o.created_at) = %s
                 ORDER BY o.created_at DESC
             """, (courier['id'], today))
