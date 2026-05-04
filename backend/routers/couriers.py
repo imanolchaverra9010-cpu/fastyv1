@@ -584,8 +584,14 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
             })
 
         if websocket_manager and order.get("user_id"):
-            # Fire-and-forget websockets are not guaranteed in Vercel, push is the source of truth.
-            pass
+            background_tasks.add_task(websocket_manager.notify_user, order["user_id"], {
+                "type": "order_offer",
+                "order_id": order_id,
+                "courier_name": courier["name"],
+                "courier_id": courier["id"],
+                "amount": offer.amount,
+                "message": f"{courier['name']} ofrece ${offer.amount:,} por tu encargo."
+            })
 
         return {
             "message": "Offer submitted",

@@ -156,6 +156,33 @@ const OrderTracking = () => {
             title: "Pedido actualizado",
             description: `Tu pedido ahora está en estado: ${message.status}`,
           });
+        } else if (message.type === "order_offer" && currentOrder && message.order_id === currentOrder.id) {
+          toast({
+            title: "Nueva oferta recibida",
+            description: message.message || `Un domiciliario ofreció ${message.amount}`,
+          });
+
+          setOrder(prev => {
+            if (!prev) return prev;
+            const existingOffers = prev.offers || [];
+            const alreadyExists = existingOffers.some((offer) => offer.courier_id === message.courier_id && offer.amount === message.amount);
+            if (alreadyExists) {
+              return prev;
+            }
+            return {
+              ...prev,
+              offers: [
+                ...existingOffers,
+                {
+                  id: Date.now(),
+                  courier_id: message.courier_id,
+                  courier_name: message.courier_name,
+                  amount: message.amount,
+                  status: 'pending'
+                }
+              ]
+            };
+          });
         }
       };
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Bike, DollarSign, MapPin, Navigation, Package, Star, TrendingUp, Loader2, Bell, X as CloseIcon, Check, Clock, Play, Eye, Phone, User, CreditCard, Store, LogOut, CheckCircle, Settings, ChevronRight, Camera, Upload } from "lucide-react";
+import { Bike, DollarSign, Wallet, MapPin, Navigation, Package, Star, TrendingUp, Loader2, Bell, X as CloseIcon, Check, Clock, Play, Eye, Phone, User, CreditCard, Store, LogOut, CheckCircle, Settings, ChevronRight, Camera, Upload } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import DeliveryMap from "@/components/DeliveryMap";
 import MultiStopMap from "@/components/MultiStopMap";
@@ -666,13 +666,23 @@ const CourierPanel = () => {
                     {currentNotification.delivery_address}
                   </a>
                   <div className="mt-4 flex gap-3">
-                    <Button
-                      variant="hero"
-                      className="flex-1 rounded-xl h-11 font-bold shadow-glow"
-                      onClick={() => handleAction('accept', currentNotification.order_id)}
-                    >
-                      <Check className="mr-2 h-4 w-4" /> Aceptar
-                    </Button>
+                    {currentNotification.order_type === 'open' ? (
+                      <Button
+                        variant="hero"
+                        className="flex-1 rounded-xl h-11 font-bold shadow-glow"
+                        onClick={() => handleAction('offer', currentNotification.order_id)}
+                      >
+                        <Wallet className="mr-2 h-4 w-4" /> Enviar oferta
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="hero"
+                        className="flex-1 rounded-xl h-11 font-bold shadow-glow"
+                        onClick={() => handleAction('accept', currentNotification.order_id)}
+                      >
+                        <Check className="mr-2 h-4 w-4" /> Aceptar
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       className="flex-1 rounded-xl h-11 font-bold border-2"
@@ -1007,13 +1017,23 @@ const CourierPanel = () => {
                           {order.delivery_address}
                         </a>
                         <div className="flex gap-2">
-                          <Button
-                            variant="hero"
-                            className="flex-1 rounded-lg font-bold"
-                            onClick={() => handleAction('accept', order.id)}
-                          >
-                            <Check className="mr-2 h-4 w-4" /> Aceptar
-                          </Button>
+                          {order.order_type === 'open' ? (
+                            <Button
+                              variant="hero"
+                              className="flex-1 rounded-lg font-bold"
+                              onClick={() => handleAction('offer', order.id)}
+                            >
+                              <Wallet className="mr-2 h-4 w-4" /> Enviar oferta
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="hero"
+                              className="flex-1 rounded-lg font-bold"
+                              onClick={() => handleAction('accept', order.id)}
+                            >
+                              <Check className="mr-2 h-4 w-4" /> Aceptar
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             className="shrink-0 rounded-lg"
