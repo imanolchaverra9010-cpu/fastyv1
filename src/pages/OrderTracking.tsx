@@ -360,7 +360,7 @@ const OrderTracking = () => {
                   const isCurrent = idx === currentStepIndex;
 
                   return (
-                    <div key={step.id} className="relative z-10 flex flex-col items-center">
+                    <div key={step.id} className="relative z-10 flex flex-col items-center flex-1">
                       <div className={`
                         h-12 w-12 rounded-2xl flex items-center justify-center border-4 transition-all duration-500
                         ${isCompleted ? 'bg-primary border-primary text-primary-foreground shadow-glow-primary' : 'bg-background border-muted/40 text-muted-foreground'}
@@ -368,7 +368,7 @@ const OrderTracking = () => {
                       `}>
                         <Icon className={`h-6 w-6 ${isCurrent ? 'animate-bounce' : ''}`} />
                       </div>
-                      <span className={`mt-4 text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`mt-4 text-[8px] md:text-[10px] font-black uppercase tracking-tighter text-center leading-none max-w-[60px] md:max-w-none transition-colors ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
                         {step.label}
                       </span>
                     </div>
