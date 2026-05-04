@@ -17,6 +17,9 @@ db_config = {
     "ssl_verify_cert": False,
     "ssl_verify_identity": False,
     "connect_timeout": 5,
+    "charset": "utf8mb4",
+    "collation": "utf8mb4_general_ci",
+    "use_unicode": True,
 }
 
 def get_db():
@@ -30,9 +33,14 @@ def get_db():
         try:
             conn = mysql.connector.connect(**db_config)
             if conn.is_connected():
-                # Establecer zona horaria de Bogotá
+                # Forzar charset/collation de sesión consistente con las tablas existentes
+                try:
+                    conn.set_charset_collation('utf8mb4', 'utf8mb4_general_ci')
+                except Exception:
+                    pass
                 cursor = conn.cursor()
                 cursor.execute("SET time_zone = '-05:00'")
+                cursor.execute("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci")
                 cursor.close()
                 return conn
         except mysql.connector.errors.DatabaseError as e:
