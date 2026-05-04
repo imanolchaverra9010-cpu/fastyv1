@@ -259,70 +259,96 @@ const OrderTracking = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-20">
-      <main className="container max-w-4xl pt-8 px-4">
-        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4" /> Volver a la tienda
+      <main className="container max-w-5xl pt-8 px-4">
+        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8 group">
+          <div className="h-8 w-8 rounded-full bg-background shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+            <ArrowLeft className="h-4 w-4" />
+          </div>
+          <span className="font-semibold">Volver a la tienda</span>
         </Link>
 
         {!order && !loading && (
-          <div className="max-w-md mx-auto text-center mt-12 bg-card border rounded-3xl p-8 shadow-glow">
-            <Search className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
-            <h1 className="text-2xl font-display font-bold mb-2">Rastrea tu pedido</h1>
-            <p className="text-muted-foreground mb-6">Ingresa el ID de tu pedido para ver su estado actual.</p>
-            <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="max-w-md mx-auto text-center mt-12 bg-card/50 backdrop-blur-md border border-border/60 rounded-[2.5rem] p-10 shadow-card hover:shadow-glow transition-all duration-500">
+            <div className="h-20 w-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3 group-hover:rotate-0 transition-transform">
+              <Search className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-3xl font-display font-bold mb-3 tracking-tight">Rastrea tu pedido</h1>
+            <p className="text-muted-foreground mb-8 text-sm leading-relaxed">Ingresa el ID de tu pedido para ver su estado actual en tiempo real.</p>
+            <form onSubmit={handleSearch} className="space-y-4">
               <Input
                 placeholder="Ej: ORD-723A"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                className="h-11 rounded-xl"
+                className="h-14 rounded-2xl border-border/60 focus:ring-primary/20 bg-background/50 text-center font-mono text-lg uppercase"
               />
-              <Button type="submit" variant="hero" className="rounded-xl h-11 px-6">
-                Rastrear
+              <Button type="submit" variant="hero" size="xl" className="w-full rounded-2xl h-14 font-display font-bold shadow-glow-primary">
+                Buscar mi pedido
               </Button>
             </form>
-            {error && <p className="mt-4 text-sm text-destructive font-medium">{error}</p>}
+            {error && (
+              <div className="mt-6 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold animate-in shake">
+                {error}
+              </div>
+            )}
           </div>
         )}
 
         {loading && !order && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground font-medium">Buscando tu pedido...</p>
+          <div className="flex flex-col items-center justify-center py-24 animate-in fade-in zoom-in-95">
+            <div className="relative">
+              <div className="h-20 w-20 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <Search className="h-8 w-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            </div>
+            <p className="text-foreground font-display font-bold text-xl mt-6">Localizando tu pedido...</p>
+            <p className="text-muted-foreground text-sm mt-1 italic">Conectando con el centro de logística</p>
           </div>
         )}
 
         {order && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-display font-bold">Estado del Pedido</h1>
-                <p className="text-muted-foreground">ID: <span className="font-mono text-foreground font-bold">{order.id}</span></p>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                    Rastreo en vivo
+                  </span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">Estado del Pedido</h1>
+                <p className="text-muted-foreground text-lg">Referencia: <span className="font-mono text-primary font-black uppercase">{order.id}</span></p>
               </div>
-              <div className="flex gap-2">
+              
+              <div className="flex flex-wrap items-center gap-3">
                 {order.eta_text && order.status !== 'delivered' && order.status !== 'cancelled' && (
-                  <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
-                    <Clock className="h-4 w-4" />
-                    ETA {order.eta_text}
+                  <div className="inline-flex items-center gap-2 rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 py-3 text-sm font-black text-primary animate-pulse">
+                    <Clock className="h-5 w-5" />
+                    Llega en {order.eta_text}
                   </div>
                 )}
-                <Button variant="soft" size="sm" onClick={() => fetchOrder(order.id)} className="rounded-xl">
-                  Actualizar
-                </Button>
-                {!urlOrderId && (
-                  <Button variant="outline" size="sm" onClick={() => setOrder(null)} className="rounded-xl">
-                    Nueva búsqueda
+                <div className="flex gap-2">
+                  <Button variant="outline" size="lg" onClick={() => fetchOrder(order.id)} className="rounded-2xl h-12 border-2 border-border/60 hover:bg-muted font-bold px-6">
+                    Actualizar
                   </Button>
-                )}
+                  {!urlOrderId && (
+                    <Button variant="ghost" size="lg" onClick={() => setOrder(null)} className="rounded-2xl h-12 font-bold px-6">
+                      Nueva búsqueda
+                    </Button>
+                  )}
+                </div>
               </div>
             </header>
 
-            {/* Stepper */}
-            <div className="bg-card border rounded-3xl p-6 md:p-10 shadow-card">
-              <div className="relative flex justify-between">
-                {/* Connector line */}
-                <div className="absolute top-5 left-0 w-full h-1 bg-muted -z-0" />
+            {/* Stepper Modernizado */}
+            <div className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2.5rem] p-8 md:p-12 shadow-card overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-5">
+                <Package className="h-32 w-32" />
+              </div>
+
+              <div className="relative flex justify-between max-w-3xl mx-auto">
+                {/* Línea de fondo */}
+                <div className="absolute top-6 left-0 w-full h-1.5 bg-muted/40 rounded-full -z-0" />
+                {/* Línea de progreso */}
                 <div
-                  className="absolute top-5 left-0 h-1 bg-primary transition-all duration-700 ease-in-out -z-0"
+                  className="absolute top-6 left-0 h-1.5 bg-primary transition-all duration-1000 ease-out rounded-full -z-0 shadow-glow-primary"
                   style={{ width: `${(Math.max(0, currentStepIndex) / (statusSteps.length - 1)) * 100}%` }}
                 />
 
@@ -332,15 +358,15 @@ const OrderTracking = () => {
                   const isCurrent = idx === currentStepIndex;
 
                   return (
-                    <div key={step.id} className="relative z-10 flex flex-col items-center text-center">
+                    <div key={step.id} className="relative z-10 flex flex-col items-center">
                       <div className={`
-                        h-11 w-11 rounded-full flex items-center justify-center border-4 transition-all duration-300
-                        ${isCompleted ? 'bg-primary border-primary text-primary-foreground shadow-glow' : 'bg-card border-muted text-muted-foreground'}
-                        ${isCurrent ? 'scale-125 ring-4 ring-primary/20' : ''}
+                        h-12 w-12 rounded-2xl flex items-center justify-center border-4 transition-all duration-500
+                        ${isCompleted ? 'bg-primary border-primary text-primary-foreground shadow-glow-primary' : 'bg-background border-muted/40 text-muted-foreground'}
+                        ${isCurrent ? 'scale-125 ring-8 ring-primary/10 -rotate-3' : ''}
                       `}>
-                        <Icon className="h-5 w-5" />
+                        <Icon className={`h-6 w-6 ${isCurrent ? 'animate-bounce' : ''}`} />
                       </div>
-                      <span className={`mt-3 text-xs md:text-sm font-bold transition-colors ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`mt-4 text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
                         {step.label}
                       </span>
                     </div>
@@ -349,67 +375,124 @@ const OrderTracking = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Map or Detail */}
-              <div className="bg-card border rounded-3xl overflow-hidden shadow-card h-[300px] md:h-[400px]">
-                {order.status === 'shipped' || order.status === 'in_transit' ? (
-                  <DeliveryMap
-                    pickup={{
-                      lat: order.business_lat || 4.67,
-                      lng: order.business_lng || -74.05,
-                      label: order.business_name || "Restaurante",
-                      emoji: order.business_emoji
-                    }}
-                    dropoff={{
-                      lat: order.latitude || 4.68,
-                      lng: order.longitude || -74.06,
-                      label: "Tu destino"
-                    }}
-                    courier={order.courier_lat && order.courier_lng ? {
-                      lat: order.courier_lat,
-                      lng: order.courier_lng,
-                      label: "Tu domiciliario"
-                    } : undefined}
-                  />
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-muted/20">
-                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
-                      {order.status === 'delivered' ? <CheckCircle2 className="h-10 w-10" /> : <Clock className="h-10 w-10 animate-pulse" />}
+            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+              {/* Columna Izquierda: Mapa o Estado Visual */}
+              <div className="space-y-8">
+                <div className="bg-card border border-border/60 rounded-[2rem] overflow-hidden shadow-card h-[400px] md:h-[500px] relative group">
+                  {order.status === 'shipped' || order.status === 'in_transit' ? (
+                    <DeliveryMap
+                      pickup={{
+                        lat: order.business_lat || 4.67,
+                        lng: order.business_lng || -74.05,
+                        label: order.business_name || "Restaurante",
+                        emoji: order.business_emoji
+                      }}
+                      dropoff={{
+                        lat: order.latitude || 4.68,
+                        lng: order.longitude || -74.06,
+                        label: "Tu destino"
+                      }}
+                      courier={order.courier_lat && order.courier_lng ? {
+                        lat: order.courier_lat,
+                        lng: order.courier_lng,
+                        label: "Tu domiciliario"
+                      } : undefined}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-muted/10 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+                      <div className="relative z-10">
+                        <div className="h-28 w-28 rounded-[2.5rem] bg-primary/10 flex items-center justify-center text-primary mb-8 shadow-inner rotate-6 transition-transform group-hover:rotate-0">
+                          {order.status === 'delivered' ? <CheckCircle2 className="h-14 w-14" /> : <Clock className="h-14 w-14 animate-pulse" />}
+                        </div>
+                        <h3 className="font-display font-black text-3xl mb-4 tracking-tight">
+                          {order.status === 'delivered' ? '¡Pedido Entregado!' :
+                            order.status === 'preparing' ? 'Preparando tu pedido' :
+                              'Esperando confirmación'}
+                        </h3>
+                        <p className="text-muted-foreground text-lg max-w-sm mx-auto leading-relaxed font-medium">
+                          {order.status === 'delivered' ? 'Esperamos que disfrutes tu pedido. ¡Gracias por confiar en Fasty!' :
+                            order.status === 'preparing' ? 'El restaurante está preparando todo con los mejores ingredientes.' :
+                              'Tu pedido está en proceso de ser aceptado por el restaurante.'}
+                        </p>
+                      </div>
                     </div>
-                    <h3 className="font-bold text-xl mb-2">
-                      {order.status === 'delivered' ? '¡Entregado!' :
-                        order.status === 'preparing' ? 'Preparando tu comida' :
-                          'Esperando confirmación'}
-                    </h3>
-                    <p className="text-muted-foreground max-w-xs">
-                      {order.status === 'delivered' ? 'Esperamos que disfrutes tu pedido. ¡Vuelve pronto!' :
-                        order.status === 'preparing' ? 'El restaurante está cocinando tus platos favoritos.' :
-                          'El restaurante recibirá tu pedido en unos segundos.'}
-                    </p>
+                  )}
+                </div>
+
+                {/* Historial de estados (Logs) */}
+                <div className="bg-card/50 backdrop-blur-sm border border-border/60 rounded-[2rem] p-8 shadow-card">
+                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" /> Historial de estados
+                  </h3>
+                  <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-muted/40">
+                    {order.logs?.map((log, idx) => (
+                      <div key={idx} className="flex gap-6 relative">
+                        <div className={`h-6 w-6 rounded-full border-4 border-card z-10 shrink-0 ${idx === 0 ? 'bg-primary shadow-glow-primary scale-125' : 'bg-muted'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold capitalize ${idx === 0 ? 'text-primary' : 'text-foreground'}`}>
+                            {log.status === 'pending' ? 'Pedido Confirmado' : 
+                             log.status === 'preparing' ? 'En Preparación' :
+                             log.status === 'shipped' ? 'Domiciliario Asignado' :
+                             log.status === 'in_transit' ? 'En Camino al Destino' :
+                             log.status === 'delivered' ? 'Pedido Entregado' :
+                             log.status === 'cancelled' ? 'Pedido Cancelado' : log.status}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-medium mt-1">
+                            {new Date(log.changed_at).toLocaleString('es-CO', {
+                              weekday: 'long',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Order Info */}
-              <div className="bg-card border rounded-3xl p-5 shadow-card space-y-5 overflow-hidden min-w-0">
+              {/* Columna Derecha: Información y Resumen */}
+              <aside className="space-y-8 lg:sticky lg:top-24 h-fit">
+                {/* Ofertas de Domiciliarios (Solo para Pedidos Abiertos) */}
                 {order.order_type === 'open' && !order.courier_id && (
-                  <div className="space-y-3">
-                    <h3 className="font-bold text-lg">Ofertas de domiciliarios</h3>
+                  <div className="bg-card border-2 border-primary/20 rounded-[2rem] p-8 shadow-glow animate-in slide-in-from-right-4">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-display font-bold">Ofertas activas</h3>
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                      </div>
+                    </div>
+                    
                     {(order.offers || []).filter(offer => offer.status === 'pending').length === 0 ? (
-                      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-                        Aun no hay ofertas. Te notificaremos cuando un domiciliario proponga un valor.
+                      <div className="rounded-2xl bg-primary/5 p-6 text-center border border-dashed border-primary/20">
+                        <Loader2 className="h-8 w-8 text-primary/40 mx-auto mb-3 animate-spin" />
+                        <p className="text-sm font-medium text-primary/70">Esperando que los domiciliarios propongan una tarifa...</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {(order.offers || []).filter(offer => offer.status === 'pending').map((offer) => (
-                          <div key={offer.id} className="rounded-2xl border border-border/60 bg-muted/20 p-3 flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-bold text-sm truncate">{offer.courier_name || "Domiciliario"}</p>
-                              <p className="text-xs text-muted-foreground truncate">{offer.courier_vehicle || "Vehiculo de entrega"}</p>
+                          <div key={offer.id} className="rounded-2xl border border-border/60 bg-background/50 p-4 hover:border-primary/40 transition-all group">
+                            <div className="flex items-center gap-4 mb-3">
+                              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black">
+                                {offer.courier_name?.charAt(0) || "D"}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm truncate">{offer.courier_name || "Domiciliario Fasty"}</p>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" /> {offer.courier_rating || "Nuevo"}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                    <Bike className="h-2.5 w-2.5" /> {offer.courier_vehicle || "Bici/Moto"}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="font-bold text-primary">{formatCOP(offer.amount)}</p>
-                              <Button size="sm" variant="hero" className="mt-1 h-8 rounded-xl" onClick={() => handleAcceptOffer(offer.id)}>
+                            <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
+                              <span className="font-display font-black text-xl text-primary">{formatCOP(offer.amount)}</span>
+                              <Button size="sm" variant="hero" className="rounded-xl px-4 h-9 shadow-glow-primary group-hover:scale-105 transition-transform" onClick={() => handleAcceptOffer(offer.id)}>
                                 Aceptar
                               </Button>
                             </div>
@@ -419,163 +502,174 @@ const OrderTracking = () => {
                     )}
                   </div>
                 )}
-                {/* Items */}
-                <div>
-                  <h3 className="font-bold text-lg mb-3">Resumen</h3>
-                  <div className="space-y-2">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm min-w-0">
-                        <span className="text-xl shrink-0">{item.emoji}</span>
-                        <span className="font-medium flex-1 truncate min-w-0">{item.name} x{item.quantity}</span>
-                        <span className="font-bold shrink-0 ml-2">{formatCOP(item.price * item.quantity)}</span>
-                      </div>
-                    ))}
+
+                {/* Resumen Estilo Recibo */}
+                <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card overflow-hidden relative">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Store className="h-20 w-20" />
                   </div>
-                  <div className="mt-3 pt-3 border-t flex justify-between items-center font-bold text-lg">
-                    <span>Total</span>
-                    <span className="text-primary shrink-0">{formatCOP(order.total)}</span>
+                  
+                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary" /> Resumen del pedido
+                  </h3>
+
+                  <div className="space-y-6 max-h-[30vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-primary/10">
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <p className="text-xs font-bold text-primary flex items-center gap-2 uppercase tracking-widest">
+                          <Store className="h-3.5 w-3.5" /> {order.business_name || "Establecimiento"}
+                        </p>
+                      </div>
+                      <div className="space-y-4 pl-1">
+                        {order.items?.map((item, idx) => (
+                          <div key={idx} className="flex gap-4 group">
+                            <div className="h-10 w-10 rounded-xl bg-muted/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shrink-0">
+                              {item.emoji || "📦"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate">{item.name}</p>
+                              <p className="text-xs text-muted-foreground font-medium">Cantidad: {item.quantity}</p>
+                            </div>
+                            <span className="font-bold text-sm shrink-0">{formatCOP(item.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-6 border-t-2 border-dashed border-border/60">
+                    <div className="flex justify-between items-end">
+                      <span className="font-display font-bold text-base">Total pagado</span>
+                      <div className="text-right">
+                        <span className="block text-3xl font-display font-black text-primary tracking-tight">
+                          {formatCOP(order.total)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Delivery info */}
-                <div className="space-y-3 pt-3 border-t">
-                  <div className="flex gap-3 min-w-0">
-                    <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                {/* Detalles de Entrega */}
+                <div className="bg-card/50 backdrop-blur-sm border border-border/60 rounded-[2rem] p-8 shadow-card space-y-6">
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-inner">
+                      <MapPin className="h-5 w-5" />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Dirección de entrega</p>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Entregar en</p>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-medium hover:text-primary transition-colors break-words block"
+                        className="text-sm font-bold hover:text-primary transition-colors leading-relaxed block"
                       >
                         {order.delivery_address}
                       </a>
                     </div>
                   </div>
-                  <div className="flex gap-3 min-w-0">
-                    <Package className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-inner">
+                      <Star className="h-5 w-5" />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Destinatario</p>
-                      <p className="text-sm font-medium truncate">{order.customer_name}</p>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Cliente</p>
+                      <p className="text-sm font-bold truncate">{order.customer_name}</p>
                     </div>
                   </div>
-                  {order.eta_text && order.status !== 'delivered' && order.status !== 'cancelled' && (
-                    <div className="flex gap-3 min-w-0">
-                      <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Tiempo estimado</p>
-                        <p className="text-sm font-bold text-primary">{order.eta_text}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Courier Info */}
+                {/* Info del Domiciliario Premium */}
                 {order.courier_id && (
-                  <div className="pt-3 border-t animate-in fade-in slide-in-from-top-2 duration-500">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tu Domiciliario Fasty</p>
-                    <div className="bg-primary/5 rounded-2xl border-2 border-primary/20 p-3 space-y-3">
-                      {/* Avatar row */}
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative shrink-0">
+                  <div className="bg-primary/5 rounded-[2.5rem] border-2 border-primary/20 p-8 shadow-glow animate-in zoom-in-95">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-6 text-center">Tu Domiciliario Asignado</p>
+                    
+                    <div className="flex flex-col items-center text-center space-y-4 mb-8">
+                      <div className="relative">
+                        <div className="h-24 w-24 rounded-[2rem] overflow-hidden border-4 border-white shadow-xl rotate-3">
                           {order.courier_image ? (
-                            <img
-                              src={order.courier_image}
-                              alt={order.courier_name}
-                              className="h-12 w-12 rounded-full object-cover border-2 border-primary/40"
-                            />
+                            <img src={order.courier_image} alt={order.courier_name} className="h-full w-full object-cover" />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/40">
-                              <Bike className="h-6 w-6" />
+                            <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary">
+                              <Bike className="h-10 w-10" />
                             </div>
                           )}
-                          <div className="absolute -bottom-0.5 -right-0.5 bg-success h-3 w-3 rounded-full border-2 border-card animate-pulse" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="font-bold text-sm leading-snug break-words">{order.courier_name || "Domiciliario asignado"}</p>
-                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
-                            {order.courier_rating && (
-                              <span className="inline-flex items-center gap-0.5 bg-yellow-400/20 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-400/30 shrink-0">
-                                <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
-                                {Number(order.courier_rating).toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Bike className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{order.courier_vehicle || "Vehículo de entrega"}</span>
-                          </p>
+                        <div className="absolute -bottom-2 -right-2 bg-success h-6 w-6 rounded-full border-4 border-card flex items-center justify-center shadow-lg">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
                         </div>
                       </div>
-
-                      {/* Action buttons */}
-                      {order.courier_phone && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button variant="hero" size="sm" className="h-9 text-xs gap-1.5 rounded-xl w-full" asChild>
-                            <a href={`tel:${order.courier_phone}`} className="flex items-center justify-center">
-                              <Phone className="h-3.5 w-3.5 shrink-0" /> Llamar
-                            </a>
-                          </Button>
-                          <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 rounded-xl w-full border-success/40 text-success hover:bg-success/5" asChild>
-                            <a
-                              href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-center"
-                            >
-                              <MessageCircle className="h-3.5 w-3.5 shrink-0" /> WhatsApp
-                            </a>
-                          </Button>
+                      
+                      <div>
+                        <h4 className="text-2xl font-display font-black tracking-tight">{order.courier_name || "Socio Fasty"}</h4>
+                        <div className="flex items-center justify-center gap-3 mt-1">
+                          <span className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
+                            <Bike className="h-3.5 w-3.5" /> {order.courier_vehicle || "Transporte"}
+                          </span>
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                          <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-400/10 px-2 py-0.5 rounded-lg border border-yellow-400/20">
+                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" /> {Number(order.courier_rating || 5.0).toFixed(1)}
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
+
+                    {order.courier_phone && (
+                      <div className="grid grid-cols-1 gap-3">
+                        <Button variant="hero" size="xl" className="h-14 rounded-2xl gap-3 font-display font-bold shadow-glow-primary group" asChild>
+                          <a href={`tel:${order.courier_phone}`}>
+                            <Phone className="h-5 w-5 group-hover:rotate-12 transition-transform" /> 
+                            Llamar al domiciliario
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="xl" className="h-14 rounded-2xl gap-3 font-display font-bold border-2 border-success/30 text-success hover:bg-success/5 group" asChild>
+                          <a
+                            href={`https://wa.me/57${order.courier_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola! Soy cliente de Fasty, estoy rastreando mi pedido #${order.id}. ¿Cómo vas?`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform" /> 
+                            WhatsApp Directo
+                          </a>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </aside>
             </div>
 
-            {/* Rating Section */}
+            {/* Sección de Calificación (Solo cuando se entrega) */}
             {order.status === 'delivered' && !order.is_rated && !ratedLocally && (
-              <div className="bg-card border-2 border-primary/20 rounded-3xl p-8 shadow-glow animate-in zoom-in-95">
-                <div className="text-center mb-8">
-                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-8 w-8 text-primary fill-primary" />
-                  </div>
-                  <h2 className="text-2xl font-display font-bold">¡Danos tu opinión!</h2>
-                  <p className="text-muted-foreground">Tu calificación nos ayuda a mejorar la experiencia Fasty.</p>
+              <div className="bg-card/50 backdrop-blur-md border-2 border-primary/20 rounded-[3rem] p-10 md:p-16 shadow-glow animate-in zoom-in-95 relative overflow-hidden text-center max-w-3xl mx-auto mt-12">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-primary to-yellow-400" />
+                
+                <div className="h-24 w-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                  <Star className="h-12 w-12 text-primary fill-primary animate-pulse" />
                 </div>
+                
+                <h2 className="text-4xl font-display font-black tracking-tight mb-4">¿Qué tal estuvo todo?</h2>
+                <p className="text-muted-foreground text-lg mb-12 max-w-md mx-auto leading-relaxed">Tu opinión es el motor de Fasty. Ayúdanos a premiar a los mejores domiciliarios y restaurantes.</p>
 
-                <div className="grid md:grid-cols-2 gap-8 mb-8">
-                  {/* Business Rating */}
+                <div className="grid md:grid-cols-2 gap-12 mb-12">
                   <div className="space-y-4">
-                    <p className="font-bold text-center">¿Qué tal estuvo la comida?</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">La comida / Productos</p>
                     <div className="flex justify-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => setBizRating(star)}
-                          className="transition-transform active:scale-95"
-                        >
-                          <Star className={`h-8 w-8 ${star <= bizRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} />
+                        <button key={star} onClick={() => setBizRating(star)} className="group transition-all active:scale-90">
+                          <Star className={`h-10 w-10 transition-all ${star <= bizRating ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-muted-foreground/20 group-hover:text-yellow-400/40'}`} />
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Courier Rating */}
                   {order.courier_id && (
                     <div className="space-y-4">
-                      <p className="font-bold text-center">¿Cómo fue la entrega?</p>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">El Servicio de Entrega</p>
                       <div className="flex justify-center gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => setCourierRating(star)}
-                            className="transition-transform active:scale-95"
-                          >
-                            <Star className={`h-8 w-8 ${star <= courierRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} />
+                          <button key={star} onClick={() => setCourierRating(star)} className="group transition-all active:scale-90">
+                            <Star className={`h-10 w-10 transition-all ${star <= courierRating ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-muted-foreground/20 group-hover:text-yellow-400/40'}`} />
                           </button>
                         ))}
                       </div>
@@ -583,53 +677,42 @@ const OrderTracking = () => {
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Deja un comentario opcional..."
+                <div className="max-w-md mx-auto space-y-6">
+                  <Textarea
+                    placeholder="Escribe algo sobre tu experiencia (opcional)..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="h-12 rounded-xl"
+                    className="min-h-[100px] rounded-2xl border-border/60 bg-background/50 focus:ring-primary/20 text-center text-lg italic"
                   />
                   <Button
                     onClick={handleRate}
                     disabled={submittingRating}
                     variant="hero"
-                    className="w-full h-12 rounded-xl text-lg font-bold shadow-glow"
+                    size="xl"
+                    className="w-full h-16 rounded-2xl text-xl font-display font-bold shadow-glow-primary group"
                   >
-                    {submittingRating ? <Loader2 className="animate-spin h-5 w-5" /> : <><Send className="mr-2 h-5 w-5" /> Enviar calificación</>}
+                    {submittingRating ? (
+                      <Loader2 className="animate-spin h-6 w-6" />
+                    ) : (
+                      <>
+                        <Send className="mr-3 h-6 w-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> 
+                        Enviar mi Calificación
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
             )}
 
             {ratedLocally && (
-              <div className="bg-success/10 border-2 border-success/20 rounded-3xl p-8 text-center animate-in fade-in">
-                <CheckCircle2 className="h-10 w-10 text-success mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-success">¡Gracias por calificar!</h3>
-                <p className="text-muted-foreground">Tu opinión ha sido registrada con éxito.</p>
+              <div className="bg-success/5 border-2 border-success/20 rounded-[3rem] p-12 text-center animate-in zoom-in-95 max-w-2xl mx-auto mt-12">
+                <div className="h-20 w-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="h-10 w-10 text-success" />
+                </div>
+                <h3 className="text-3xl font-display font-black text-success tracking-tight mb-2">¡Muchas gracias!</h3>
+                <p className="text-muted-foreground font-medium text-lg">Tu calificación ha sido registrada. ¡Esperamos verte pronto de nuevo!</p>
               </div>
             )}
-
-            {/* History Logs */}
-            <div className="bg-card border rounded-3xl p-6 shadow-card">
-              <h3 className="font-bold text-lg mb-4">Historial</h3>
-              <div className="space-y-4">
-                {order.logs?.map((log, idx) => (
-                  <div key={idx} className="flex items-center gap-4">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold capitalize">Estado: {log.status === 'pending' ? 'Pendiente' : 
-                         log.status === 'preparing' ? 'Preparando' :
-                         log.status === 'shipped' ? 'En camino' :
-                         log.status === 'in_transit' ? 'En camino al destino' :
-                         log.status === 'delivered' ? 'Entregado' :
-                         log.status === 'cancelled' ? 'Cancelado' : log.status}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(log.changed_at).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </main>
