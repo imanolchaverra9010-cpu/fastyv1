@@ -20,7 +20,7 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
     customer_phone: "",
     delivery_address: "",
     total: "",
-    payment_method: "Efectivo",
+    payment_method: "cash",
     notes: "",
     latitude: null as number | null,
     longitude: null as number | null,
@@ -195,8 +195,8 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
                 value={formData.payment_method}
                 onChange={e => setFormData(prev => ({ ...prev, payment_method: e.target.value }))}
               >
-                <option value="Efectivo">Efectivo (Cobrar al entregar)</option>
-                <option value="Transferencia">Transferencia</option>
+                <option value="cash">Efectivo (Cobrar al entregar)</option>
+                <option value="wallet">Transferencia</option>
               </select>
             </div>
           </div>

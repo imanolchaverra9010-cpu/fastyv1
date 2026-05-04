@@ -90,6 +90,10 @@ ADD COLUMN order_type ENUM('regular', 'open') DEFAULT 'regular',
 ADD COLUMN origin_name VARCHAR(100),
 ADD COLUMN origin_address VARCHAR(255),
 ADD COLUMN open_order_description TEXT,
+ADD COLUMN batch_id VARCHAR(50),
+ADD COLUMN delivery_fee INT NOT NULL DEFAULT 0,
+ADD COLUMN night_fee INT NOT NULL DEFAULT 0,
+ADD COLUMN is_rated BOOLEAN NOT NULL DEFAULT FALSE,
 ADD CONSTRAINT fk_courier FOREIGN KEY (courier_id) REFERENCES couriers(id);
 
 -- Tabla de Logs de Estados de Pedido
@@ -100,6 +104,52 @@ CREATE TABLE IF NOT EXISTS order_status_logs (
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     changed_by INT, -- ID del usuario que hizo el cambio
     FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+CREATE TABLE IF NOT EXISTS used_coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_coupon (user_id, code),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS order_ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50),
+    business_id VARCHAR(50),
+    courier_id INT,
+    business_rating INT NOT NULL,
+    courier_rating INT,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+CREATE TABLE IF NOT EXISTS order_rejections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    courier_id INT NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_order_rejections_order (order_id),
+    INDEX idx_order_rejections_courier (courier_id)
+);
+
+CREATE TABLE IF NOT EXISTS order_courier_offers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    courier_id INT NOT NULL,
+    user_id INT NOT NULL,
+    amount INT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_order_courier_offer (order_id, courier_id),
+    INDEX idx_order_courier_offers_order (order_id),
+    INDEX idx_order_courier_offers_courier (courier_id),
+    INDEX idx_order_courier_offers_user (user_id)
 );
 
 -- Insertar domiciliarios de prueba

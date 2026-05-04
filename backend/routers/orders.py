@@ -16,22 +16,79 @@ DELIVERY_SPEED_KMH = 22
 PICKUP_HANDOFF_MINUTES = 4
 PREPARING_BUFFER_MINUTES = 12
 
+def _safe_alter_table_column(cursor, db, table_name, column_name, column_def):
+    try:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        if "Duplicate column name" not in str(e) and "1060" not in str(e):
+            raise
+
+
+def _safe_create_table(cursor, db, create_sql):
+    try:
+        cursor.execute(create_sql)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        if "already exists" not in str(e).lower() and "1050" not in str(e):
+            raise
+
+
 def ensure_open_order_support_schema(db):
     cursor = db.cursor()
     try:
         for column_name, column_def in [
             ("origin_latitude", "DECIMAL(10, 8) NULL"),
             ("origin_longitude", "DECIMAL(11, 8) NULL"),
+            ("origin_name", "VARCHAR(100) NULL"),
+            ("origin_address", "VARCHAR(255) NULL"),
+            ("open_order_description", "TEXT NULL"),
+            ("batch_id", "VARCHAR(50) NULL"),
+            ("delivery_fee", "INT NOT NULL DEFAULT 0"),
+            ("night_fee", "INT NOT NULL DEFAULT 0"),
+            ("is_rated", "BOOLEAN NOT NULL DEFAULT FALSE"),
         ]:
-            try:
-                cursor.execute(f"ALTER TABLE orders ADD COLUMN {column_name} {column_def}")
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                if "Duplicate column name" not in str(e) and "1060" not in str(e):
-                    raise
+            _safe_alter_table_column(cursor, db, "orders", column_name, column_def)
 
-        cursor.execute("""
+        _safe_create_table(cursor, db, """
+            CREATE TABLE IF NOT EXISTS used_coupons (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                code VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_coupon (user_id, code),
+                INDEX idx_used_coupons_user (user_id)
+            )
+        """)
+
+        _safe_create_table(cursor, db, """
+            CREATE TABLE IF NOT EXISTS order_ratings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50),
+                business_id VARCHAR(50),
+                courier_id INT,
+                business_rating INT NOT NULL,
+                courier_rating INT,
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        _safe_create_table(cursor, db, """
+            CREATE TABLE IF NOT EXISTS order_rejections (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                courier_id INT NOT NULL,
+                reason TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_order_rejections_order (order_id),
+                INDEX idx_order_rejections_courier (courier_id)
+            )
+        """)
+
+        _safe_create_table(cursor, db, """
             CREATE TABLE IF NOT EXISTS order_courier_offers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 order_id VARCHAR(50) NOT NULL,
@@ -47,7 +104,6 @@ def ensure_open_order_support_schema(db):
                 INDEX idx_order_courier_offers_user (user_id)
             )
         """)
-        db.commit()
     finally:
         cursor.close()
 
@@ -162,6 +218,35 @@ def set_websocket_manager(manager):
     global websocket_manager
     websocket_manager = manager
 
+def normalize_payment_method(payment_method: str | None) -> str:
+    normalized = (payment_method or "cash").strip().lower()
+    payment_aliases = {
+        "efectivo": "cash",
+        "cash": "cash",
+        "tarjeta": "card",
+        "card": "card",
+        "datafono": "card",
+        "datáfono": "card",
+        "transferencia": "wallet",
+        "wallet": "wallet",
+        "billetera": "wallet",
+    }
+    return payment_aliases.get(normalized, "cash")
+
+def ensure_order_type_support(cursor, db, order_type: str):
+    if order_type != "business_requested":
+        return
+
+    cursor.execute("SHOW COLUMNS FROM orders LIKE 'order_type'")
+    column = cursor.fetchone()
+    if column and "business_requested" in str(column.get("Type", "")):
+        return
+
+    cursor.execute(
+        "ALTER TABLE orders MODIFY COLUMN order_type ENUM('regular','open','business_requested') NULL DEFAULT 'regular'"
+    )
+    db.commit()
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     db = get_db()
@@ -170,10 +255,11 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     
     cursor = db.cursor(dictionary=True)
     order_id = str(uuid.uuid4())[:8]
+    payment_method = normalize_payment_method(order.payment_method)
     
     try:
-        if order.order_type == "open":
-            ensure_open_order_support_schema(db)
+        ensure_open_order_support_schema(db)
+        ensure_order_type_support(cursor, db, order.order_type)
 
         # Insertar pedido
         cursor.execute(
@@ -183,7 +269,7 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
                delivery_fee, night_fee) 
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
-             order.delivery_address, order.payment_method, order.notes, order.total, 
+             order.delivery_address, payment_method, order.notes, order.total, 
              order.latitude, order.longitude, 'pending',
              order.order_type, order.origin_name, order.origin_address, order.origin_latitude, order.origin_longitude, order.open_order_description,
              order.batch_id, order.delivery_fee, order.night_fee)
