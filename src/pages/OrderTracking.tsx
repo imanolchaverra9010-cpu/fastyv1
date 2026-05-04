@@ -13,10 +13,12 @@ import {
   Bike,
   Star,
   Send,
-  MessageCircle
+  MessageCircle,
+  Store
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/DeliveryMap";
 import { useToast } from "@/components/ui/use-toast";

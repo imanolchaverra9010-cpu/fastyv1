@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store, Ticket, AlertCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store, Ticket, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
