@@ -101,12 +101,7 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
 
   return (
     <div className="relative h-full w-full rounded-2xl overflow-hidden bg-muted flex flex-col border border-border">
-      <MapContainer 
-        center={[pickup.lat, pickup.lng]} 
-        zoom={13} 
-        style={{ height: '100%', width: '100%', zIndex: 0 }}
-        zoomControl={false}
-      >
+      center={pickup ? [pickup.lat, pickup.lng] : [dropoff.lat, dropoff.lng]}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
