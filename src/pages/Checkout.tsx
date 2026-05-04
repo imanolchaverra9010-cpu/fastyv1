@@ -213,7 +213,6 @@ const Checkout = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     const formData = new FormData(e.target as HTMLFormElement);
     const customerName = formData.get("customerName") as string;
@@ -221,6 +220,13 @@ const Checkout = () => {
     const deliveryAddress = formData.get("address") as string;
     const paymentMethod = formData.get("paymentMethod") as string;
     const notes = formData.get("notes") as string;
+
+    const confirmed = window.confirm(
+      "Antes de procesar tu pedido: la tarifa del domicilio puede variar segun la direccion, distancia real y disponibilidad del domiciliario. ¿Deseas continuar?"
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
 
     const linesByBusiness: Record<string, typeof lines> = {};
     lines.forEach(l => {
@@ -412,37 +418,35 @@ const Checkout = () => {
                       id="address" 
                       name="address" 
                       required 
-                      readOnly
                       value={addressValue} 
-                      className="pr-10 bg-muted/30 cursor-not-allowed font-medium border-primary/20"
-                      placeholder="Usa el botón de abajo para obtener tu ubicación"
+                      onChange={(e) => {
+                        setAddressValue(e.target.value);
+                        setLatitude(null);
+                        setLongitude(null);
+                      }}
+                      className="pr-10 font-medium border-primary/20"
+                      placeholder="Escribe tu direccion completa"
                     />
-                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary animate-pulse" />
+                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1">
-                    * No se permite ingresar la dirección manualmente para asegurar la precisión del envío.
+                  <p className="text-[10px] text-muted-foreground font-medium mt-1">
+                    Puedes escribir la direccion manualmente o usar GPS para completar la ubicacion automaticamente.
                   </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Button
                     type="button"
-                    variant="hero"
+                    variant="outline"
                     onClick={getCurrentLocation}
                     disabled={locationLoading}
-                    className="w-full gap-2 h-12 shadow-glow"
+                    className="w-full gap-2 h-12"
                   >
-                    {locationLoading ? "Obteniendo ubicación..." : <><LocateFixed className="h-5 w-5" /> Obtener mi ubicación exacta (GPS)</>}
+                    {locationLoading ? "Obteniendo ubicacion..." : <><LocateFixed className="h-5 w-5" /> Usar mi ubicacion actual (opcional)</>}
                   </Button>
-                  {!latitude && (
-                    <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-3 rounded-xl flex items-center gap-2 mt-2">
-                      <LocateFixed className="h-4 w-4" />
-                      Debes obtener tu ubicación para calcular el envío y confirmar el pedido.
-                    </div>
-                  )}
                   {latitude && longitude && (
                     <div className="bg-success/10 border border-success/20 text-success text-xs p-3 rounded-xl flex items-center gap-2 mt-2">
                       <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                      Ubicación verificada: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                      Ubicacion GPS agregada: {latitude.toFixed(6)}, {longitude.toFixed(6)}
                     </div>
                   )}
                 </div>
@@ -473,9 +477,9 @@ const Checkout = () => {
               variant="hero" 
               size="xl" 
               className="w-full h-16 text-lg shadow-glow" 
-              disabled={loading || !latitude}
+              disabled={loading}
             >
-              {loading ? "Procesando..." : !latitude ? "Obtén tu ubicación para continuar" : `Confirmar pedido · ${formatCOP(total)}`}
+              {loading ? "Procesando..." : `Confirmar pedido · ${formatCOP(total)}`}
             </Button>
           </form>
 
