@@ -466,7 +466,7 @@ async def accept_order(user_id: int, order_id: str, background_tasks: Background
         courier_vehicle = courier_data.get("vehicle")
 
         # Check if order_id is actually a batch_id
-        cursor.execute("SELECT id, courier_id, user_id FROM orders WHERE batch_id = %s", (order_id,))
+        cursor.execute("SELECT id, courier_id, user_id, order_type FROM orders WHERE batch_id = %s", (order_id,))
         batch_orders = cursor.fetchall()
 
         orders_to_notify = []
@@ -474,6 +474,8 @@ async def accept_order(user_id: int, order_id: str, background_tasks: Background
         if batch_orders:
             # It's a batch – assign all orders in the batch to this courier
             for order in batch_orders:
+                if order.get("order_type") == "open":
+                    raise HTTPException(status_code=400, detail="Open orders cannot be accepted directly by a courier. The customer must accept an offer first.")
                 if order["courier_id"] is not None:
                     if order["courier_id"] != real_courier_id:
                         raise HTTPException(status_code=400, detail=f"Order {order['id']} already assigned to another courier")
@@ -490,10 +492,12 @@ async def accept_order(user_id: int, order_id: str, background_tasks: Background
                 orders_to_notify.append(order)
         else:
             # Single order
-            cursor.execute("SELECT courier_id, user_id FROM orders WHERE id = %s", (order_id,))
+            cursor.execute("SELECT courier_id, user_id, order_type FROM orders WHERE id = %s", (order_id,))
             order = cursor.fetchone()
             if not order:
                 raise HTTPException(status_code=404, detail="Order not found")
+            if order.get("order_type") == "open":
+                raise HTTPException(status_code=400, detail="Open orders cannot be accepted directly by a courier. Send an offer instead.")
             if order["courier_id"] is not None:
                 if order["courier_id"] != real_courier_id:
                     raise HTTPException(status_code=400, detail="Order already assigned to another courier")
