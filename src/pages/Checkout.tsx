@@ -391,29 +391,72 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-warm">
-      <main className="container py-10 max-w-5xl">
-        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" /> Seguir comprando
+    <div className="min-h-screen bg-gradient-warm pb-12">
+      <main className="container py-8 max-w-5xl">
+        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8 group">
+          <div className="h-8 w-8 rounded-full bg-background shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+            <ArrowLeft className="h-4 w-4" />
+          </div>
+          <span className="font-semibold">Volver a la tienda</span>
         </Link>
-        <h1 className="text-4xl font-display font-bold tracking-tight mb-8">Finaliza tu pedido</h1>
+        
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground">Finaliza tu pedido</h1>
+            <p className="text-muted-foreground mt-2 text-lg">Estás a un paso de recibir tus productos favoritos.</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <span className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">1</span>
+            <span className="text-primary font-bold">Checkout</span>
+            <div className="h-px w-8 bg-border mx-1" />
+            <span className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">2</span>
+            <span>Rastreo</span>
+          </div>
+        </div>
 
-        <div className="grid lg:grid-cols-[1fr_380px] gap-6">
-          <form onSubmit={submit} className="space-y-6">
-            <section className="rounded-2xl bg-card border border-border/60 p-6 shadow-card">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Dirección de entrega</h2>
-              <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+          <form onSubmit={submit} className="space-y-8">
+            {/* Sección de Entrega */}
+            <section className="rounded-[2rem] bg-card/50 backdrop-blur-md border border-border/60 p-8 shadow-card hover:shadow-glow transition-all duration-500">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                  <MapPin className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Dirección de entrega</h2>
+                  <p className="text-sm text-muted-foreground">¿A dónde enviamos tu pedido?</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Nombre completo</Label>
-                  <Input key={initialData.name} id="customerName" name="customerName" required defaultValue={initialData.name} />
+                  <Label htmlFor="customerName" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Nombre completo</Label>
+                  <Input 
+                    key={initialData.name} 
+                    id="customerName" 
+                    name="customerName" 
+                    required 
+                    defaultValue={initialData.name}
+                    className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                    placeholder="Tu nombre"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input key={initialData.phone} id="phone" name="phone" required type="tel" defaultValue={initialData.phone} />
+                  <Label htmlFor="phone" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Teléfono de contacto</Label>
+                  <Input 
+                    key={initialData.phone} 
+                    id="phone" 
+                    name="phone" 
+                    required 
+                    type="tel" 
+                    defaultValue={initialData.phone}
+                    className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                    placeholder="310 000 0000"
+                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="address">Dirección de entrega</Label>
-                  <div className="relative">
+                  <Label htmlFor="address" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Dirección exacta</Label>
+                  <div className="relative group">
                     <Input 
                       id="address" 
                       name="address" 
@@ -424,154 +467,272 @@ const Checkout = () => {
                         setLatitude(null);
                         setLongitude(null);
                       }}
-                      className="pr-10 font-medium border-primary/20"
-                      placeholder="Escribe tu direccion completa"
+                      className="pr-12 h-14 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20 bg-background/50 font-medium"
+                      placeholder="Ej: Calle 10 #5-20, Apto 301"
                     />
-                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary group-focus-within:scale-110 transition-transform">
+                      <MapPin className="h-5 w-5" />
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground font-medium mt-1">
-                    Puedes escribir la direccion manualmente o usar GPS para completar la ubicacion automaticamente.
+                  <p className="text-[11px] text-muted-foreground font-medium mt-2 px-1 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary/40" />
+                    Completa tu dirección manualmente o usa el botón de GPS para mayor precisión.
                   </p>
                 </div>
-                <div className="space-y-2 md:col-span-2">
+                
+                <div className="space-y-4 md:col-span-2 pt-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={getCurrentLocation}
                     disabled={locationLoading}
-                    className="w-full gap-2 h-12"
+                    className="w-full gap-3 h-14 rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-all font-bold group"
                   >
-                    {locationLoading ? "Obteniendo ubicacion..." : <><LocateFixed className="h-5 w-5" /> Usar mi ubicacion actual (opcional)</>}
+                    {locationLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <span>Obteniendo ubicación...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <LocateFixed className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        <span>Usar mi ubicación actual para calcular tarifa</span>
+                      </>
+                    )}
                   </Button>
+                  
                   {latitude && longitude && (
-                    <div className="bg-success/10 border border-success/20 text-success text-xs p-3 rounded-xl flex items-center gap-2 mt-2">
-                      <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                      Ubicacion GPS agregada: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                    <div className="bg-success/5 border-2 border-success/20 text-success text-xs p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                        <div className="h-3 w-3 rounded-full bg-success animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm">Ubicación GPS activada</p>
+                        <p className="opacity-80">Tarifa calculada con precisión: {latitude.toFixed(4)}, {longitude.toFixed(4)}</p>
+                      </div>
                     </div>
                   )}
                 </div>
+
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="notes">Indicaciones adicionales</Label>
-                  <Textarea id="notes" name="notes" placeholder="Piso, apto, color de casa o indicaciones para el repartidor" />
+                  <Label htmlFor="notes" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Instrucciones para el repartidor</Label>
+                  <Textarea 
+                    id="notes" 
+                    name="notes" 
+                    placeholder="Piso, apto, indicaciones sobre la fachada o cómo llegar..." 
+                    className="rounded-xl min-h-[100px] border-border/60 bg-background/50 focus:ring-primary/20"
+                  />
                 </div>
               </div>
             </section>
 
-            <section className="rounded-2xl bg-card border border-border/60 p-6 shadow-card">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Método de pago</h2>
-              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-3">
+            {/* Sección de Pago */}
+            <section className="rounded-[2rem] bg-card/50 backdrop-blur-md border border-border/60 p-8 shadow-card hover:shadow-glow transition-all duration-500">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                  <CreditCard className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Método de pago</h2>
+                  <p className="text-sm text-muted-foreground">Paga de forma segura al recibir.</p>
+                </div>
+              </div>
+
+              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-4">
                 {[
-                  { v: "cash", l: "Efectivo", e: "💵" },
+                  { v: "cash", l: "Efectivo", e: "💵", desc: "Paga al recibir tu pedido" },
                 ].map((o) => (
-                  <Label key={o.v} htmlFor={o.v} className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:bg-muted/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
-                    <RadioGroupItem value={o.v} id={o.v} />
-                    <span className="text-xl">{o.e}</span>
-                    <span className="font-medium">{o.l}</span>
+                  <Label 
+                    key={o.v} 
+                    htmlFor={o.v} 
+                    className="flex items-center gap-4 p-5 rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group"
+                  >
+                    <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
+                    <div className="h-12 w-12 rounded-xl bg-background shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                      {o.e}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-foreground">{o.l}</p>
+                      <p className="text-xs text-muted-foreground">{o.desc}</p>
+                    </div>
+                    <div className="h-6 w-6 rounded-full border-2 border-muted group-has-[:checked]:border-primary group-has-[:checked]:bg-primary flex items-center justify-center transition-colors">
+                      <div className="h-2 w-2 rounded-full bg-white scale-0 group-has-[:checked]:scale-100 transition-transform" />
+                    </div>
                   </Label>
                 ))}
               </RadioGroup>
             </section>
 
-            <Button 
-              type="submit" 
-              variant="hero" 
-              size="xl" 
-              className="w-full h-16 text-lg shadow-glow" 
-              disabled={loading}
-            >
-              {loading ? "Procesando..." : `Confirmar pedido · ${formatCOP(total)}`}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                variant="hero" 
+                size="xl" 
+                className="w-full h-20 text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Procesando pedido...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-3">
+                    <span>Confirmar y Pedir Ahora</span>
+                    <span className="h-8 w-px bg-white/20 mx-2" />
+                    <span>{formatCOP(total)}</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              </Button>
+              <p className="text-center text-xs text-muted-foreground mt-4 font-medium italic">
+                * Al confirmar, aceptas los términos y condiciones de Fasty.
+              </p>
+            </div>
           </form>
 
-          <aside className="rounded-2xl bg-card border border-border/60 p-6 shadow-card h-fit lg:sticky lg:top-24">
-            <h2 className="text-lg font-bold mb-4">Resumen de tu pedido</h2>
+          {/* Resumen Sidebar */}
+          <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
+            <div className="rounded-[2rem] bg-card border border-border/60 p-8 shadow-card overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-5">
+                <Store className="h-24 w-24" />
+              </div>
+              
+              <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
+                Resumen del pedido
+              </h2>
 
-            <div className="space-y-6 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted">
-              {Array.from(new Set(lines.map(l => l.businessName))).map(businessName => {
-                const businessLines = lines.filter(l => l.businessName === businessName);
-                return (
-                  <div key={businessName} className="space-y-3">
-                    <p className="text-sm font-bold text-primary flex items-center gap-1.5 border-b border-border/50 pb-1">
-                      <Store className="h-4 w-4" /> {businessName}
-                    </p>
-                    {businessLines.map((l) => (
-                      <div key={l.item.id} className="flex gap-3 text-sm pl-2">
-                        <span className="text-2xl">{l.item.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{l.item.name}</p>
-                          <p className="text-xs text-muted-foreground">x{l.qty}</p>
-                        </div>
-                        <span className="font-semibold">{formatCOP(l.item.price * l.qty)}</span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-
-            {benefitsData && benefitsData.benefits && benefitsData.benefits.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-border/60">
-                <p className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <Ticket className="h-4 w-4 text-primary" /> Cupones Disponibles
-                </p>
-                <div className="space-y-2">
-                  {benefitsData.benefits.map((benefit: any) => {
-                    const isSelected = promo?.code === benefit.code;
-                    return (
-                      <button
-                        key={benefit.code}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            applyPromo("", 0);
-                          } else {
-                            applyPromo(benefit.code, benefit.discount);
-                            toast({ title: "Cupón aplicado", description: `Se aplicó ${benefit.discount}% de descuento en el domicilio.` });
-                          }
-                        }}
-                        className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
-                          isSelected
-                            ? "bg-primary/10 border-primary text-primary"
-                            : "bg-muted/50 border-transparent hover:border-border"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold">{benefit.code}</span>
-                          <span className="font-bold text-xs">{benefit.discount}% OFF</span>
-                        </div>
-                        <p className={`text-xs ${isSelected ? "text-primary/80" : "text-muted-foreground"}`}>
-                          {benefit.description}
+              <div className="space-y-8 max-h-[40vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 transition-colors">
+                {Array.from(new Set(lines.map(l => l.businessName))).map(businessName => {
+                  const businessLines = lines.filter(l => l.businessName === businessName);
+                  return (
+                    <div key={businessName} className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <p className="text-sm font-bold text-primary flex items-center gap-2">
+                          <Store className="h-4 w-4" /> {businessName}
                         </p>
-                      </button>
-                    );
-                  })}
-                </div>
+                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                          {businessLines.length} {businessLines.length === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+                      <div className="space-y-4 pl-1">
+                        {businessLines.map((l) => (
+                          <div key={l.item.id} className="flex gap-4 group">
+                            <div className="h-12 w-12 rounded-xl bg-muted/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                              {l.item.emoji}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate">{l.item.name}</p>
+                              <p className="text-xs text-muted-foreground font-medium">Cantidad: {l.qty}</p>
+                            </div>
+                            <span className="font-bold text-sm">{formatCOP(l.item.price * l.qty)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
 
-            <div className="mt-5 pt-4 border-t border-border space-y-2 text-sm">
-              <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{formatCOP(subtotal)}</span></div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Envío</span>
-                <div className="text-right">
-                  <span>{formatCOP(fee)}</span>
-                  {isNightFeeTime() && (
-                    <p className="text-[10px] text-primary font-bold">Recargo nocturno incluido</p>
-                  )}
+              {/* Coupons Section */}
+              {benefitsData && benefitsData.benefits && benefitsData.benefits.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-border/60">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-primary" /> Cupones Disponibles
+                  </p>
+                  <div className="space-y-3">
+                    {benefitsData.benefits.map((benefit: any) => {
+                      const isSelected = promo?.code === benefit.code;
+                      return (
+                        <button
+                          key={benefit.code}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              applyPromo("", 0);
+                            } else {
+                              applyPromo(benefit.code, benefit.discount);
+                              toast({ title: "Cupón aplicado", description: `Se aplicó ${benefit.discount}% de descuento en el domicilio.` });
+                            }
+                          }}
+                          className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${
+                            isSelected
+                              ? "bg-primary/10 border-primary shadow-sm"
+                              : "bg-background/50 border-transparent hover:border-primary/20 hover:bg-muted/30"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-bold text-sm group-hover:text-primary transition-colors">{benefit.code}</span>
+                            <span className="font-black text-xs bg-primary text-white px-2 py-0.5 rounded-lg">{benefit.discount}% OFF</span>
+                          </div>
+                          <p className={`text-[11px] leading-relaxed ${isSelected ? "text-primary/80" : "text-muted-foreground"}`}>
+                            {benefit.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Totals Section */}
+              <div className="mt-8 pt-6 border-t-2 border-dashed border-border/60 space-y-4">
+                <div className="flex justify-between items-center text-sm font-medium text-muted-foreground">
+                  <span>Subtotal productos</span>
+                  <span className="text-foreground font-bold">{formatCOP(subtotal)}</span>
+                </div>
+                
+                <div className="flex justify-between items-start text-sm font-medium text-muted-foreground">
+                  <div className="flex flex-col">
+                    <span>Costo de envío</span>
+                    {isNightFeeTime() && (
+                      <span className="text-[10px] text-primary font-bold flex items-center gap-1">
+                        <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                        Incluye recargo nocturno
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-foreground font-bold">{formatCOP(fee)}</span>
+                  </div>
+                </div>
+
+                {promo && (
+                  <div className="flex justify-between items-center text-sm font-bold text-success animate-in slide-in-from-left-2">
+                    <span className="flex items-center gap-1.5">
+                      <Ticket className="h-3.5 w-3.5" /> 
+                      Cupón ({promo.code})
+                    </span>
+                    <span>-{formatCOP(discount)}</span>
+                  </div>
+                )}
+
+                {!latitude && !longitude && (
+                  <div className="bg-orange-500/5 border border-orange-500/10 rounded-xl p-3 text-[10px] text-orange-600 leading-relaxed italic">
+                    * La tarifa de envío es estimada. Usa GPS para obtener el valor exacto según la distancia.
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-border/60">
+                  <div className="flex justify-between items-end">
+                    <span className="font-display font-bold text-lg">Total a pagar</span>
+                    <div className="text-right">
+                      <span className="block text-3xl font-display font-black text-primary tracking-tight">
+                        {formatCOP(total)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {promo && (
-                <div className="flex justify-between text-success font-medium">
-                  <span>Descuento ({promo.code})</span>
-                  <span>-{formatCOP(discount)}</span>
-                </div>
-              )}
-              {latitude && longitude && (
-                <div className="text-[10px] text-muted-foreground italic text-right mt-1">
-                  * Tarifa calculada según distancia{isNightFeeTime() ? " + recargo nocturno" : ""}.
-                </div>
-              )}
-              <div className="flex justify-between font-display font-bold text-xl pt-2"><span>Total</span><span>{formatCOP(total)}</span></div>
+            </div>
+            
+            <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Ticket className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
+                ¡Recuerda! En Fasty premiamos tu fidelidad. Entre más pidas, más cupones de descuento recibirás para tus envíos.
+              </p>
             </div>
           </aside>
         </div>
