@@ -580,6 +580,13 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
         """, (order_id, courier["id"], user_id, offer.amount))
         db.commit()
 
+        cursor.execute(
+            "SELECT id FROM order_courier_offers WHERE order_id = %s AND courier_id = %s",
+            (order_id, courier["id"])
+        )
+        offer_row = cursor.fetchone()
+        offer_id = offer_row["id"] if offer_row else None
+
         if order.get("user_id"):
             background_tasks.add_task(send_push_notification, order["user_id"], {
                 "title": "Nueva oferta de domiciliario",
@@ -591,6 +598,7 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
             background_tasks.add_task(websocket_manager.notify_user, order["user_id"], {
                 "type": "order_offer",
                 "order_id": order_id,
+                "offer_id": offer_id,
                 "courier_name": courier["name"],
                 "courier_id": courier["id"],
                 "amount": offer.amount,
@@ -600,6 +608,7 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
         return {
             "message": "Offer submitted",
             "order_id": order_id,
+            "offer_id": offer_id,
             "courier_id": courier["id"],
             "courier_name": courier["name"],
             "amount": offer.amount

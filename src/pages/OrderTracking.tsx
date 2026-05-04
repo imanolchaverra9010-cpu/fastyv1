@@ -167,7 +167,8 @@ const OrderTracking = () => {
           setOrder(prev => {
             if (!prev) return prev;
             const existingOffers = prev.offers || [];
-            const alreadyExists = existingOffers.some((offer) => offer.courier_id === message.courier_id && offer.amount === message.amount);
+            const newOfferId = message.offer_id || Date.now();
+            const alreadyExists = existingOffers.some((offer) => offer.id === newOfferId || (offer.courier_id === message.courier_id && offer.amount === message.amount));
             if (alreadyExists) {
               return prev;
             }
@@ -176,7 +177,7 @@ const OrderTracking = () => {
               offers: [
                 ...existingOffers,
                 {
-                  id: Date.now(),
+                  id: newOfferId,
                   courier_id: message.courier_id,
                   courier_name: message.courier_name,
                   amount: message.amount,
