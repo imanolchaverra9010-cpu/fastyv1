@@ -60,8 +60,13 @@ const OpenOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerName || !formData.originName || !formData.description || !formData.deliveryAddress || !latitude || !longitude) {
-      toast({ title: "Faltan datos", description: "Por favor completa los campos y asegúrate de obtener tu ubicación GPS.", variant: "destructive" });
+    if (!formData.customerName || !formData.originName || !formData.description || !formData.deliveryAddress) {
+      toast({ title: "Faltan datos", description: "Por favor completa todos los campos requeridos antes de enviar el pedido.", variant: "destructive" });
+      return;
+    }
+
+    const confirmMessage = "Antes de procesar tu pedido: la tarifa del domicilio puede variar según la dirección, distancia real y disponibilidad del domiciliario. ¿Deseas continuar?";
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -274,14 +279,19 @@ const OpenOrder = () => {
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label>Dirección de entrega (GPS Obligatorio) *</Label>
+                <Label htmlFor="deliveryAddress">Dirección de entrega *</Label>
                 <div className="flex flex-col gap-3">
                   <Input
-                    readOnly
+                    id="deliveryAddress"
                     value={formData.deliveryAddress}
-                    placeholder="Tu ubicación aparecerá aquí..."
-                    className="rounded-xl h-12 bg-muted/50 cursor-not-allowed"
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                    placeholder="Ej: Calle 10 #5-20, Interior 3"
+                    className="rounded-xl h-12"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Puedes escribir la dirección manualmente o usar GPS para completarla automáticamente.
+                    Si no usas GPS, la tarifa de domicilio puede variar.
+                  </p>
                   <Button 
                     type="button" 
                     variant="outline" 
