@@ -1,10 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingBag, MapPin, Store, CreditCard, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, ShoppingBag, MapPin, Store, CreditCard, Send, Loader2, LocateFixed, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import Receipt from "@/components/Receipt";
@@ -21,6 +31,7 @@ const OpenOrder = () => {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [dynamicFee, setDynamicFee] = useState<number | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -65,11 +76,11 @@ const OpenOrder = () => {
       return;
     }
 
-    const confirmMessage = "Antes de procesar tu pedido: la tarifa del domicilio puede variar según la dirección, distancia real y disponibilidad del domiciliario. ¿Deseas continuar?";
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    setIsConfirmOpen(true);
+  };
 
+  const processOrder = async () => {
+    setIsConfirmOpen(false);
     setLoading(true);
     try {
       const nightFee = isNightFeeTime() ? 2000 : 0;
@@ -193,40 +204,53 @@ const OpenOrder = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-20">
-      <header className="container py-6">
-        <button onClick={() => navigate(-1)} className="flex items-center text-muted-foreground hover:text-foreground transition-colors mb-6">
-          <ArrowLeft className="h-5 w-5 mr-2" /> Volver
+      <header className="container py-8 max-w-2xl">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8 group"
+        >
+          <div className="h-8 w-8 rounded-full bg-background shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+            <ArrowLeft className="h-4 w-4" />
+          </div>
+          <span className="font-semibold">Volver</span>
         </button>
-        <h1 className="text-3xl font-display font-bold tracking-tight">Pedido Abierto</h1>
-        <p className="text-muted-foreground mt-2">¿No encuentras lo que buscas? Nosotros lo compramos por ti.</p>
+        
+        <div className="space-y-2">
+          <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground">Pedido Abierto</h1>
+          <p className="text-muted-foreground text-lg">¿No encuentras lo que buscas? <span className="text-primary font-bold">Nosotros lo compramos por ti.</span></p>
+        </div>
       </header>
 
       <main className="container max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Sección de la Tienda */}
-          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-3xl p-8 shadow-card">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <Store className="h-5 w-5" />
+          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-glow transition-all duration-500">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                <Store className="h-6 w-6" />
               </div>
-              <h2 className="text-xl font-bold">¿Dónde compramos?</h2>
+              <div>
+                <h2 className="text-2xl font-display font-bold">¿Dónde compramos?</h2>
+                <p className="text-sm text-muted-foreground">Dinos el lugar y lo que necesitas.</p>
+              </div>
             </div>
 
             <div className="grid gap-6">
               <div className="space-y-2">
-                <Label htmlFor="originName">Nombre del lugar *</Label>
+                <Label htmlFor="originName" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Nombre del establecimiento *</Label>
                 <Input
                   id="originName"
-                  placeholder="Ej: Ferretería El Martillo, Tienda de la esquina..."
+                  placeholder="Ej: Ferretería El Martillo, Panadería de la esquina..."
                   value={formData.originName}
                   onChange={(e) => {
                     setFormData({ ...formData, originName: e.target.value });
                   }}
-                  className="rounded-xl h-12"
+                  className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="originAddress">Dirección del lugar (Opcional)</Label>
+                <Label htmlFor="originAddress" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Dirección del lugar (Opcional)</Label>
                 <Input
                   id="originAddress"
                   placeholder="Ej: Calle 10 # 5-20"
@@ -234,73 +258,96 @@ const OpenOrder = () => {
                   onChange={(e) => {
                     setFormData({ ...formData, originAddress: e.target.value });
                   }}
-                  className="rounded-xl h-12"
+                  className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">¿Qué necesitas que compremos? *</Label>
+                <Label htmlFor="description" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">¿Qué necesitas que compremos? *</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe detalladamente los productos..."
+                  placeholder="Describe detalladamente los productos, marcas o tallas..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="rounded-xl min-h-[120px]"
+                  className="rounded-xl min-h-[120px] border-border/60 bg-background/50 focus:ring-primary/20"
+                  required
                 />
               </div>
             </div>
           </section>
 
           {/* Datos de Entrega */}
-          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-3xl p-8 shadow-card">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <MapPin className="h-5 w-5" />
+          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-glow transition-all duration-500">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                <MapPin className="h-6 w-6" />
               </div>
-              <h2 className="text-xl font-bold">¿A dónde lo llevamos?</h2>
+              <div>
+                <h2 className="text-2xl font-display font-bold">¿A dónde lo llevamos?</h2>
+                <p className="text-sm text-muted-foreground">Confirma tus datos de entrega.</p>
+              </div>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="customerName">Tu nombre *</Label>
+                <Label htmlFor="customerName" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Tu nombre *</Label>
                 <Input
                   id="customerName"
                   value={formData.customerName}
                   onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                  className="rounded-xl h-12"
+                  className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerPhone">Teléfono de contacto</Label>
+                <Label htmlFor="customerPhone" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Teléfono de contacto</Label>
                 <Input
                   id="customerPhone"
                   value={formData.customerPhone}
                   onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                  className="rounded-xl h-12"
+                  className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                  placeholder="310 000 0000"
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="deliveryAddress">Dirección de entrega *</Label>
-                <div className="flex flex-col gap-3">
-                  <Input
-                    id="deliveryAddress"
-                    value={formData.deliveryAddress}
-                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                    placeholder="Ej: Calle 10 #5-20, Interior 3"
-                    className="rounded-xl h-12"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Puedes escribir la dirección manualmente o usar GPS para completarla automáticamente.
-                    Si no usas GPS, la tarifa de domicilio puede variar.
+                <Label htmlFor="deliveryAddress" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Dirección de entrega *</Label>
+                <div className="flex flex-col gap-4">
+                  <div className="relative group">
+                    <Input
+                      id="deliveryAddress"
+                      value={formData.deliveryAddress}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                      placeholder="Ej: Calle 10 #5-20, Interior 3"
+                      className="pr-12 h-14 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20 bg-background/50 font-medium"
+                      required
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary group-focus-within:scale-110 transition-transform">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                  </div>
+                  
+                  <p className="text-[11px] text-muted-foreground font-medium px-1 flex items-center gap-1.5 leading-relaxed">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0" />
+                    Puedes escribir la dirección manualmente o usar el botón de GPS para calcular una tarifa más precisa.
                   </p>
+
                   <Button 
                     type="button" 
                     variant="outline" 
                     onClick={getCurrentLocation}
                     disabled={locationLoading}
-                    className="h-12 rounded-xl border-2 border-primary/20 text-primary hover:bg-primary/5 flex items-center justify-center gap-2"
+                    className="h-14 rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-all font-bold group"
                   >
-                    {locationLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
-                    {formData.deliveryAddress ? "Actualizar mi ubicación" : "Obtener mi ubicación actual"}
+                    {locationLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <span>Obteniendo ubicación...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <LocateFixed className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        <span>{formData.deliveryAddress ? "Actualizar ubicación con GPS" : "Obtener mi ubicación actual"}</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -308,46 +355,109 @@ const OpenOrder = () => {
           </section>
 
           {/* Método de Pago */}
-          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-3xl p-8 shadow-card">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <CreditCard className="h-5 w-5" />
+          <section className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-glow transition-all duration-500">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                <CreditCard className="h-6 w-6" />
               </div>
-              <h2 className="text-xl font-bold">Método de pago</h2>
+              <div>
+                <h2 className="text-2xl font-display font-bold">Método de pago</h2>
+                <p className="text-sm text-muted-foreground">Paga el mandado al recibir.</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.paymentMethod === 'cash' ? 'border-primary bg-primary/5' : 'border-border/60'}`}
+                className="flex items-center gap-4 p-5 rounded-2xl border-2 border-primary bg-primary/5 cursor-pointer transition-all duration-300 group"
               >
-                <span className="text-2xl">💵</span>
-                <span className="font-bold text-sm">Efectivo</span>
+                <div className="h-12 w-12 rounded-xl bg-background shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  💵
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-bold text-foreground">Efectivo</p>
+                  <p className="text-xs text-muted-foreground">Paga al repartidor cuando llegue con tus cosas</p>
+                </div>
+                <div className="h-6 w-6 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-white" />
+                </div>
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-4 text-center italic">
-              * El valor total de los productos se ajustará una vez el domiciliario realice la compra y presente el recibo.
-            </p>
+
+            <div className="mt-6 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                <ShoppingBag className="h-4 w-4 text-orange-600" />
+              </div>
+              <p className="text-[11px] text-orange-800 font-medium leading-relaxed italic">
+                * El valor de los productos comprados se pagará contra entrega presentando el recibo físico. Fasty solo gestiona el servicio de transporte.
+              </p>
+            </div>
             
             {dynamicFee !== null && (
-              <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex justify-between items-center">
-                <span className="font-bold text-sm">Tarifa de entrega estimada:</span>
-                <span className="font-bold text-lg text-primary">${dynamicFee.toLocaleString()}</span>
+              <div className="mt-8 p-6 rounded-2xl bg-primary/10 border-2 border-primary/20 flex justify-between items-center animate-in zoom-in-95">
+                <div>
+                  <span className="font-bold text-sm block text-primary/80 uppercase tracking-wider">Tarifa de entrega estimada</span>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">Sujeta a cambios según disponibilidad</p>
+                </div>
+                <span className="font-display font-black text-3xl text-primary">${dynamicFee.toLocaleString()}</span>
               </div>
             )}
           </section>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-16 rounded-[2rem] text-lg font-bold shadow-glow flex items-center justify-center gap-3"
-            variant="hero"
-          >
-            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <><Send className="h-6 w-6" /> Enviar Pedido Abierto</>}
-          </Button>
+          <div className="pt-4">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-20 rounded-[2.5rem] text-xl font-display font-bold shadow-glow-primary transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+              variant="hero"
+            >
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>Enviando pedido...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-3">
+                  <Send className="h-6 w-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  <span>Enviar mi Pedido Abierto</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            </Button>
+            <p className="text-center text-xs text-muted-foreground mt-6 font-medium italic">
+              * Un domiciliario aceptará tu pedido en unos minutos.
+            </p>
+          </div>
         </form>
       </main>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent className="rounded-[2rem] border-2 border-primary/20 bg-background/95 backdrop-blur-xl p-8 max-w-[400px]">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary animate-pulse shadow-inner">
+              <AlertCircle className="h-10 w-10" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-display font-bold">¡Un momento!</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-base leading-relaxed">
+              Antes de procesar tu pedido: la tarifa del domicilio puede variar según la dirección, distancia real y disponibilidad del domiciliario.
+              <br /><br />
+              <span className="font-bold text-foreground italic">¿Deseas continuar?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col gap-3 mt-6">
+            <AlertDialogAction 
+              onClick={processOrder}
+              className="w-full h-14 rounded-2xl text-lg font-bold shadow-glow-primary hover:scale-[1.02] transition-transform"
+            >
+              Sí, continuar
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full h-14 rounded-2xl text-lg font-bold border-2 border-border/60 hover:bg-muted transition-colors">
+              Revisar pedido
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

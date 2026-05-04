@@ -2,12 +2,22 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store, Ticket } from "lucide-react";
+import { ArrowLeft, CreditCard, MapPin, LocateFixed, Store, Ticket, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCOP } from "@/data/mock";
@@ -47,6 +57,8 @@ const Checkout = () => {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [businessCoords, setBusinessCoords] = useState<Record<string, {lat: number, lng: number}>>({});
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   const navigate = useNavigate();
 
   const [initialData, setInitialData] = useState({
@@ -215,18 +227,24 @@ const Checkout = () => {
     e.preventDefault();
 
     const formData = new FormData(e.target as HTMLFormElement);
-    const customerName = formData.get("customerName") as string;
-    const customerPhone = formData.get("phone") as string;
-    const deliveryAddress = formData.get("address") as string;
-    const paymentMethod = formData.get("paymentMethod") as string;
-    const notes = formData.get("notes") as string;
+    const data = {
+      customerName: formData.get("customerName") as string,
+      customerPhone: formData.get("phone") as string,
+      deliveryAddress: formData.get("address") as string,
+      paymentMethod: formData.get("paymentMethod") as string,
+      notes: formData.get("notes") as string,
+    };
 
-    const confirmed = window.confirm(
-      "Antes de procesar tu pedido: la tarifa del domicilio puede variar segun la direccion, distancia real y disponibilidad del domiciliario. ¿Deseas continuar?"
-    );
-    if (!confirmed) return;
+    setPendingFormData(data);
+    setIsConfirmOpen(true);
+  };
 
+  const processOrder = async () => {
+    if (!pendingFormData) return;
+    setIsConfirmOpen(false);
     setLoading(true);
+
+    const { customerName, customerPhone, deliveryAddress, paymentMethod, notes } = pendingFormData;
 
     const linesByBusiness: Record<string, typeof lines> = {};
     lines.forEach(l => {
@@ -737,6 +755,33 @@ const Checkout = () => {
           </aside>
         </div>
       </main>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent className="rounded-[2rem] border-2 border-primary/20 bg-background/95 backdrop-blur-xl p-8 max-w-[400px]">
+          <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary animate-pulse shadow-inner">
+              <AlertCircle className="h-10 w-10" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-display font-bold">¡Un momento!</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground text-base leading-relaxed">
+              Antes de procesar tu pedido: la tarifa del domicilio puede variar según la dirección, distancia real y disponibilidad del domiciliario.
+              <br /><br />
+              <span className="font-bold text-foreground italic">¿Deseas continuar?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col gap-3 mt-6">
+            <AlertDialogAction 
+              onClick={processOrder}
+              className="w-full h-14 rounded-2xl text-lg font-bold shadow-glow-primary hover:scale-[1.02] transition-transform"
+            >
+              Sí, continuar
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full h-14 rounded-2xl text-lg font-bold border-2 border-border/60 hover:bg-muted transition-colors">
+              Revisar pedido
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
