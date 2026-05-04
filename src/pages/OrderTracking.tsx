@@ -383,7 +383,7 @@ const OrderTracking = () => {
                 <div className="bg-card border border-border/60 rounded-[2rem] overflow-hidden shadow-card h-[400px] md:h-[500px] relative group">
                   {order.status === 'shipped' || order.status === 'in_transit' ? (
                     <DeliveryMap
-                      pickup={{
+                      pickup={order.order_type === 'open' ? undefined : {
                         lat: order.business_lat || 4.67,
                         lng: order.business_lng || -74.05,
                         label: order.business_name || "Restaurante",

@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 interface Props {
-  pickup: { lat: number; lng: number; label?: string; emoji?: string };
+  pickup?: { lat: number; lng: number; label?: string; emoji?: string };
   dropoff: { lat: number; lng: number; label?: string; emoji?: string };
   courier?: { lat: number; lng: number; label?: string; emoji?: string };
 }
@@ -42,10 +42,10 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
       try {
         // Start from courier if available, otherwise from pickup
         const start = courier || pickup;
-        const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${dropoff.lng},${dropoff.lat}?overview=full&geometries=geojson`,
-          { signal: AbortSignal.timeout(5000) } // 5 second timeout
-        );
+          if (!start) {
+            setRouteCoords([]);
+            return;
+          }
         
         if (!response.ok) {
           throw new Error(`OSRM returned ${response.status}`);
@@ -76,7 +76,10 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
     };
   }, [pickup, dropoff, courier]);
 
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${pickup.lat},${pickup.lng}&destination=${dropoff.lat},${dropoff.lng}&travelmode=driving`;
+  const origin = courier || pickup;
+  const mapsUrl = origin
+    ? `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dropoff.lat},${dropoff.lng}&travelmode=driving`
+    : `https://www.google.com/maps/search/?api=1&query=${dropoff.lat},${dropoff.lng}`;
 
   // Create custom icons
   const createEmojiIcon = (emoji: string) => L.divIcon({
@@ -86,7 +89,7 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
     iconAnchor: [18, 18],
   });
 
-  const pickupIcon = createEmojiIcon(pickup.emoji || "🏪");
+  const pickupIcon = pickup ? createEmojiIcon(pickup.emoji || "🏪") : undefined;
   const dropoffIcon = createEmojiIcon(dropoff.emoji || "📍");
   const courierIcon = courier ? createEmojiIcon(courier.emoji || "🛵") : undefined;
 
@@ -111,9 +114,11 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
         
         <MapBounds points={validPoints} />
 
-        <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon}>
-          <Popup>{pickup.label || "Punto de recogida"}</Popup>
-        </Marker>
+        {pickup && (
+          <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon!}>
+            <Popup>{pickup.label || "Punto de recogida"}</Popup>
+          </Marker>
+        )}
 
         <Marker position={[dropoff.lat, dropoff.lng]} icon={dropoffIcon}>
           <Popup>{dropoff.label || "Destino"}</Popup>
