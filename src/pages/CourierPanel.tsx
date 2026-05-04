@@ -634,7 +634,7 @@ const CourierPanel = () => {
 
         {currentNotification && online && (
           <div className="fixed inset-x-0 top-6 z-[100] flex justify-center px-4 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="bg-card border-2 border-primary shadow-2xl rounded-3xl p-6 w-full max-w-md pointer-events-auto ring-4 ring-primary/10 backdrop-blur-xl">
+            <div className="bg-card border-2 border-primary shadow-2xl rounded-3xl p-6 w-full max-w-md pointer-events-auto ring-2 ring-primary/20 backdrop-blur-xl bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 animate-bounce">
                   <Bell className="h-6 w-6" />
