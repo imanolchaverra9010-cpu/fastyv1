@@ -185,9 +185,9 @@ const OpenOrder = () => {
           console.error("Error getting location:", error);
           setLocationLoading(false);
           toast({
-            title: "Error de ubicación",
-            description: getPositionErrorMessage(error),
-            variant: "destructive",
+            title: "GPS no disponible",
+            description: "Puedes ingresar la dirección manualmente. El GPS ayuda con tarifas más precisas.",
+            variant: "default",
           });
         });
   };
