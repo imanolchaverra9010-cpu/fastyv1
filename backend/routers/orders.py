@@ -675,7 +675,7 @@ def accept_open_order_offer(order_id: str, offer_id: int, background_tasks: Back
                    oco.user_id as courier_user_id, oco.amount,
                    c.name as courier_name
             FROM orders o
-            INNER JOIN order_courier_offers oco ON oco.order_id = o.id
+            INNER JOIN order_courier_offers oco ON oco.order_id = o.id COLLATE utf8mb4_general_ci
             INNER JOIN couriers c ON c.id = oco.courier_id
             WHERE o.id = %s AND oco.id = %s
         """, (order_id, offer_id))
