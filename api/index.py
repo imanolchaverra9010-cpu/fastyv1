@@ -35,7 +35,7 @@ try:
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
     import routers
-    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai"]
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments"]
     
     # Importar routers dinámicamente para que si uno falla no mate a los demás
     import importlib
@@ -105,6 +105,7 @@ routers_to_load = [
     ("admin", admin.router, f"{API_PREFIX}/admin", ["Admin Dashboard"]),
     ("couriers", couriers.router, f"{API_PREFIX}/couriers", ["Couriers Panel"]),
     ("push", push.router, f"{API_PREFIX}/push", ["Push Notifications"]),
+    ("payments", payments.router, f"{API_PREFIX}/payments", ["Payments"]),
 ]
 
 for name, router_obj, prefix, tags in routers_to_load:
