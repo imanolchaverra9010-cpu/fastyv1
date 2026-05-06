@@ -347,6 +347,8 @@ const Checkout = () => {
         // If payment method is card, create payment with Wompi
         let paymentData = null;
         if (paymentMethod === "card") {
+          console.log("Creating payment with Wompi for order:", data.id);
+          
           const paymentResponse = await fetch("/api/payments/create", {
             method: "POST",
             headers: {
@@ -363,8 +365,11 @@ const Checkout = () => {
 
           if (paymentResponse.ok) {
             paymentData = await paymentResponse.json();
+            console.log("Payment created successfully:", paymentData);
           } else {
-            console.error("Error creating payment:", await paymentResponse.text());
+            const errorText = await paymentResponse.text();
+            console.error("Error creating payment:", errorText);
+            throw new Error(`Error al crear el pago: ${errorText}`);
           }
         }
 
@@ -395,9 +400,12 @@ const Checkout = () => {
       // Check if we need to redirect to payment
       const paymentOrder = summaries.find(s => s.payment?.checkout_url);
       if (paymentOrder) {
+        console.log("Redirecting to Wompi checkout:", paymentOrder.payment.checkout_url);
         // Redirect to Wompi checkout
         window.location.href = paymentOrder.payment.checkout_url;
         return;
+      } else {
+        console.log("No payment orders found or no checkout URL", summaries);
       }
 
       setOrderSummaries(summaries);

@@ -81,9 +81,25 @@ def create_payment(payment: PaymentCreate):
         )
 
         if response.status_code != 201:
-            raise HTTPException(status_code=400, detail="Failed to create Wompi transaction")
+            error_detail = response.json() if response.text else {}
+            print(f"Wompi Error: {error_detail}")
+            raise HTTPException(status_code=400, detail=f"Failed to create Wompi transaction: {error_detail}")
 
-        wompi_data = response.json()['data']
+        wompi_response = response.json()
+        print(f"Wompi Response: {json.dumps(wompi_response, indent=2)}")
+        
+        wompi_data = wompi_response.get('data', {})
+        
+        # Extract checkout URL from various possible locations
+        checkout_url = None
+        if wompi_data.get('payment_method'):
+            checkout_url = wompi_data['payment_method'].get('extra', {}).get('async_payment_url')
+        
+        # Fallback: Try to construct from transaction ID
+        if not checkout_url and wompi_data.get('id'):
+            public_key = WOMPI_PUBLIC_KEY or 'missing_key'
+            transaction_id = wompi_data['id']
+            checkout_url = f"https://checkout.wompi.co/l/{public_key}/{transaction_id}"
 
         # Store payment in database
         cursor.execute("""
@@ -94,18 +110,18 @@ def create_payment(payment: PaymentCreate):
             payment.order_id,
             payment.amount,
             payment.currency,
-            wompi_data['status'],
+            wompi_data.get('status', 'PENDING'),
             reference,
-            wompi_data['id'],
+            wompi_data.get('id'),
             get_bogota_time()
         ))
         db.commit()
 
         return {
-            "payment_id": wompi_data['id'],
+            "payment_id": wompi_data.get('id'),
             "reference": reference,
-            "checkout_url": wompi_data.get('payment_method', {}).get('extra', {}).get('async_payment_url'),
-            "status": wompi_data['status']
+            "checkout_url": checkout_url,
+            "status": wompi_data.get('status', 'PENDING')
         }
 
     except Exception as e:
