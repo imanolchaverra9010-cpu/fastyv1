@@ -589,9 +589,11 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-2 gap-4">
+              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-3 gap-4">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Paga al recibir tu pedido" },
+                  { v: "card", l: "Tarjeta", e: "💳", desc: "Paga con Wompi" },
+                  { v: "wallet", l: "Billetera", e: "📱", desc: "Paga con billetera digital" },
                 ].map((o) => (
                   <Label 
                     key={o.v} 
