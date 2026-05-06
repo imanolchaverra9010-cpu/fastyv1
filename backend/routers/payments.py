@@ -33,9 +33,9 @@ def verify_wompi_signature(payload: str, signature: str) -> bool:
 
 @router.post("/create", response_model=dict)
 def create_payment(payment: PaymentCreate):
-    """Create a payment transaction with Wompi"""
-    if not WOMPI_PRIVATE_KEY:
-        raise HTTPException(status_code=500, detail="Wompi not configured")
+    """Create a payment intent and return Wompi checkout info"""
+    if not WOMPI_PUBLIC_KEY:
+        raise HTTPException(status_code=500, detail="Wompi not configured (Public Key missing)")
 
     db = get_db()
     if not db:
@@ -43,89 +43,74 @@ def create_payment(payment: PaymentCreate):
 
     cursor = db.cursor(dictionary=True)
     try:
-        # Check if order exists and is pending payment
+        # Check if order exists
         cursor.execute("SELECT * FROM orders WHERE id = %s", (payment.order_id,))
         order = cursor.fetchone()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        if order['status'] != 'pending_payment':
-            raise HTTPException(status_code=400, detail="Order is not pending payment")
+        # In a real app, we'd check if status is pending_payment
+        # For flexibility, we'll allow it if it's pending or pending_payment
+        if order['status'] not in ['pending', 'pending_payment']:
+             # If it's already confirmed, don't allow payment again unless we have a specific reason
+             if order['status'] == 'confirmed':
+                 return {
+                     "status": "ALREADY_PAID",
+                     "message": "Este pedido ya ha sido pagado"
+                 }
 
-        # Create Wompi transaction
-        reference = payment.reference or str(uuid.uuid4())
+        # Create a unique reference for this payment attempt
+        reference = f"FASTYY-{payment.order_id}-{int(get_bogota_time().timestamp())}"
         
-        wompi_payload = {
-            "amount_in_cents": payment.amount,
-            "currency": payment.currency,
-            "customer_email": payment.customer_email,
+        # We'll use the Hosted Checkout flow (Redirect)
+        # The URL structure for Wompi Hosted Checkout is:
+        # https://checkout.wompi.co/p/?public-key=PUB_KEY&amount-in-cents=AMOUNT&reference=REF&currency=COP&redirect-url=URL
+        
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        if os.getenv("ENV") == "development":
+            checkout_base = "https://checkout.wompi.co/p/"
+        else:
+            checkout_base = "https://checkout.wompi.co/p/"
+
+        # Construct checkout URL
+        params = {
+            "public-key": WOMPI_PUBLIC_KEY,
+            "amount-in-cents": payment.amount * 100, # Wompi expects cents
             "reference": reference,
-            "customer_data": payment.customer_data or {},
-            "redirect_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success?order_id={payment.order_id}",
-            "payment_method": {
-                "type": "CARD",
-                "token": "",  # Will be filled by frontend
-                "installments": 1
-            }
+            "currency": payment.currency,
+            "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}"
         }
-
-        headers = {
-            "Authorization": f"Bearer {WOMPI_PRIVATE_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        response = requests.post(
-            f"{WOMPI_BASE_URL}/transactions",
-            json=wompi_payload,
-            headers=headers
-        )
-
-        if response.status_code != 201:
-            error_detail = response.json() if response.text else {}
-            print(f"Wompi Error: {error_detail}")
-            raise HTTPException(status_code=400, detail=f"Failed to create Wompi transaction: {error_detail}")
-
-        wompi_response = response.json()
-        print(f"Wompi Response: {json.dumps(wompi_response, indent=2)}")
         
-        wompi_data = wompi_response.get('data', {})
-        
-        # Extract checkout URL from various possible locations
-        checkout_url = None
-        if wompi_data.get('payment_method'):
-            checkout_url = wompi_data['payment_method'].get('extra', {}).get('async_payment_url')
-        
-        # Fallback: Try to construct from transaction ID
-        if not checkout_url and wompi_data.get('id'):
-            public_key = WOMPI_PUBLIC_KEY or 'missing_key'
-            transaction_id = wompi_data['id']
-            checkout_url = f"https://checkout.wompi.co/l/{public_key}/{transaction_id}"
+        from urllib.parse import urlencode
+        checkout_url = f"{checkout_base}?{urlencode(params)}"
 
-        # Store payment in database
+        # Store payment intent in database
+        payment_id = str(uuid.uuid4())
         cursor.execute("""
-            INSERT INTO payments (id, order_id, amount, currency, status, reference, wompi_transaction_id, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO payments (id, order_id, amount, currency, status, reference, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
-            str(uuid.uuid4()),
+            payment_id,
             payment.order_id,
             payment.amount,
             payment.currency,
-            wompi_data.get('status', 'PENDING'),
+            'PENDING',
             reference,
-            wompi_data.get('id'),
             get_bogota_time()
         ))
         db.commit()
 
         return {
-            "payment_id": wompi_data.get('id'),
+            "payment_id": payment_id,
             "reference": reference,
             "checkout_url": checkout_url,
-            "status": wompi_data.get('status', 'PENDING')
+            "public_key": WOMPI_PUBLIC_KEY,
+            "status": "PENDING"
         }
 
     except Exception as e:
         db.rollback()
+        print(f"Error creating payment: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()

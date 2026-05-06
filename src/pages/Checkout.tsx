@@ -59,6 +59,7 @@ const Checkout = () => {
   const [businessCoords, setBusinessCoords] = useState<Record<string, {lat: number, lng: number}>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const navigate = useNavigate();
 
   const [initialData, setInitialData] = useState({
@@ -593,35 +594,48 @@ const Checkout = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl font-display font-bold">Método de pago</h2>
-                  <p className="text-sm text-muted-foreground">Paga de forma segura al recibir.</p>
+                  <p className="text-sm text-muted-foreground">Selecciona cómo prefieres pagar.</p>
                 </div>
               </div>
 
-              <RadioGroup defaultValue="cash" name="paymentMethod" className="grid sm:grid-cols-3 gap-4">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { v: "cash", l: "Efectivo", e: "💵", desc: "Paga al recibir tu pedido" },
-                  { v: "card", l: "Tarjeta", e: "💳", desc: "Paga con Wompi" },
-                  { v: "wallet", l: "Billetera", e: "📱", desc: "Paga con billetera digital" },
+                  { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
+                  { v: "card", l: "Tarjeta", e: "💳", desc: "Con Wompi" },
+                  { v: "wallet", l: "Billetera", e: "📱", desc: "Nequi/Davi" },
                 ].map((o) => (
                   <Label 
                     key={o.v} 
                     htmlFor={o.v} 
-                    className="flex items-center gap-4 p-5 rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group"
+                    className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
                   >
                     <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
-                    <div className="h-12 w-12 rounded-xl bg-background shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    <div className="h-14 w-14 rounded-2xl bg-background shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform mb-1">
                       {o.e}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-foreground">{o.l}</p>
-                      <p className="text-xs text-muted-foreground">{o.desc}</p>
+                    <div>
+                      <p className="font-bold text-foreground text-sm leading-none mb-1">{o.l}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{o.desc}</p>
                     </div>
-                    <div className="h-6 w-6 rounded-full border-2 border-muted group-has-[:checked]:border-primary group-has-[:checked]:bg-primary flex items-center justify-center transition-colors">
-                      <div className="h-2 w-2 rounded-full bg-white scale-0 group-has-[:checked]:scale-100 transition-transform" />
+                    <div className="absolute top-3 right-3 h-5 w-5 rounded-full border-2 border-muted group-has-[:checked]:border-primary group-has-[:checked]:bg-primary flex items-center justify-center transition-colors">
+                      <div className="h-1.5 w-1.5 rounded-full bg-white scale-0 group-has-[:checked]:scale-100 transition-transform" />
                     </div>
                   </Label>
                 ))}
               </RadioGroup>
+              
+              <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
+                  {paymentMethod === 'card' 
+                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago con tarjeta o PSE.' 
+                    : paymentMethod === 'wallet'
+                    ? 'Prepara tu aplicación de Nequi o Daviplata para realizar la transferencia al recibir.'
+                    : 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'}
+                </p>
+              </div>
             </section>
 
             <div className="pt-4">
