@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS orders (
     business_id VARCHAR(50),
     customer_name VARCHAR(100) NOT NULL,
     total INT NOT NULL,
-    status ENUM('pending', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending',
+    status ENUM('pending_payment', 'pending', 'confirmed', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (business_id) REFERENCES businesses(id)
@@ -150,6 +150,24 @@ CREATE TABLE IF NOT EXISTS order_courier_offers (
     INDEX idx_order_courier_offers_order (order_id),
     INDEX idx_order_courier_offers_courier (courier_id),
     INDEX idx_order_courier_offers_user (user_id)
+);
+
+-- Tabla de Pagos
+CREATE TABLE IF NOT EXISTS payments (
+    id VARCHAR(50) PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    amount INT NOT NULL,
+    currency VARCHAR(3) DEFAULT 'COP',
+    status VARCHAR(20) NOT NULL,
+    reference VARCHAR(100) UNIQUE NOT NULL,
+    payment_method VARCHAR(50),
+    wompi_transaction_id VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    INDEX idx_payments_order (order_id),
+    INDEX idx_payments_reference (reference),
+    INDEX idx_payments_wompi (wompi_transaction_id)
 );
 
 -- Insertar domiciliarios de prueba

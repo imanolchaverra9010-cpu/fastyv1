@@ -257,6 +257,9 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     order_id = str(uuid.uuid4())[:8]
     payment_method = normalize_payment_method(order.payment_method)
     
+    # Set initial status based on payment method
+    initial_status = 'pending_payment' if payment_method == 'card' else 'pending'
+    
     try:
         ensure_open_order_support_schema(db)
         ensure_order_type_support(cursor, db, order.order_type)
@@ -270,7 +273,7 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
              order.delivery_address, payment_method, order.notes, order.total, 
-             order.latitude, order.longitude, 'pending',
+             order.latitude, order.longitude, initial_status,
              order.order_type, order.origin_name, order.origin_address, order.origin_latitude, order.origin_longitude, order.open_order_description,
              order.batch_id, order.delivery_fee, order.night_fee)
         )
@@ -278,7 +281,7 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         # Log inicial
         cursor.execute(
             "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
-            (order_id, 'pending')
+            (order_id, initial_status)
         )
         
         # Insertar items
@@ -450,8 +453,8 @@ def calculate_open_fee(request: FeeCalculationRequest):
                 distances.append(dist)
             min_distance = min(distances)
             
-        # Calculation formula: Base 5000 + 1000 per km
-        base_fee = 5000
+        # Calculation formula: Base 6000 + 1000 per km
+        base_fee = 6000
         distance_fee = int(math.ceil(min_distance)) * 1000
         
         # Check night fee (7 PM to 6 AM)

@@ -344,6 +344,30 @@ const Checkout = () => {
           throw new Error(data.detail || "Error al crear el pedido");
         }
 
+        // If payment method is card, create payment with Wompi
+        let paymentData = null;
+        if (paymentMethod === "card") {
+          const paymentResponse = await fetch("/api/payments/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              order_id: data.id,
+              amount: Math.round(bTotal),
+              currency: "COP",
+              customer_email: user?.email || "customer@example.com",
+              reference: `order-${data.id}-${Date.now()}`
+            }),
+          });
+
+          if (paymentResponse.ok) {
+            paymentData = await paymentResponse.json();
+          } else {
+            console.error("Error creating payment:", await paymentResponse.text());
+          }
+        }
+
         summaries.push({
           orderId: data.id,
           businessName: bLines[0].businessName,
@@ -361,11 +385,20 @@ const Checkout = () => {
           fee: bFee,
           discount: bDiscount,
           promoCode: promo?.code,
-          total: bTotal
+          total: bTotal,
+          payment: paymentData
         });
       });
 
       await Promise.all(orderPromises);
+
+      // Check if we need to redirect to payment
+      const paymentOrder = summaries.find(s => s.payment?.checkout_url);
+      if (paymentOrder) {
+        // Redirect to Wompi checkout
+        window.location.href = paymentOrder.payment.checkout_url;
+        return;
+      }
 
       setOrderSummaries(summaries);
       setDone(true);

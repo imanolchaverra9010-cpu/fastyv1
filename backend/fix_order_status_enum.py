@@ -10,7 +10,7 @@ def fix_enum():
         
         # Modificar la columna status para incluir 'in_transit'
         try:
-            cursor.execute("ALTER TABLE orders MODIFY COLUMN status ENUM('pending', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending'")
+            cursor.execute("ALTER TABLE orders MODIFY COLUMN status ENUM('pending_payment', 'pending', 'confirmed', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending'")
             print("- Columna status actualizada exitosamente.")
         except mysql.connector.Error as err:
             print(f"- Error al actualizar la columna: {err}")

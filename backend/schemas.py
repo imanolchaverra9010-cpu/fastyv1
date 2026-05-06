@@ -275,3 +275,28 @@ class PromotionResponse(PromotionBase):
 
     class Config:
         from_attributes = True
+
+# Payment Schemas
+class PaymentCreate(BaseModel):
+    order_id: str
+    amount: int
+    currency: str = "COP"
+    customer_email: str
+    customer_data: Optional[dict] = None
+    reference: Optional[str] = None
+
+class PaymentResponse(BaseModel):
+    id: str
+    order_id: str
+    amount: int
+    currency: str
+    status: str
+    reference: str
+    payment_method: Optional[str] = None
+    created_at: datetime
+    wompi_transaction_id: Optional[str] = None
+
+class WompiWebhook(BaseModel):
+    event: str
+    data: dict
+    signature: Optional[dict] = None

@@ -33,6 +33,7 @@ import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import MaintenancePage from "./pages/Maintenance.tsx";
+import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
 
@@ -138,6 +139,7 @@ const AppContent = () => {
         <Route path="/negocios/registro" element={<BusinessRegister />} />
         <Route path="/negocios/:id" element={<CustomerOrGuestRoute><BusinessDetail /></CustomerOrGuestRoute>} />
         <Route path="/checkout" element={<CustomerOrGuestRoute><Checkout /></CustomerOrGuestRoute>} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/pedido-abierto" element={<CustomerOrGuestRoute><OpenOrder /></CustomerOrGuestRoute>} />
         <Route path="/perfil" element={<ProtectedRoute allowedRoles={['customer']}><UserProfile /></ProtectedRoute>} />
         <Route path="/rastreo" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
