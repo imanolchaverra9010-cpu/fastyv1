@@ -30,9 +30,9 @@ const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) =
   const R = 6371; // Radio de la tierra en km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
@@ -56,7 +56,7 @@ const Checkout = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [businessCoords, setBusinessCoords] = useState<Record<string, {lat: number, lng: number}>>({});
+  const [businessCoords, setBusinessCoords] = useState<Record<string, { lat: number, lng: number }>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -84,7 +84,7 @@ const Checkout = () => {
               address: lastOrder.delivery_address || ""
             });
             setAddressValue(lastOrder.delivery_address || "");
-            
+
             // Set coordinates from the last order so distance fee is calculated automatically
             if (lastOrder.latitude && lastOrder.longitude) {
               setLatitude(lastOrder.latitude);
@@ -104,9 +104,9 @@ const Checkout = () => {
   useEffect(() => {
     const fetchBusinessCoords = async () => {
       const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
-      
-      const newCoords: Record<string, {lat: number, lng: number}> = {};
-      
+
+      const newCoords: Record<string, { lat: number, lng: number }> = {};
+
       for (const bId of uniqueBusinessIds) {
         try {
           const res = await fetch(`/api/businesses/${bId}`);
@@ -149,7 +149,7 @@ const Checkout = () => {
   const calculateTotalFee = () => {
     if (lines.length === 0) return 0;
     const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
-    
+
     let maxDistance = -1;
     let baseFee = 5000;
 
@@ -167,7 +167,7 @@ const Checkout = () => {
     const isNight = isNightFeeTime();
     const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
     const nightFee = isNight ? 2000 : 0;
-    
+
     return baseFee + additionalFees + nightFee;
   };
 
@@ -181,47 +181,47 @@ const Checkout = () => {
     setLocationLoading(true);
     getPreciseCurrentPosition({ desiredAccuracy: 25, fallbackAccuracy: 80, timeout: 18000 })
       .then(async (position) => {
-          const lat = position.latitude;
-          const lon = position.longitude;
-          setLatitude(lat);
-          setLongitude(lon);
-          
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
-              {
-                headers: {
-                  'Accept-Language': 'es'
-                }
-              }
-            );
-            if (response.ok) {
-              const data = await response.json();
-              if (data.display_name) {
-                // Nominatim returns a very long display_name. We can try to simplify it.
-                // display_name: "Calle 123, Barrio, Ciudad, Departamento, Código Postal, País"
-                setAddressValue(data.display_name);
-                toast({ title: "Ubicación precisa obtenida", description: `Dirección actualizada. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
-              } else {
-                toast({ title: "Ubicación precisa obtenida", description: `Coordenadas actualizadas. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
+        const lat = position.latitude;
+        const lon = position.longitude;
+        setLatitude(lat);
+        setLongitude(lon);
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+            {
+              headers: {
+                'Accept-Language': 'es'
               }
             }
-          } catch (err) {
-            console.error("Error in reverse geocoding:", err);
-            toast({ title: "Ubicación precisa obtenida", description: "Coordenadas actualizadas (no se pudo obtener la dirección)." });
-          } finally {
-            setLocationLoading(false);
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.display_name) {
+              // Nominatim returns a very long display_name. We can try to simplify it.
+              // display_name: "Calle 123, Barrio, Ciudad, Departamento, Código Postal, País"
+              setAddressValue(data.display_name);
+              toast({ title: "Ubicación precisa obtenida", description: `Dirección actualizada. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
+            } else {
+              toast({ title: "Ubicación precisa obtenida", description: `Coordenadas actualizadas. Precisión aprox: ${Math.round(position.accuracy || 0)} m.` });
+            }
           }
-        })
-        .catch((error) => {
-          console.error("Error getting location:", error);
+        } catch (err) {
+          console.error("Error in reverse geocoding:", err);
+          toast({ title: "Ubicación precisa obtenida", description: "Coordenadas actualizadas (no se pudo obtener la dirección)." });
+        } finally {
           setLocationLoading(false);
-          toast({
-            title: "Error de ubicación",
-            description: getPositionErrorMessage(error),
-            variant: "destructive",
-          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error getting location:", error);
+        setLocationLoading(false);
+        toast({
+          title: "Error de ubicación",
+          description: getPositionErrorMessage(error),
+          variant: "destructive",
         });
+      });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -263,11 +263,11 @@ const Checkout = () => {
     try {
       const summaries: any[] = [];
       const businessIds = Object.keys(linesByBusiness);
-      
+
       // Determinar cuál es el negocio más lejano
       let furthestBusinessId = businessIds[0];
       let maxDistance = -1;
-      
+
       businessIds.forEach(bId => {
         const coords = businessCoords[bId];
         if (coords && latitude && longitude) {
@@ -291,7 +291,7 @@ const Checkout = () => {
           } else {
             bFee = 5000; // Fallback si no hay coordenadas
           }
-          
+
           // Aplicar recargo nocturno SOLO a la orden del negocio principal (el más lejano)
           if (isNightFeeTime()) {
             bFee += 2000;
@@ -349,7 +349,7 @@ const Checkout = () => {
         let paymentData = null;
         if (paymentMethod === "card" || paymentMethod === "transfer") {
           console.log("Creating payment with Wompi for order:", data.id, paymentMethod);
-          
+
           const paymentResponse = await fetch("/api/payments/create", {
             method: "POST",
             headers: {
@@ -460,7 +460,7 @@ const Checkout = () => {
           </div>
           <span className="font-semibold">Volver a la tienda</span>
         </Link>
-        
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
           <div>
             <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground">Finaliza tu pedido</h1>
@@ -492,11 +492,11 @@ const Checkout = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="customerName" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Nombre completo</Label>
-                  <Input 
-                    key={initialData.name} 
-                    id="customerName" 
-                    name="customerName" 
-                    required 
+                  <Input
+                    key={initialData.name}
+                    id="customerName"
+                    name="customerName"
+                    required
                     defaultValue={initialData.name}
                     className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="Tu nombre"
@@ -504,12 +504,12 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Teléfono de contacto</Label>
-                  <Input 
-                    key={initialData.phone} 
-                    id="phone" 
-                    name="phone" 
-                    required 
-                    type="tel" 
+                  <Input
+                    key={initialData.phone}
+                    id="phone"
+                    name="phone"
+                    required
+                    type="tel"
                     defaultValue={initialData.phone}
                     className="h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="310 000 0000"
@@ -518,11 +518,11 @@ const Checkout = () => {
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Dirección exacta</Label>
                   <div className="relative group">
-                    <Input 
-                      id="address" 
-                      name="address" 
-                      required 
-                      value={addressValue} 
+                    <Input
+                      id="address"
+                      name="address"
+                      required
+                      value={addressValue}
                       onChange={(e) => {
                         setAddressValue(e.target.value);
                         setLatitude(null);
@@ -540,7 +540,7 @@ const Checkout = () => {
                     Completa tu dirección manualmente o usa el botón de GPS para mayor precisión.
                   </p>
                 </div>
-                
+
                 <div className="space-y-4 md:col-span-2 pt-2">
                   <Button
                     type="button"
@@ -561,7 +561,7 @@ const Checkout = () => {
                       </>
                     )}
                   </Button>
-                  
+
                   {latitude && longitude && (
                     <div className="bg-success/5 border-2 border-success/20 text-success text-xs p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                       <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
@@ -577,10 +577,10 @@ const Checkout = () => {
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes" className="ml-1 font-bold text-xs uppercase tracking-wider text-muted-foreground">Instrucciones para el repartidor</Label>
-                  <Textarea 
-                    id="notes" 
-                    name="notes" 
-                    placeholder="Piso, apto, indicaciones sobre la fachada o cómo llegar..." 
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    placeholder="Piso, apto, indicaciones sobre la fachada o cómo llegar..."
                     className="rounded-xl min-h-[100px] border-border/60 bg-background/50 focus:ring-primary/20"
                   />
                 </div>
@@ -605,16 +605,16 @@ const Checkout = () => {
                   { v: "card", l: "Tarjeta", e: "💳", desc: "Crédito o Débito" },
                   { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi, Davi, Bancolombia" },
                 ].map((o) => (
-                  <Label 
-                    key={o.v} 
-                    htmlFor={o.v} 
+                  <Label
+                    key={o.v}
+                    htmlFor={o.v}
                     className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
                   >
                     <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
                     {o.e === "logos" ? (
                       <div className="flex items-center gap-2 mb-1">
                         <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nequi_Logo.png/512px-Nequi_Logo.png" alt="Nequi" className="h-full w-full object-contain" />
+                          <img src="https://i.pinimg.com/736x/50/c9/5b/50c95b95314d3b871c24559149e4096f.jpg" alt="Nequi" className="h-full w-full object-contain" />
                         </div>
                         <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
                           <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-full w-full object-contain" />
@@ -638,7 +638,7 @@ const Checkout = () => {
                   </Label>
                 ))}
               </RadioGroup>
-              
+
               <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                   <AlertCircle className="h-4 w-4 text-primary" />
@@ -652,11 +652,11 @@ const Checkout = () => {
             </section>
 
             <div className="pt-4">
-              <Button 
-                type="submit" 
-                variant="hero" 
-                size="xl" 
-                className="w-full h-20 text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group" 
+              <Button
+                type="submit"
+                variant="hero"
+                size="xl"
+                className="w-full h-20 text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
                 disabled={loading}
               >
                 {loading ? (
@@ -685,7 +685,7 @@ const Checkout = () => {
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Store className="h-24 w-24" />
               </div>
-              
+
               <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
                 Resumen del pedido
               </h2>
@@ -743,11 +743,10 @@ const Checkout = () => {
                               toast({ title: "Cupón aplicado", description: `Se aplicó ${benefit.discount}% de descuento en el domicilio.` });
                             }
                           }}
-                          className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${
-                            isSelected
+                          className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${isSelected
                               ? "bg-primary/10 border-primary shadow-sm"
                               : "bg-background/50 border-transparent hover:border-primary/20 hover:bg-muted/30"
-                          }`}
+                            }`}
                         >
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-bold text-sm group-hover:text-primary transition-colors">{benefit.code}</span>
@@ -769,7 +768,7 @@ const Checkout = () => {
                   <span>Subtotal productos</span>
                   <span className="text-foreground font-bold">{formatCOP(subtotal)}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-start text-sm font-medium text-muted-foreground">
                   <div className="flex flex-col">
                     <span>Costo de envío</span>
@@ -788,7 +787,7 @@ const Checkout = () => {
                 {promo && (
                   <div className="flex justify-between items-center text-sm font-bold text-success animate-in slide-in-from-left-2">
                     <span className="flex items-center gap-1.5">
-                      <Ticket className="h-3.5 w-3.5" /> 
+                      <Ticket className="h-3.5 w-3.5" />
                       Cupón ({promo.code})
                     </span>
                     <span>-{formatCOP(discount)}</span>
@@ -813,7 +812,7 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-start gap-3">
               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <Ticket className="h-4 w-4 text-primary" />
@@ -840,7 +839,7 @@ const Checkout = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col gap-3 mt-6">
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={processOrder}
               className="w-full h-14 rounded-2xl text-lg font-bold shadow-glow-primary hover:scale-[1.02] transition-transform"
             >

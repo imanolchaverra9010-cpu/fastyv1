@@ -144,28 +144,38 @@ const Index = () => {
 
       {/* Featured businesses */}
       <section className="container py-12">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-2xl font-display font-bold tracking-tight">Mejor calificados</h2>
             <p className="text-sm text-muted-foreground mt-1">Los favoritos de la comunidad</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full h-10 w-10 shadow-sm"
-              onClick={() => scroll('left')}
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="hero" 
+              size="sm" 
+              className="rounded-full px-6 font-bold shadow-sm hidden md:flex group"
+              onClick={() => navigate('/negocios')}
             >
-              <ChevronLeft className="h-5 w-5" />
+              Ver todos <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full h-10 w-10 shadow-sm"
-              onClick={() => scroll('right')}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-10 w-10 shadow-sm"
+                onClick={() => scroll('left')}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-10 w-10 shadow-sm"
+                onClick={() => scroll('right')}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -181,34 +191,68 @@ const Index = () => {
               </div>
             ))
           ) : businesses && businesses.length > 0 ? (
-            businesses.map((b) => (
-              <Link
-                key={b.id}
-                to={`/negocios/${b.id}`}
-                className="flex flex-col items-center gap-4 group transition-all snap-start min-w-[150px] md:min-w-[200px] pt-4"
-              >
-                <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-2 border-border/40 shadow-card flex items-center justify-center group-hover:shadow-glow group-hover:border-primary group-hover:scale-105 transition-all p-2">
-                  {b.image_url ? (
-                    <img src={b.image_url.startsWith("http") ? b.image_url : `/api/media${b.image_url}`} alt={b.name} className="h-full w-full object-cover rounded-full" />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-hero flex items-center justify-center text-white rounded-full">
-                      <Store className="h-16 w-16" />
+            <>
+              {businesses.map((b) => (
+                <Link
+                  key={b.id}
+                  to={`/negocios/${b.id}`}
+                  className="flex flex-col items-center gap-4 group transition-all snap-start min-w-[150px] md:min-w-[200px] pt-4"
+                >
+                  <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-2 border-border/40 shadow-card flex items-center justify-center group-hover:shadow-glow group-hover:border-primary group-hover:scale-105 transition-all p-2">
+                    {b.image_url ? (
+                      <img src={b.image_url.startsWith("http") ? b.image_url : `/api/media${b.image_url}`} alt={b.name} className="h-full w-full object-cover rounded-full" />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-hero flex items-center justify-center text-white rounded-full">
+                        <Store className="h-16 w-16" />
+                      </div>
+                    )}
+                    <div className="absolute -top-2 -right-2 h-11 w-11 rounded-full bg-white border-2 border-primary/20 shadow-glow flex items-center justify-center text-xs font-bold gap-0.5 z-10 animate-float">
+                      <Star className="h-3.5 w-3.5 text-warning fill-warning" />
+                      <span className="text-foreground">{b.rating}</span>
                     </div>
-                  )}
-                  {/* Calificación en la parte superior derecha, sobresaliendo */}
-                  <div className="absolute -top-2 -right-2 h-11 w-11 rounded-full bg-white border-2 border-primary/20 shadow-glow flex items-center justify-center text-xs font-bold gap-0.5 z-10 animate-float">
-                    <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                    <span className="text-foreground">{b.rating}</span>
                   </div>
+                  <h3 className="font-display font-bold text-center text-lg group-hover:text-primary transition-colors truncate w-full px-2">{b.name}</h3>
+                </Link>
+              ))}
+              {/* Card final para "Ver todos" dentro del scroll móvil */}
+              <button
+                onClick={() => navigate('/negocios')}
+                className="flex flex-col items-center justify-center gap-4 group transition-all snap-start min-w-[150px] md:min-w-[200px] pt-4 md:hidden"
+              >
+                <div className="h-32 w-32 md:h-40 md:w-40 rounded-full bg-primary/10 border-2 border-dashed border-primary/40 flex flex-col items-center justify-center group-hover:bg-primary/20 transition-all text-primary">
+                  <Plus className="h-8 w-8 mb-1" />
+                  <span className="text-xs font-bold">Ver todos</span>
                 </div>
-                <h3 className="font-display font-bold text-center text-lg group-hover:text-primary transition-colors truncate w-full px-2">{b.name}</h3>
-              </Link>
-            ))
+                <h3 className="font-display font-bold text-center text-lg">Más negocios</h3>
+              </button>
+            </>
           ) : (
             <div className="w-full py-20 text-center">
               <p className="text-muted-foreground">No se encontraron negocios destacados.</p>
             </div>
           )}
+        </div>
+        
+        {/* Botón central para desktop/tablet */}
+        <div className="flex justify-center mt-4">
+          <Button 
+            variant="outline" 
+            size="xl" 
+            className="rounded-2xl px-12 font-display font-bold border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary transition-all group shadow-sm md:flex hidden"
+            onClick={() => navigate('/negocios')}
+          >
+            Explorar todos los negocios <ArrowRight className="h-5 w-5 ml-3 group-hover:translate-x-1 transition-transform" />
+          </Button>
+          
+          {/* Botón para móvil */}
+          <Button 
+            variant="hero" 
+            size="xl" 
+            className="w-full rounded-2xl font-display font-bold shadow-glow-primary md:hidden"
+            onClick={() => navigate('/negocios')}
+          >
+            Ver todos los negocios
+          </Button>
         </div>
       </section>
 
