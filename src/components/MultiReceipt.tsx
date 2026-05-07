@@ -43,7 +43,7 @@ const MultiReceipt = ({
   const paymentLabels: Record<string, string> = {
     card: "Tarjeta de Crédito/Débito",
     cash: "Efectivo",
-    wallet: "Billetera Digital"
+    transfer: "Transferencia (Nequi/Davi)"
   };
 
   const totalGrand = orders.reduce((sum, order) => sum + order.total, 0);
@@ -165,8 +165,14 @@ const MultiReceipt = ({
               <CreditCard className="w-5 h-5 text-muted-foreground" />
               <span className="text-sm font-medium">{paymentLabels[paymentMethod] || paymentMethod}</span>
             </div>
-            <div className="text-[10px] font-bold uppercase text-success bg-success/10 px-2 py-1 rounded-full border border-success/20">
-              Pagado
+            <div className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${
+              paymentMethod === 'card' 
+                ? 'text-primary bg-primary/10 border-primary/20' 
+                : paymentMethod === 'transfer'
+                ? 'text-blue-600 bg-blue-50 border-blue-200'
+                : 'text-success bg-success/10 border-success/20'
+            }`}>
+              {paymentMethod === 'card' ? 'Procesando' : paymentMethod === 'transfer' ? 'Por transferir' : 'Pago al recibir'}
             </div>
           </div>
 

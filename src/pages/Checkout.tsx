@@ -232,7 +232,7 @@ const Checkout = () => {
       customerName: formData.get("customerName") as string,
       customerPhone: formData.get("phone") as string,
       deliveryAddress: formData.get("address") as string,
-      paymentMethod: formData.get("paymentMethod") as string,
+      paymentMethod: paymentMethod, // Usar el estado directamente
       notes: formData.get("notes") as string,
     };
 
@@ -601,8 +601,8 @@ const Checkout = () => {
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
-                  { v: "card", l: "Tarjeta", e: "💳", desc: "Con Wompi" },
-                  { v: "wallet", l: "Billetera", e: "📱", desc: "Nequi/Davi" },
+                  { v: "transfer", l: "Transferencia", e: "�", desc: "Nequi/Davi" },
+                  { v: "card", l: "Tarjeta", e: "�", desc: "Con Wompi" },
                 ].map((o) => (
                   <Label 
                     key={o.v} 
@@ -631,8 +631,8 @@ const Checkout = () => {
                 <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
                   {paymentMethod === 'card' 
                     ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago con tarjeta o PSE.' 
-                    : paymentMethod === 'wallet'
-                    ? 'Prepara tu aplicación de Nequi o Daviplata para realizar la transferencia al recibir.'
+                    : paymentMethod === 'transfer'
+                    ? 'Prepara tu aplicación de Nequi o Daviplata para realizar la transferencia al recibir o coordinar con el repartidor.'
                     : 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'}
                 </p>
               </div>

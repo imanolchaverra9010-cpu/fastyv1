@@ -75,7 +75,7 @@ def create_payment(payment: PaymentCreate):
         # Construct checkout URL
         params = {
             "public-key": WOMPI_PUBLIC_KEY,
-            "amount-in-cents": payment.amount * 100, # Wompi expects cents
+            "amount-in-cents": int(payment.amount * 100), # Wompi expects cents as integer
             "reference": reference,
             "currency": payment.currency,
             "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}"
