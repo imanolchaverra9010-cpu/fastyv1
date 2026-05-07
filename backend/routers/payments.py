@@ -32,7 +32,7 @@ def verify_wompi_signature(payload: str, signature: str) -> bool:
     return hmac.compare_digest(expected_signature, signature)
 
 @router.post("/create", response_model=dict)
-def create_payment(payment: PaymentCreate):
+def create_payment(payment: PaymentCreate, request: Request):
     """Create a payment intent and return Wompi checkout info"""
     if not WOMPI_PUBLIC_KEY:
         raise HTTPException(status_code=500, detail="Wompi not configured (Public Key missing)")
@@ -40,6 +40,17 @@ def create_payment(payment: PaymentCreate):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
+
+    frontend_url = os.getenv('FRONTEND_URL')
+    if not frontend_url:
+        forwarded_proto = request.headers.get('x-forwarded-proto') or request.url.scheme
+        forwarded_host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        if not forwarded_host:
+            raise HTTPException(status_code=500, detail="Frontend URL is not configured and request host is unavailable")
+        frontend_url = f"{forwarded_proto}://{forwarded_host}"
+
+    if frontend_url.startswith("http://") and os.getenv("ENV") == "production":
+        raise HTTPException(status_code=500, detail="Frontend URL must use HTTPS in production")
 
     cursor = db.cursor(dictionary=True)
     try:
@@ -72,11 +83,14 @@ def create_payment(payment: PaymentCreate):
             "amount-in-cents": int(payment.amount * 100),
             "reference": reference,
             "currency": payment.currency,
-            "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}"
+            "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}",
+            "customer-email": payment.customer_email
         }
 
         from urllib.parse import urlencode
         checkout_url = f"{checkout_base}?{urlencode(params)}"
+        print(f"Wompi checkout URL generated: {checkout_url}")
+        print(f"Using frontend redirect URL: {frontend_url}/rastreo/{payment.order_id}")
 
         # Store payment intent in database
         payment_id = str(uuid.uuid4())

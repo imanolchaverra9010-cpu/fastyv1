@@ -227,8 +227,8 @@ def normalize_payment_method(payment_method: str | None) -> str:
         "card": "card",
         "datafono": "card",
         "datáfono": "card",
-        "transferencia": "wallet",
-        "transfer": "wallet",
+        "transferencia": "transfer",
+        "transfer": "transfer",
         "wallet": "wallet",
         "billetera": "wallet",
     }
@@ -257,11 +257,12 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     cursor = db.cursor(dictionary=True)
     order_id = str(uuid.uuid4())[:8]
     payment_method = normalize_payment_method(order.payment_method)
-    is_transfer_payment = (order.payment_method or "").strip().lower() == "transfer"
+    is_transfer_payment = payment_method == "transfer"
 
     # Set initial status based on payment method
-    initial_status = 'pending_payment' if payment_method == 'card' or is_transfer_payment else 'pending'
-    
+    initial_status = 'pending_payment' if payment_method in ['card', 'transfer'] else 'pending'
+    should_notify_couriers = initial_status != 'pending_payment'
+
     try:
         ensure_open_order_support_schema(db)
         ensure_order_type_support(cursor, db, order.order_type)
@@ -340,25 +341,23 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         }
 
         # 1. WebSocket Notifications (if manager exists)
-        if websocket_manager:
-            if should_notify_couriers:
-                await websocket_manager.notify_couriers(notification_data)
+        if websocket_manager and should_notify_couriers:
+            await websocket_manager.notify_couriers(notification_data)
 
-            if order.business_id and business_info and business_info.get('owner_id'):
-                biz_notif = {**notification_data, "order_id": order_id}
-                await websocket_manager.notify_business(order.business_id, biz_notif)
+        if should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
+            biz_notif = {**notification_data, "order_id": order_id}
+            await websocket_manager.notify_business(order.business_id, biz_notif)
 
-        # 2. Push Notifications (Always try)
-        # Notify Business Owner
-        if order.business_id and business_info and business_info.get('owner_id'):
+        # 2. Push Notifications
+        # Notify Business Owner only when payment is not pending
+        if should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
             background_tasks.add_task(send_push_notification, business_info['owner_id'], {
                 "title": "¡Nuevo Pedido!",
                 "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
                 "url": "/negocio/pedidos"
             })
 
-        # Notify every courier with a saved push subscription. A locked phone or
-        # closed PWA should not depend on the courier being marked "online".
+        # Notify couriers only when payment is not pending
         if should_notify_couriers:
             cursor.execute("""
                 SELECT DISTINCT c.user_id
