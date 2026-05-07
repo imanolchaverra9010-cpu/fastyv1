@@ -28,7 +28,7 @@ export const RequestDeliveryModal = ({ business, onClose, onSuccess }: RequestDe
 
   const getCurrentLocation = () => {
     setSearchingLocation(true);
-    getPreciseCurrentPosition({ desiredAccuracy: 30, fallbackAccuracy: 90, timeout: 18000 })
+    getPreciseCurrentPosition({ desiredAccuracy: 5, fallbackAccuracy: 5, timeout: 18000 })
       .then(async (position) => {
         const { latitude, longitude, accuracy } = position;
         try {

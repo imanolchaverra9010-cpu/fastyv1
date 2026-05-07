@@ -62,7 +62,7 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
 
   const getCoords = () => {
     toast({ title: "Detectando ubicación precisa...", description: "Por favor espera un momento." });
-    getPreciseCurrentPosition({ desiredAccuracy: 20, fallbackAccuracy: 70, timeout: 18000 })
+    getPreciseCurrentPosition({ desiredAccuracy: 5, fallbackAccuracy: 5, timeout: 18000 })
       .then(async (pos) => {
         const { latitude, longitude, accuracy } = pos;
         

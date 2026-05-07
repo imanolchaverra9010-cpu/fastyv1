@@ -198,7 +198,7 @@ const Checkout = () => {
 
   const getCurrentLocation = () => {
     setLocationLoading(true);
-    getPreciseCurrentPosition({ desiredAccuracy: 25, fallbackAccuracy: 80, timeout: 18000 })
+    getPreciseCurrentPosition({ desiredAccuracy: 5, fallbackAccuracy: 5, timeout: 18000 })
       .then(async (position) => {
         const lat = position.latitude;
         const lon = position.longitude;
