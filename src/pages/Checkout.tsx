@@ -25,6 +25,7 @@ import { toast } from "@/hooks/use-toast";
 import MultiReceipt from "@/components/MultiReceipt";
 import { isNightFeeTime } from "@/lib/utils";
 import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
+import LocationPicker from "@/components/LocationPicker";
 
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // Radio de la tierra en km
@@ -60,6 +61,7 @@ const Checkout = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [showPicker, setShowPicker] = useState(false);
   const navigate = useNavigate();
 
   const [initialData, setInitialData] = useState({
@@ -176,6 +178,23 @@ const Checkout = () => {
   const rawDiscount = promo ? (fee * promo.discount / 100) : 0;
   const discount = Math.min(fee, rawDiscount);
   const total = subtotal + fee - discount;
+
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+        { headers: { 'Accept-Language': 'es' } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.display_name) {
+          setAddressValue(data.display_name);
+        }
+      }
+    } catch (err) {
+      console.error("Error in reverse geocoding:", err);
+    }
+  };
 
   const getCurrentLocation = () => {
     setLocationLoading(true);
@@ -563,14 +582,25 @@ const Checkout = () => {
                   </Button>
 
                   {latitude && longitude && (
-                    <div className="bg-success/5 border-2 border-success/20 text-success text-xs p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-                        <div className="h-3 w-3 rounded-full bg-success animate-pulse" />
+                    <div className="bg-success/5 border-2 border-success/20 text-success text-xs p-4 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                          <div className="h-3 w-3 rounded-full bg-success animate-pulse" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">Ubicación GPS activada</p>
+                          <p className="opacity-80">Tarifa calculada con precisión.</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-sm">Ubicación GPS activada</p>
-                        <p className="opacity-80">Tarifa calculada con precisión: {latitude.toFixed(4)}, {longitude.toFixed(4)}</p>
-                      </div>
+                      <Button 
+                        type="button" 
+                        variant="soft" 
+                        size="sm" 
+                        className="rounded-xl font-bold bg-success/10 text-success hover:bg-success/20"
+                        onClick={() => setShowPicker(true)}
+                      >
+                        Ajustar Pin
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -851,6 +881,20 @@ const Checkout = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showPicker && latitude && longitude && (
+        <LocationPicker 
+          initialPos={{ lat: latitude, lng: longitude }}
+          onConfirm={(pos) => {
+            setLatitude(pos.lat);
+            setLongitude(pos.lng);
+            setShowPicker(false);
+            reverseGeocode(pos.lat, pos.lng);
+            toast({ title: "Ubicación ajustada", description: "El pin ha sido colocado manualmente." });
+          }}
+          onCancel={() => setShowPicker(false)}
+        />
+      )}
     </div>
   );
 };

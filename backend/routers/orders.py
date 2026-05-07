@@ -227,8 +227,8 @@ def normalize_payment_method(payment_method: str | None) -> str:
         "card": "card",
         "datafono": "card",
         "datáfono": "card",
-        "transferencia": "transfer",
-        "transfer": "transfer",
+        "transferencia": "Transferencia",
+        "transfer": "Transferencia",
         "wallet": "wallet",
         "billetera": "wallet",
     }
@@ -257,10 +257,11 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     cursor = db.cursor(dictionary=True)
     order_id = str(uuid.uuid4())[:8]
     payment_method = normalize_payment_method(order.payment_method)
-    is_transfer_payment = payment_method == "transfer"
+    raw_method = (order.payment_method or "").strip().lower()
+    is_transfer_payment = raw_method in ["transfer", "transferencia"]
 
     # Set initial status based on payment method
-    initial_status = 'pending_payment' if payment_method in ['card', 'transfer'] else 'pending'
+    initial_status = 'pending_payment' if payment_method == 'card' or is_transfer_payment else 'pending'
     should_notify_couriers = initial_status != 'pending_payment'
 
     try:

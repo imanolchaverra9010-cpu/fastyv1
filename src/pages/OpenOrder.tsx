@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import Receipt from "@/components/Receipt";
 import { isNightFeeTime } from "@/lib/utils";
 import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
+import LocationPicker from "@/components/LocationPicker";
 
 const OpenOrder = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const OpenOrder = () => {
   const [locationLoading, setLocationLoading] = useState(false);
   const [dynamicFee, setDynamicFee] = useState<number | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -132,6 +134,34 @@ const OpenOrder = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      // Recalculate fee
+      const feeResponse = await fetch('/api/orders/calculate-open-fee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lon })
+      });
+      if (feeResponse.ok) {
+        const feeData = await feeResponse.json();
+        setDynamicFee(feeData.fee);
+      }
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+        { headers: { 'Accept-Language': 'es' } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.display_name) {
+          setFormData(prev => ({ ...prev, deliveryAddress: data.display_name }));
+        }
+      }
+    } catch (err) {
+      console.error("Error in reverse geocoding:", err);
     }
   };
 
@@ -349,6 +379,17 @@ const OpenOrder = () => {
                       </>
                     )}
                   </Button>
+
+                  {latitude && longitude && (
+                    <Button
+                      type="button"
+                      variant="soft"
+                      onClick={() => setShowPicker(true)}
+                      className="h-14 rounded-2xl bg-success/10 text-success hover:bg-success/20 font-bold gap-2 animate-in fade-in"
+                    >
+                      <MapPin className="h-5 w-5" /> Ajustar Pin en el mapa
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -458,6 +499,20 @@ const OpenOrder = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showPicker && latitude && longitude && (
+        <LocationPicker 
+          initialPos={{ lat: latitude, lng: longitude }}
+          onConfirm={(pos) => {
+            setLatitude(pos.lat);
+            setLongitude(pos.lng);
+            setShowPicker(false);
+            reverseGeocode(pos.lat, pos.lng);
+            toast({ title: "Ubicación ajustada", description: "El pin ha sido colocado manualmente." });
+          }}
+          onCancel={() => setShowPicker(false)}
+        />
+      )}
     </div>
   );
 };
