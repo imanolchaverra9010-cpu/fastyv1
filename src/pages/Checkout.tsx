@@ -471,31 +471,24 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-warm pb-12">
-      <main className="container py-8 max-w-5xl">
-        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8 group">
+    <div className="min-h-screen bg-gradient-warm pb-12 overflow-x-hidden">
+      <main className="container py-6 md:py-8 max-w-5xl px-4 md:px-6">
+        <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 md:mb-8 group">
           <div className="h-8 w-8 rounded-full bg-background shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
             <ArrowLeft className="h-4 w-4" />
           </div>
           <span className="font-semibold">Volver a la tienda</span>
         </Link>
-
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+        
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 md:mb-10">
           <div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground">Finaliza tu pedido</h1>
-            <p className="text-muted-foreground mt-2 text-lg">Estás a un paso de recibir tus productos favoritos.</p>
-          </div>
-          <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <span className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">1</span>
-            <span className="text-primary font-bold">Checkout</span>
-            <div className="h-px w-8 bg-border mx-1" />
-            <span className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">2</span>
-            <span>Rastreo</span>
+            <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight text-foreground">Finaliza tu pedido</h1>
+            <p className="text-muted-foreground mt-2 text-base md:text-lg">Estás a un paso de recibir tus productos favoritos.</p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_400px] gap-8 items-start">
-          <form onSubmit={submit} className="space-y-6 md:space-y-8 order-1">
+        <div className="grid lg:grid-cols-[1fr_380px] gap-6 md:gap-8 items-start">
+          <form onSubmit={submit} className="space-y-6 md:space-y-8 order-2 lg:order-1 w-full max-w-full">
             {/* Sección de Entrega */}
             <section className="rounded-[2rem] bg-card/80 backdrop-blur-sm border border-border/50 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-4 mb-6">
@@ -665,28 +658,32 @@ const Checkout = () => {
               >
                 {loading ? (
                   <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 md:h-6 md:w-6 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin" />
                     <span>Procesando...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-2 md:gap-3">
-                    <span>Confirmar Pedido</span>
-                    <span className="h-6 w-px bg-white/20 mx-2" />
+                  <div className="flex items-center justify-center gap-3">
+                    <span>Confirmar y Pedir</span>
+                    <span className="h-8 w-px bg-white/20 mx-2" />
                     <span>{formatCOP(total)}</span>
                   </div>
                 )}
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </Button>
+              <p className="text-center text-[10px] md:text-xs text-muted-foreground mt-4 font-medium italic">
+                * Al confirmar, aceptas los términos y condiciones de Fasty.
+              </p>
             </div>
           </form>
 
-          {/* Resumen Sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 h-fit order-2">
-            <div className="rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border/60 p-6 md:p-8 shadow-card overflow-hidden relative">
+          {/* Resumen Sidebar - APARECE PRIMERO EN MÓVIL */}
+          <aside className="space-y-6 lg:sticky lg:top-24 h-fit order-1 lg:order-2 w-full max-w-full">
+            <div className="rounded-[2rem] bg-card/70 backdrop-blur-md border border-border/60 p-6 md:p-8 shadow-card overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-5">
-                <Store className="h-16 md:h-24 w-16 md:w-24" />
+                <Store className="h-20 w-20 md:h-24 md:w-24" />
               </div>
-
-              <h2 className="text-xl md:text-2xl font-display font-bold mb-4 md:mb-6 flex items-center gap-2">
+              
+              <h2 className="text-xl md:text-2xl font-display font-bold mb-6">
                 Resumen del pedido
               </h2>
 
