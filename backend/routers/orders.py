@@ -345,7 +345,7 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         if websocket_manager and should_notify_couriers:
             await websocket_manager.notify_couriers(notification_data)
 
-        if should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
+        if websocket_manager and should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
             biz_notif = {**notification_data, "order_id": order_id}
             await websocket_manager.notify_business(order.business_id, biz_notif)
 

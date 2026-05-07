@@ -479,7 +479,7 @@ const Checkout = () => {
           </div>
           <span className="font-semibold">Volver a la tienda</span>
         </Link>
-        
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 md:mb-10">
           <div>
             <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight text-foreground">Finaliza tu pedido</h1>
@@ -504,11 +504,11 @@ const Checkout = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="customerName" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Nombre completo</Label>
-                  <Input 
-                    key={initialData.name} 
-                    id="customerName" 
-                    name="customerName" 
-                    required 
+                  <Input
+                    key={initialData.name}
+                    id="customerName"
+                    name="customerName"
+                    required
                     defaultValue={initialData.name}
                     className="h-12 rounded-2xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="Tu nombre"
@@ -516,12 +516,12 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Teléfono de contacto</Label>
-                  <Input 
-                    key={initialData.phone} 
-                    id="phone" 
-                    name="phone" 
-                    required 
-                    type="tel" 
+                  <Input
+                    key={initialData.phone}
+                    id="phone"
+                    name="phone"
+                    required
+                    type="tel"
                     defaultValue={initialData.phone}
                     className="h-12 rounded-2xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="310 000 0000"
@@ -530,11 +530,11 @@ const Checkout = () => {
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Dirección exacta</Label>
                   <div className="relative group">
-                    <Input 
-                      id="address" 
-                      name="address" 
-                      required 
-                      value={addressValue} 
+                    <Input
+                      id="address"
+                      name="address"
+                      required
+                      value={addressValue}
                       onChange={(e) => {
                         setAddressValue(e.target.value);
                         setLatitude(null);
@@ -548,7 +548,7 @@ const Checkout = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3 md:col-span-2">
                   <Button
                     type="button"
@@ -569,7 +569,7 @@ const Checkout = () => {
                       </>
                     )}
                   </Button>
-                  
+
                   {latitude && longitude && (
                     <div className="bg-success/5 border border-success/20 text-success text-xs p-3 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
                       <div className="flex items-center gap-3">
@@ -578,10 +578,10 @@ const Checkout = () => {
                         </div>
                         <p className="font-bold">Ubicación GPS activa</p>
                       </div>
-                      <Button 
-                        type="button" 
-                        variant="soft" 
-                        size="sm" 
+                      <Button
+                        type="button"
+                        variant="soft"
+                        size="sm"
                         className="rounded-xl font-bold bg-success/10 text-success hover:bg-success/20 h-8 text-[10px]"
                         onClick={() => setShowPicker(true)}
                       >
@@ -593,10 +593,10 @@ const Checkout = () => {
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Notas (piso, apto, color casa...)</Label>
-                  <Textarea 
-                    id="notes" 
-                    name="notes" 
-                    placeholder="Indicaciones para el repartidor..." 
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    placeholder="Indicaciones para el repartidor..."
                     className="rounded-2xl min-h-[100px] border-border/60 bg-background/50 focus:ring-primary/20"
                   />
                 </div>
@@ -620,16 +620,16 @@ const Checkout = () => {
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
                   { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi/Davi/Bancolombia" },
                 ].map((o) => (
-                  <Label 
-                    key={o.v} 
-                    htmlFor={o.v} 
+                  <Label
+                    key={o.v}
+                    htmlFor={o.v}
                     className="flex items-center gap-4 p-5 rounded-[1.5rem] border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
                   >
                     <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
                     {o.e === "logos" ? (
                       <div className="flex items-center gap-2 shrink-0">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nequi_Logo.png/512px-Nequi_Logo.png" alt="Nequi" className="h-8 w-8 object-contain" />
-                        <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-8 w-8 object-contain" />
+                        <img src="https://revistaminacion.com/wp-content/uploads/2025/03/19022024-bancolombia.jpg" alt="Nequi" className="h-8 w-8 object-contain" />
+                        <img src="https://play-lh.googleusercontent.com/bNPDiFqg28L6ckatfuP-WgrxDRDk0JEOkC6nUIQp7Q61RW78i1bw-ffMmEjyxl-qP6dv3ANDOQqmIbBtgJI3EA" alt="Daviplata" className="h-8 w-8 object-contain" />
                       </div>
                     ) : (
                       <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shrink-0">
@@ -649,11 +649,11 @@ const Checkout = () => {
             </section>
 
             <div className="pt-4">
-              <Button 
-                type="submit" 
-                variant="hero" 
-                size="xl" 
-                className="w-full h-16 md:h-20 text-lg md:text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group" 
+              <Button
+                type="submit"
+                variant="hero"
+                size="xl"
+                className="w-full h-16 md:h-20 text-lg md:text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
                 disabled={loading}
               >
                 {loading ? (
@@ -682,7 +682,7 @@ const Checkout = () => {
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Store className="h-20 w-20 md:h-24 md:w-24" />
               </div>
-              
+
               <h2 className="text-xl md:text-2xl font-display font-bold mb-6">
                 Resumen del pedido
               </h2>
@@ -850,7 +850,7 @@ const Checkout = () => {
       </AlertDialog>
 
       {showPicker && latitude && longitude && (
-        <LocationPicker 
+        <LocationPicker
           initialPos={{ lat: latitude, lng: longitude }}
           onConfirm={(pos) => {
             setLatitude(pos.lat);
