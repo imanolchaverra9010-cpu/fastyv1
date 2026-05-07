@@ -617,10 +617,10 @@ const Checkout = () => {
                           <img src="https://i.pinimg.com/736x/50/c9/5b/50c95b95314d3b871c24559149e4096f.jpg" alt="Nequi" className="h-full w-full object-contain" />
                         </div>
                         <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
-                          <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-full w-full object-contain" />
+                          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcREA3T4eLba8qT_cYBvS-TY-exdtPMkh83d0w&s" alt="Daviplata" className="h-full w-full object-contain" />
                         </div>
                         <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bancolombia_logo.svg/512px-Bancolombia_logo.svg.png" alt="Bancolombia" className="h-full w-full object-contain" />
+                          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVBcEtxNp8BpkkPXwhDGGOKg_auGrdEE9PFA&s" alt="Bancolombia" className="h-full w-full object-contain" />
                         </div>
                       </div>
                     ) : (
@@ -744,8 +744,8 @@ const Checkout = () => {
                             }
                           }}
                           className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${isSelected
-                              ? "bg-primary/10 border-primary shadow-sm"
-                              : "bg-background/50 border-transparent hover:border-primary/20 hover:bg-muted/30"
+                            ? "bg-primary/10 border-primary shadow-sm"
+                            : "bg-background/50 border-transparent hover:border-primary/20 hover:bg-muted/30"
                             }`}
                         >
                           <div className="flex justify-between items-center mb-1">
