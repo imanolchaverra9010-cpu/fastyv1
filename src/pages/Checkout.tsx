@@ -599,11 +599,10 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
-                  { v: "transfer", l: "Transferencia", e: "�", desc: "Nequi/Davi" },
-                  { v: "card", l: "Tarjeta", e: "�", desc: "Con Wompi" },
+                  { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi, Davi, Bancolombia" },
                 ].map((o) => (
                   <Label 
                     key={o.v} 
@@ -611,9 +610,23 @@ const Checkout = () => {
                     className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
                   >
                     <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
-                    <div className="h-14 w-14 rounded-2xl bg-background shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform mb-1">
-                      {o.e}
-                    </div>
+                    {o.e === "logos" ? (
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nequi_Logo.png/512px-Nequi_Logo.png" alt="Nequi" className="h-full w-full object-contain" />
+                        </div>
+                        <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
+                          <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-full w-full object-contain" />
+                        </div>
+                        <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center p-1.5 group-hover:scale-110 transition-transform">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bancolombia_logo.svg/512px-Bancolombia_logo.svg.png" alt="Bancolombia" className="h-full w-full object-contain" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-14 w-14 rounded-2xl bg-background shadow-sm flex items-center justify-center text-3xl group-hover:scale-110 transition-transform mb-1">
+                        {o.e}
+                      </div>
+                    )}
                     <div>
                       <p className="font-bold text-foreground text-sm leading-none mb-1">{o.l}</p>
                       <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{o.desc}</p>
@@ -630,10 +643,8 @@ const Checkout = () => {
                   <AlertCircle className="h-4 w-4 text-primary" />
                 </div>
                 <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
-                  {paymentMethod === 'card' 
-                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago con tarjeta.' 
-                    : paymentMethod === 'transfer'
-                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago por transferencia.'
+                  {paymentMethod === 'transfer'
+                    ? 'Prepara tu aplicación de Nequi, Daviplata o Bancolombia para realizar la transferencia al recibir o coordinar con el repartidor.'
                     : 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'}
                 </p>
               </div>
