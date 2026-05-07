@@ -599,9 +599,10 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
+                  { v: "card", l: "Tarjeta", e: "💳", desc: "Crédito o Débito" },
                   { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi, Davi, Bancolombia" },
                 ].map((o) => (
                   <Label 
@@ -643,9 +644,9 @@ const Checkout = () => {
                   <AlertCircle className="h-4 w-4 text-primary" />
                 </div>
                 <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
-                  {paymentMethod === 'transfer'
-                    ? 'Prepara tu aplicación de Nequi, Daviplata o Bancolombia para realizar la transferencia al recibir o coordinar con el repartidor.'
-                    : 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'}
+                  {paymentMethod === 'cash'
+                    ? 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'
+                    : 'Serás redirigido a la pasarela de pagos segura para completar tu transacción en línea.'}
                 </p>
               </div>
             </section>
