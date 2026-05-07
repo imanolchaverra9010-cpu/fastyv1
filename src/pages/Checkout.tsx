@@ -495,11 +495,11 @@ const Checkout = () => {
         </div>
 
         <div className="grid lg:grid-cols-[1fr_400px] gap-8 items-start">
-          <form onSubmit={submit} className="space-y-8 order-2 lg:order-1">
+          <form onSubmit={submit} className="space-y-6 md:space-y-8 order-1">
             {/* Sección de Entrega */}
-            <section className="rounded-[1.5rem] md:rounded-[2rem] bg-card/50 backdrop-blur-md border border-border/60 p-5 md:p-8 shadow-card hover:shadow-glow transition-all duration-500">
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner shrink-0">
+            <section className="rounded-[2rem] bg-card/80 backdrop-blur-sm border border-border/50 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner shrink-0">
                   <MapPin className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
@@ -511,62 +511,58 @@ const Checkout = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="customerName" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Nombre completo</Label>
-                  <Input
-                    key={initialData.name}
-                    id="customerName"
-                    name="customerName"
-                    required
+                  <Input 
+                    key={initialData.name} 
+                    id="customerName" 
+                    name="customerName" 
+                    required 
                     defaultValue={initialData.name}
-                    className="h-11 md:h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                    className="h-12 rounded-2xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="Tu nombre"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Teléfono de contacto</Label>
-                  <Input
-                    key={initialData.phone}
-                    id="phone"
-                    name="phone"
-                    required
-                    type="tel"
+                  <Input 
+                    key={initialData.phone} 
+                    id="phone" 
+                    name="phone" 
+                    required 
+                    type="tel" 
                     defaultValue={initialData.phone}
-                    className="h-11 md:h-12 rounded-xl border-border/60 focus:ring-primary/20 bg-background/50"
+                    className="h-12 rounded-2xl border-border/60 focus:ring-primary/20 bg-background/50"
                     placeholder="310 000 0000"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Dirección exacta</Label>
                   <div className="relative group">
-                    <Input
-                      id="address"
-                      name="address"
-                      required
-                      value={addressValue}
+                    <Input 
+                      id="address" 
+                      name="address" 
+                      required 
+                      value={addressValue} 
                       onChange={(e) => {
                         setAddressValue(e.target.value);
                         setLatitude(null);
                         setLongitude(null);
                       }}
-                      className="pr-12 h-12 md:h-14 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20 bg-background/50 font-medium text-sm md:text-base"
+                      className="pr-12 h-14 rounded-2xl border-primary/20 focus:border-primary focus:ring-primary/20 bg-background/50 font-medium"
                       placeholder="Ej: Calle 10 #5-20, Apto 301"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary group-focus-within:scale-110 transition-transform">
-                      <MapPin className="h-4 w-4 md:h-5 md:w-5" />
+                      <MapPin className="h-5 w-5" />
                     </div>
                   </div>
-                  <p className="text-[10px] md:text-[11px] text-muted-foreground font-medium mt-2 px-1 flex items-center gap-1.5 leading-tight">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0" />
-                    Completa tu dirección manualmente o usa el botón de GPS para mayor precisión.
-                  </p>
                 </div>
-
-                <div className="space-y-3 md:col-span-2 pt-1 md:pt-2">
+                
+                <div className="space-y-3 md:col-span-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={getCurrentLocation}
                     disabled={locationLoading}
-                    className="w-full gap-2 md:gap-3 h-12 md:h-14 rounded-xl md:rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-all font-bold group text-sm"
+                    className="w-full gap-2 h-12 rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-all font-bold group"
                   >
                     {locationLoading ? (
                       <div className="flex items-center gap-2">
@@ -575,28 +571,25 @@ const Checkout = () => {
                       </div>
                     ) : (
                       <>
-                        <LocateFixed className="h-4 w-4 md:h-5 md:w-5 group-hover:rotate-12 transition-transform" />
-                        <span>Ubicación actual con GPS</span>
+                        <LocateFixed className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        <span>Ubicación GPS</span>
                       </>
                     )}
                   </Button>
-
+                  
                   {latitude && longitude && (
-                    <div className="bg-success/5 border-2 border-success/20 text-success text-[10px] md:text-xs p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-success/5 border border-success/20 text-success text-xs p-3 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-                          <div className="h-2 w-2 md:h-3 md:w-3 rounded-full bg-success animate-pulse" />
+                        <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                          <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
                         </div>
-                        <div>
-                          <p className="font-bold text-xs md:text-sm">Ubicación GPS activada</p>
-                          <p className="opacity-80">Tarifa calculada con precisión.</p>
-                        </div>
+                        <p className="font-bold">Ubicación GPS activa</p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="soft"
-                        size="sm"
-                        className="rounded-lg md:rounded-xl font-bold bg-success/10 text-success hover:bg-success/20 h-8 md:h-9 px-2 md:px-3 text-[10px] md:text-xs shrink-0"
+                      <Button 
+                        type="button" 
+                        variant="soft" 
+                        size="sm" 
+                        className="rounded-xl font-bold bg-success/10 text-success hover:bg-success/20 h-8 text-[10px]"
                         onClick={() => setShowPicker(true)}
                       >
                         Ajustar Pin
@@ -606,84 +599,68 @@ const Checkout = () => {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="notes" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Instrucciones repartidor</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Piso, apto, color de casa..."
-                    className="rounded-xl min-h-[80px] md:min-h-[100px] border-border/60 bg-background/50 focus:ring-primary/20 text-sm"
+                  <Label htmlFor="notes" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Notas (piso, apto, color casa...)</Label>
+                  <Textarea 
+                    id="notes" 
+                    name="notes" 
+                    placeholder="Indicaciones para el repartidor..." 
+                    className="rounded-2xl min-h-[100px] border-border/60 bg-background/50 focus:ring-primary/20"
                   />
                 </div>
               </div>
             </section>
 
             {/* Sección de Pago */}
-            <section className="rounded-[1.5rem] md:rounded-[2rem] bg-card/50 backdrop-blur-md border border-border/60 p-5 md:p-8 shadow-card hover:shadow-glow transition-all duration-500">
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner shrink-0">
+            <section className="rounded-[2rem] bg-card/80 backdrop-blur-sm border border-border/50 p-6 md:p-8 shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner shrink-0">
                   <CreditCard className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
                   <h2 className="text-xl md:text-2xl font-display font-bold">Método de pago</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground">Selecciona cómo prefieres pagar.</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">¿Cómo prefieres pagar?</p>
                 </div>
               </div>
 
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} name="paymentMethod" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { v: "cash", l: "Efectivo", e: "💵", desc: "Al recibir" },
-                  { v: "card", l: "Tarjeta", e: "💳", desc: "Crédito o Débito" },
-                  { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi, Davi, Bancolombia" },
+                  { v: "transfer", l: "Transferencia", e: "logos", desc: "Nequi/Davi/Bancolombia" },
                 ].map((o) => (
-                  <Label
-                    key={o.v}
-                    htmlFor={o.v}
-                    className="flex flex-row sm:flex-col items-center sm:text-center gap-3 md:gap-3 p-4 md:p-5 rounded-xl md:rounded-2xl border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
+                  <Label 
+                    key={o.v} 
+                    htmlFor={o.v} 
+                    className="flex items-center gap-4 p-5 rounded-[1.5rem] border-2 border-border/60 cursor-pointer hover:bg-muted/40 hover:border-primary/20 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all duration-300 group relative"
                   >
                     <RadioGroupItem value={o.v} id={o.v} className="sr-only" />
                     {o.e === "logos" ? (
-                      <div className="flex items-center gap-1.5 md:gap-2 mb-0 sm:mb-1 shrink-0">
-                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-background shadow-sm flex items-center justify-center p-1 md:p-1.5 group-hover:scale-110 transition-transform">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nequi_Logo.png/512px-Nequi_Logo.png" alt="Nequi" className="h-full w-full object-contain" />
-                        </div>
-                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-background shadow-sm flex items-center justify-center p-1 md:p-1.5 group-hover:scale-110 transition-transform">
-                          <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-full w-full object-contain" />
-                        </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Nequi_Logo.png/512px-Nequi_Logo.png" alt="Nequi" className="h-8 w-8 object-contain" />
+                        <img src="https://logodownload.org/wp-content/uploads/2019/08/daviplata-logo.png" alt="Daviplata" className="h-8 w-8 object-contain" />
                       </div>
                     ) : (
-                      <div className="h-10 w-10 md:h-14 md:w-14 rounded-lg md:rounded-2xl bg-background shadow-sm flex items-center justify-center text-2xl md:text-3xl group-hover:scale-110 transition-transform mb-0 sm:mb-1 shrink-0">
+                      <div className="h-10 w-10 rounded-xl bg-background shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shrink-0">
                         {o.e}
                       </div>
                     )}
-                    <div className="flex-1 sm:flex-none">
-                      <p className="font-bold text-foreground text-sm md:text-sm leading-none mb-1 text-left sm:text-center">{o.l}</p>
-                      <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium uppercase tracking-tighter text-left sm:text-center">{o.desc}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground text-sm leading-tight">{o.l}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase truncate">{o.desc}</p>
                     </div>
-                    <div className="absolute top-2 right-2 md:top-3 md:right-3 h-4 w-4 md:h-5 md:w-5 rounded-full border-2 border-muted group-has-[:checked]:border-primary group-has-[:checked]:bg-primary flex items-center justify-center transition-colors">
-                      <div className="h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-white scale-0 group-has-[:checked]:scale-100 transition-transform" />
+                    <div className="h-5 w-5 rounded-full border-2 border-muted group-has-[:checked]:border-primary group-has-[:checked]:bg-primary flex items-center justify-center transition-colors shrink-0">
+                      <div className="h-1.5 w-1.5 rounded-full bg-white scale-0 group-has-[:checked]:scale-100 transition-transform" />
                     </div>
                   </Label>
                 ))}
               </RadioGroup>
-
-              <div className="mt-5 md:mt-6 p-3 md:p-4 rounded-xl md:rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
-                <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <AlertCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
-                </div>
-                <p className="text-[10px] md:text-[11px] text-primary/80 font-medium leading-relaxed">
-                  {paymentMethod === 'cash'
-                    ? 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'
-                    : 'Serás redirigido a la pasarela de pagos segura para completar tu transacción en línea.'}
-                </p>
-              </div>
             </section>
 
-            <div className="pt-2 md:pt-4">
-              <Button
-                type="submit"
-                variant="hero"
-                size="xl"
-                className="w-full h-16 md:h-20 text-lg md:text-xl font-display font-bold shadow-glow-primary rounded-[1.5rem] md:rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                variant="hero" 
+                size="xl" 
+                className="w-full h-16 md:h-20 text-lg md:text-xl font-display font-bold shadow-glow-primary rounded-[2rem] transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group" 
                 disabled={loading}
               >
                 {loading ? (
@@ -693,21 +670,17 @@ const Checkout = () => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 md:gap-3">
-                    <span className="text-base md:text-lg">Confirmar Pedido</span>
-                    <span className="h-6 md:h-8 w-px bg-white/20 mx-1 md:mx-2" />
-                    <span className="text-base md:text-lg">{formatCOP(total)}</span>
+                    <span>Confirmar Pedido</span>
+                    <span className="h-6 w-px bg-white/20 mx-2" />
+                    <span>{formatCOP(total)}</span>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </Button>
-              <p className="text-center text-[10px] md:text-xs text-muted-foreground mt-4 font-medium italic px-4">
-                * Al confirmar, aceptas los términos y condiciones de Fasty.
-              </p>
             </div>
           </form>
 
           {/* Resumen Sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 h-fit order-1 lg:order-2">
+          <aside className="space-y-6 lg:sticky lg:top-24 h-fit order-2">
             <div className="rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border/60 p-6 md:p-8 shadow-card overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Store className="h-16 md:h-24 w-16 md:w-24" />
