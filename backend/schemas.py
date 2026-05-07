@@ -282,6 +282,7 @@ class PaymentCreate(BaseModel):
     amount: int
     currency: str = "COP"
     customer_email: str
+    payment_method: Optional[str] = "card"
     customer_data: Optional[dict] = None
     reference: Optional[str] = None
 

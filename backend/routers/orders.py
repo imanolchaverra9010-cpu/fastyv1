@@ -228,6 +228,7 @@ def normalize_payment_method(payment_method: str | None) -> str:
         "datafono": "card",
         "datáfono": "card",
         "transferencia": "wallet",
+        "transfer": "wallet",
         "wallet": "wallet",
         "billetera": "wallet",
     }
@@ -256,9 +257,10 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     cursor = db.cursor(dictionary=True)
     order_id = str(uuid.uuid4())[:8]
     payment_method = normalize_payment_method(order.payment_method)
-    
+    is_transfer_payment = (order.payment_method or "").strip().lower() == "transfer"
+
     # Set initial status based on payment method
-    initial_status = 'pending_payment' if payment_method == 'card' else 'pending'
+    initial_status = 'pending_payment' if payment_method == 'card' or is_transfer_payment else 'pending'
     
     try:
         ensure_open_order_support_schema(db)

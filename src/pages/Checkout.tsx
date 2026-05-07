@@ -345,10 +345,10 @@ const Checkout = () => {
           throw new Error(data.detail || "Error al crear el pedido");
         }
 
-        // If payment method is card, create payment with Wompi
+        // If payment method is card or transfer, create payment with Wompi
         let paymentData = null;
-        if (paymentMethod === "card") {
-          console.log("Creating payment with Wompi for order:", data.id);
+        if (paymentMethod === "card" || paymentMethod === "transfer") {
+          console.log("Creating payment with Wompi for order:", data.id, paymentMethod);
           
           const paymentResponse = await fetch("/api/payments/create", {
             method: "POST",
@@ -359,6 +359,7 @@ const Checkout = () => {
               order_id: data.id,
               amount: Math.round(bTotal),
               currency: "COP",
+              payment_method: paymentMethod,
               customer_email: user?.email || "customer@example.com",
               reference: `order-${data.id}-${Date.now()}`
             }),
@@ -630,9 +631,9 @@ const Checkout = () => {
                 </div>
                 <p className="text-[11px] text-primary/80 font-medium leading-relaxed">
                   {paymentMethod === 'card' 
-                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago con tarjeta o PSE.' 
+                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago con tarjeta.' 
                     : paymentMethod === 'transfer'
-                    ? 'Prepara tu aplicación de Nequi o Daviplata para realizar la transferencia al recibir o coordinar con el repartidor.'
+                    ? 'Serás redirigido a la pasarela segura de Wompi para completar tu pago por transferencia.'
                     : 'Asegúrate de tener el efectivo exacto o el cambio necesario para agilizar la entrega.'}
                 </p>
               </div>

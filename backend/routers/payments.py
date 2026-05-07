@@ -61,34 +61,28 @@ def create_payment(payment: PaymentCreate):
 
         # Create a unique reference for this payment attempt
         reference = f"FASTYY-{payment.order_id}-{int(get_bogota_time().timestamp())}"
-        
-        # We'll use the Hosted Checkout flow (Redirect)
-        # The URL structure for Wompi Hosted Checkout is:
-        # https://checkout.wompi.co/p/?public-key=PUB_KEY&amount-in-cents=AMOUNT&reference=REF&currency=COP&redirect-url=URL
-        
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        if os.getenv("ENV") == "development":
-            checkout_base = "https://checkout.wompi.co/p/"
-        else:
-            checkout_base = "https://checkout.wompi.co/p/"
+        payment_method = (payment.payment_method or "card").lower()
 
-        # Construct checkout URL
+        # We'll use the Hosted Checkout flow (Redirect)
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        checkout_base = "https://checkout.wompi.co/p/"
+
         params = {
             "public-key": WOMPI_PUBLIC_KEY,
-            "amount-in-cents": int(payment.amount * 100), # Wompi expects cents as integer
+            "amount-in-cents": int(payment.amount * 100),
             "reference": reference,
             "currency": payment.currency,
             "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}"
         }
-        
+
         from urllib.parse import urlencode
         checkout_url = f"{checkout_base}?{urlencode(params)}"
 
         # Store payment intent in database
         payment_id = str(uuid.uuid4())
         cursor.execute("""
-            INSERT INTO payments (id, order_id, amount, currency, status, reference, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO payments (id, order_id, amount, currency, status, reference, payment_method, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             payment_id,
             payment.order_id,
@@ -96,6 +90,7 @@ def create_payment(payment: PaymentCreate):
             payment.currency,
             'PENDING',
             reference,
+            payment_method,
             get_bogota_time()
         ))
         db.commit()
@@ -105,7 +100,8 @@ def create_payment(payment: PaymentCreate):
             "reference": reference,
             "checkout_url": checkout_url,
             "public_key": WOMPI_PUBLIC_KEY,
-            "status": "PENDING"
+            "status": "PENDING",
+            "payment_method": payment_method
         }
 
     except Exception as e:
@@ -156,6 +152,10 @@ async def wompi_webhook(request: Request):
             if not payment:
                 return {"status": "ignored"}
 
+            # Determine payment type for persistence
+            wompi_payment_method = transaction_data.get('payment_method_type') or transaction_data.get('payment_method', 'CARD')
+            normalized_payment_method = 'transfer' if wompi_payment_method and wompi_payment_method.upper() in ['PSE', 'TRANSFER', 'BANK_TRANSFER'] else 'card'
+
             # Update payment status
             cursor.execute("""
                 UPDATE payments 
@@ -163,7 +163,7 @@ async def wompi_webhook(request: Request):
                 WHERE id = %s
             """, (
                 transaction_data.get('status'),
-                transaction_data.get('payment_method_type'),
+                normalized_payment_method,
                 get_bogota_time(),
                 payment['id']
             ))
@@ -172,9 +172,9 @@ async def wompi_webhook(request: Request):
             if event == 'transaction.updated' and transaction_data.get('status') == 'APPROVED':
                 cursor.execute("""
                     UPDATE orders 
-                    SET status = 'confirmed', payment_method = 'card'
+                    SET status = 'confirmed', payment_method = %s
                     WHERE id = %s
-                """, (payment['order_id'],))
+                """, (normalized_payment_method, payment['order_id']))
             
             db.commit()
             return {"status": "processed"}
