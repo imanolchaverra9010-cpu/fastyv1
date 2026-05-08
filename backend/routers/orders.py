@@ -507,15 +507,25 @@ def get_user_orders(user_id: int):
         db.close()
 
 @router.patch("/{order_id}")
-def update_order(order_id: str, order_data: dict):
+async def update_order(order_id: str, order_data: dict, background_tasks: BackgroundTasks):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     cursor = db.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id FROM orders WHERE id = %s", (order_id,))
-        if not cursor.fetchone():
+        # Fetch order info with business owner and courier user IDs for notifications
+        cursor.execute("""
+            SELECT o.id, o.business_id, o.user_id, o.courier_id,
+                   b.owner_id as business_user_id, c.user_id as courier_user_id,
+                   b.name as business_name
+            FROM orders o
+            LEFT JOIN businesses b ON o.business_id = b.id
+            LEFT JOIN couriers c ON o.courier_id = c.id
+            WHERE o.id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        if not order:
             raise HTTPException(status_code=404, detail="Order not found")
 
         allowed_fields = {
@@ -560,11 +570,63 @@ def update_order(order_id: str, order_data: dict):
         params.append(order_id)
         cursor.execute(query, params)
 
+        # Handle status change notifications
         if "status" in order_data:
+            new_status = order_data["status"]
             cursor.execute(
                 "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
-                (order_id, order_data["status"])
+                (order_id, new_status)
             )
+
+            user_id = order.get('user_id')
+            business_id = order.get('business_id')
+            business_user_id = order.get('business_user_id')
+            courier_user_id = order.get('courier_user_id')
+            real_courier_id = order.get('courier_id')
+
+            # 1. WebSocket Notifications
+            if websocket_manager:
+                if business_id:
+                    await websocket_manager.notify_business(business_id, {
+                        "type": "order_status_update", "order_id": order_id, "status": new_status
+                    })
+                if real_courier_id:
+                    await websocket_manager.notify_courier_direct(real_courier_id, {
+                        "type": "order_status_update", "order_id": order_id, "status": new_status
+                    })
+                if user_id:
+                    await websocket_manager.notify_user(user_id, {
+                        "type": "order_status_update", "order_id": order_id, "status": new_status
+                    })
+
+            # 2. Push Notifications
+            client_messages = {
+                "preparing": "Tu pedido está siendo preparado 👨‍🍳",
+                "shipped": "Tu pedido va en camino 🛵",
+                "in_transit": "El domiciliario ya recogio tu pedido y va hacia ti",
+                "delivered": "¡Tu pedido ha sido entregado! 🎉",
+                "cancelled": "Tu pedido ha sido cancelado ❌"
+            }
+            if user_id and new_status in client_messages:
+                background_tasks.add_task(send_push_notification, user_id, {
+                    "title": "Actualización de Pedido",
+                    "body": client_messages[new_status],
+                    "url": f"/rastreo/{order_id}"
+                })
+
+            if new_status == "cancelled":
+                if business_user_id:
+                    background_tasks.add_task(send_push_notification, business_user_id, {
+                        "title": "Pedido Cancelado",
+                        "body": f"El pedido de {order.get('business_name', 'un cliente')} ha sido cancelado.",
+                        "url": "/negocio/pedidos"
+                    })
+                if courier_user_id:
+                    background_tasks.add_task(send_push_notification, courier_user_id, {
+                        "title": "Pedido Cancelado",
+                        "body": "El pedido que tenías asignado ha sido cancelado ❌",
+                        "url": "/domiciliario"
+                    })
 
         db.commit()
         return {"message": "Order updated successfully"}
@@ -755,8 +817,16 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
     
     cursor = db.cursor(dictionary=True)
     try:
-        # Check if it's a batch_id or a single order_id
-        cursor.execute("SELECT id, business_id, user_id FROM orders WHERE id = %s OR batch_id = %s", (order_id, order_id))
+        # Fetch order info with business owner and courier user IDs
+        cursor.execute("""
+            SELECT o.id, o.business_id, o.user_id, o.courier_id,
+                   b.owner_id as business_user_id, c.user_id as courier_user_id,
+                   b.name as business_name
+            FROM orders o
+            LEFT JOIN businesses b ON o.business_id = b.id
+            LEFT JOIN couriers c ON o.courier_id = c.id
+            WHERE o.id = %s OR o.batch_id = %s
+        """, (order_id, order_id))
         orders = cursor.fetchall()
         
         if not orders:
@@ -786,65 +856,80 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
         
         cursor.execute(query, params)
         
-        # Log del cambio para cada orden y notificar a cada negocio y usuario
+        # Log del cambio y notificaciones
         for order in orders:
             real_id = order['id']
             user_id = order.get('user_id')
+            business_id = order.get('business_id')
+            business_user_id = order.get('business_user_id')
+            courier_user_id = order.get('courier_user_id')
+            real_courier_id = order.get('courier_id')
+            
             if new_status:
                 cursor.execute(
                     "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
                     (real_id, new_status)
                 )
             
-            # Notificar al negocio de esta orden específica
-            if websocket_manager and order['business_id']:
-                await websocket_manager.notify_business(order['business_id'], {
-                    "type": "order_status_update",
-                    "order_id": real_id,
-                    "status": new_status
-                })
-            
-            # Notificar al usuario (cliente)
-            if websocket_manager and user_id:
-                await websocket_manager.notify_user(user_id, {
-                    "type": "order_status_update",
-                    "order_id": real_id,
-                    "status": new_status
-                })
-                
-                # Push Notification for Client
-                status_messages = {
-                    "preparing": "Tu pedido está siendo preparado 👨‍🍳",
-                    "shipped": "Tu pedido va en camino 🛵",
-                    "delivered": "¡Tu pedido ha sido entregado! 🎉",
-                    "cancelled": "Tu pedido ha sido cancelado ❌"
-                }
-                status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
-                if new_status in status_messages:
-                    background_tasks.add_task(send_push_notification, user_id, {
-                        "title": "Actualización de Pedido",
-                        "body": status_messages[new_status],
-                        "url": f"/rastreo/{real_id}"
+            # 1. Notificaciones WebSocket
+            if websocket_manager:
+                # Al negocio
+                if business_id:
+                    await websocket_manager.notify_business(business_id, {
+                        "type": "order_status_update",
+                        "order_id": real_id,
+                        "status": new_status
                     })
+                
+                # Al domiciliario (Directa si está asignado)
+                if real_courier_id:
+                    await websocket_manager.notify_courier_direct(real_courier_id, {
+                        "type": "order_status_update",
+                        "order_id": real_id,
+                        "status": new_status
+                    })
+                
+                # Al cliente
+                if user_id:
+                    await websocket_manager.notify_user(user_id, {
+                        "type": "order_status_update",
+                        "order_id": real_id,
+                        "status": new_status
+                    })
+
+            # 2. Notificaciones Push (Background Tasks)
+            # Mensajes para el cliente
+            client_messages = {
+                "preparing": "Tu pedido está siendo preparado 👨‍🍳",
+                "shipped": "Tu pedido va en camino 🛵",
+                "delivered": "¡Tu pedido ha sido entregado! 🎉",
+                "cancelled": "Tu pedido ha sido cancelado ❌"
+            }
+            client_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
             
-        # Vercel serverless does not keep a websocket manager alive, so client
-        # push notifications must also work when websocket_manager is missing.
-        if not websocket_manager:
-            for order in orders:
-                user_id = order.get('user_id')
-                real_id = order['id']
-                status_messages = {
-                    "preparing": "Tu pedido esta siendo preparado",
-                    "shipped": "Tu pedido va en camino",
-                    "delivered": "Tu pedido ha sido entregado",
-                    "cancelled": "Tu pedido ha sido cancelado"
-                }
-                status_messages["in_transit"] = "El domiciliario ya recogio tu pedido y va hacia ti"
-                if user_id and new_status in status_messages:
-                    background_tasks.add_task(send_push_notification, user_id, {
-                        "title": "Actualizacion de Pedido",
-                        "body": status_messages[new_status],
-                        "url": f"/rastreo/{real_id}"
+            if user_id and new_status in client_messages:
+                background_tasks.add_task(send_push_notification, user_id, {
+                    "title": "Actualización de Pedido",
+                    "body": client_messages[new_status],
+                    "url": f"/rastreo/{real_id}"
+                })
+
+            # Notificaciones especiales para CANCELACIÓN (Negocio y Domiciliario)
+            if new_status == "cancelled":
+                # Al Negocio
+                if business_user_id:
+                    background_tasks.add_task(send_push_notification, business_user_id, {
+                        "title": "Pedido Cancelado",
+                        "body": f"El pedido de {order.get('business_name', 'un cliente')} ha sido cancelado.",
+                        "url": "/negocio/pedidos"
+                    })
+                
+                # Al Domiciliario
+                if courier_user_id:
+                    background_tasks.add_task(send_push_notification, courier_user_id, {
+                        "title": "Pedido Cancelado",
+                        "body": "El pedido que tenías asignado ha sido cancelado ❌",
+                        "url": "/domiciliario"
                     })
 
         db.commit()

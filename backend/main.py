@@ -115,6 +115,13 @@ class ConnectionManager:
             # Enviar a todos en paralelo, ignorando errores individuales
             await asyncio.gather(*tasks, return_exceptions=True)
 
+    async def notify_courier_direct(self, courier_id: int, message: dict):
+        if courier_id in self.courier_connections:
+            try:
+                await self.courier_connections[courier_id].send_json(message)
+            except:
+                pass
+
     async def notify_business(self, business_id: str, message: dict):
         if business_id in self.business_connections:
             try:
