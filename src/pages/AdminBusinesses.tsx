@@ -7,6 +7,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import { BusinessModal } from "@/components/BusinessModal";
 import { MenuManagerModal } from "@/components/MenuManagerModal";
 import { AdminCredentialsModal } from "@/components/admin/AdminCredentialsModal";
+import { MenuLoaderModal } from "@/components/MenuLoaderModal";
 import { toast } from "@/hooks/use-toast";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -19,6 +20,7 @@ const AdminBusinesses = () => {
   const [editingBusiness, setEditingBusiness] = useState<any>(null);
   const [managingMenuBusiness, setManagingMenuBusiness] = useState<any>(null);
   const [credentialsBusiness, setCredentialsBusiness] = useState<any>(null);
+  const [isMenuLoaderOpen, setIsMenuLoaderOpen] = useState(false);
 
   const fetchBusinesses = async () => {
     setLoading(true);
@@ -100,9 +102,14 @@ const AdminBusinesses = () => {
                 <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Negocios</h1>
                 <p className="text-sm text-muted-foreground mt-1">Controla los aliados y establecimientos de la plataforma.</p>
               </div>
-              <Button variant="hero" className="h-11 rounded-xl gap-2 w-full md:w-auto" onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-5 w-5" /> Nuevo Negocio
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="outline" className="h-11 rounded-xl gap-2" onClick={() => setIsMenuLoaderOpen(true)}>
+                  <Utensils className="h-5 w-5" /> Cargar Menú
+                </Button>
+                <Button variant="hero" className="h-11 rounded-xl gap-2" onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-5 w-5" /> Nuevo Negocio
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-2xl bg-card border border-border/60 shadow-card overflow-hidden">
@@ -355,6 +362,9 @@ const AdminBusinesses = () => {
             onClose={() => setCredentialsBusiness(null)}
             onSuccess={fetchBusinesses}
           />
+        )}
+        {isMenuLoaderOpen && (
+          <MenuLoaderModal onClose={() => setIsMenuLoaderOpen(false)} />
         )}
       </div>
     </SidebarProvider>
