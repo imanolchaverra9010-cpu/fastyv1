@@ -14,7 +14,8 @@ import {
   Star,
   Send,
   MessageCircle,
-  Store
+  Store,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,7 @@ const OrderTracking = () => {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratedLocally, setRatedLocally] = useState(false);
   const orderRef = useRef<OrderDetail | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   const fetchOrder = async (id: string, silent = false) => {
     if (!silent) {
@@ -225,6 +227,35 @@ const OrderTracking = () => {
     }
   };
 
+  const handleCancel = async () => {
+    if (!order) return;
+    setCancellingOrder(true);
+    try {
+      const response = await fetch(`/api/orders/${order.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled", reason: "Cancelado por cliente" })
+      });
+      if (response.ok) {
+        toast({
+          title: "Pedido cancelado",
+          description: "Tu pedido ha sido cancelado exitosamente."
+        });
+        fetchOrder(order.id, true);
+      } else {
+        throw new Error("No se pudo cancelar el pedido");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
+
   const handleAcceptOffer = async (offerId: number) => {
     if (!order) return;
     try {
@@ -339,6 +370,31 @@ const OrderTracking = () => {
                 </div>
               </div>
             </header>
+
+            {/* Acciones del Pedido */}
+            {order.status !== 'delivered' && order.status !== 'cancelled' && (
+              <div className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2rem] p-6 shadow-card animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-display font-bold mb-1">¿Necesitas cancelar tu pedido?</h3>
+                    <p className="text-sm text-muted-foreground">Puedes cancelar tu pedido mientras no haya sido entregado.</p>
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleCancel}
+                    disabled={cancellingOrder}
+                    className="rounded-xl h-12 px-6 font-bold"
+                  >
+                    {cancellingOrder ? (
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    ) : (
+                      <X className="h-5 w-5 mr-2" />
+                    )}
+                    Cancelar Pedido
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Stepper Modernizado */}
             <div className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2.5rem] p-8 md:p-12 shadow-card overflow-hidden relative">

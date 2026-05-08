@@ -510,7 +510,7 @@ const CourierPanel = () => {
     }
   };
 
-  const handleAction = async (action: 'accept' | 'reject' | 'offer' | 'start_trip' | 'complete', orderId: string, deliveryFee?: number) => {
+  const handleAction = async (action: 'accept' | 'reject' | 'offer' | 'start_trip' | 'complete' | 'cancel', orderId: string, deliveryFee?: number) => {
     if (!user?.id) return;
 
     let url = ``;
@@ -589,6 +589,25 @@ const CourierPanel = () => {
 
       url = `/api/couriers/${user.id}/complete-order/${orderId}`;
       successMessage = `¡Entrega completada!`;
+    } else if (action === 'cancel') {
+      url = `/api/orders/${orderId}/status`;
+      // Usar PATCH para actualizar el estado a cancelled
+      try {
+        const response = await fetch(url, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "cancelled", reason: "Cancelado por domiciliario" })
+        });
+        if (response.ok) {
+          toast({ title: "Pedido cancelado", description: "El pedido ha sido cancelado exitosamente." });
+          fetchData(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Error cancelling order:", error);
+        toast({ title: "Error", description: "No se pudo cancelar el pedido.", variant: "destructive" });
+      }
+      return;
     }
 
     try {
@@ -832,6 +851,13 @@ const CourierPanel = () => {
                               <CheckCircle className="mr-2 h-5 w-5" /> Entregado
                             </Button>
                             <Button 
+                              variant="destructive" 
+                              className="rounded-xl h-12 px-4 font-bold"
+                              onClick={() => handleAction('cancel', order.id)}
+                            >
+                              <X className="h-5 w-5" />
+                            </Button>
+                            <Button 
                               variant="outline" 
                               className="h-12 w-12 rounded-xl border-2"
                               onClick={() => {
@@ -881,6 +907,13 @@ const CourierPanel = () => {
                               onClick={() => handleAction('start_trip', order.id)}
                             >
                               <Play className="mr-2 h-5 w-5" /> Recoger y Salir
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              className="rounded-xl h-12 px-4 font-bold"
+                              onClick={() => handleAction('cancel', order.id)}
+                            >
+                              <X className="h-5 w-5" />
                             </Button>
                             <Button 
                               variant="outline" 

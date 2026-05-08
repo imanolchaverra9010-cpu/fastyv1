@@ -258,11 +258,11 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     order_id = str(uuid.uuid4())[:8]
     payment_method = normalize_payment_method(order.payment_method)
     raw_method = (order.payment_method or "").strip().lower()
-    is_transfer_payment = raw_method in ["transfer", "transferencia"]
+    is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
 
     # Set initial status based on payment method
-    initial_status = 'pending_payment' if payment_method == 'card' or is_transfer_payment else 'pending'
-    should_notify_couriers = initial_status != 'pending_payment'
+    initial_status = 'pending_payment' if is_digital_payment else 'pending'
+    should_notify_couriers = not is_digital_payment
 
     try:
         ensure_open_order_support_schema(db)
