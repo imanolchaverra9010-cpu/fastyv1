@@ -22,7 +22,11 @@ from slowapi.errors import RateLimitExceeded
 
 class ApiPathFixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith("/api"):
+        path = request.url.path
+        if path.startswith("/api/index.py"):
+            # Vercel sometimes rewrites to the entrypoint path.
+            request.scope["path"] = "/api" + path[len("/api/index.py") :]
+        elif not path.startswith("/api"):
             known_api_paths = (
                 "/auth",
                 "/ai",
@@ -38,7 +42,7 @@ class ApiPathFixMiddleware(BaseHTTPMiddleware):
                 "/debug-db",
                 "/static",
             )
-            if any(request.url.path == prefix or request.url.path.startswith(prefix + "/") for prefix in known_api_paths):
+            if any(path == prefix or path.startswith(prefix + "/") for prefix in known_api_paths):
                 request.scope["path"] = "/api" + request.scope["path"]
         return await call_next(request)
 
@@ -116,8 +120,8 @@ routers_to_load = [
     ("ai", ai.router, f"{API_PREFIX}/ai", ["AI Features"]),
     ("orders", orders.router, f"{API_PREFIX}/orders", ["Orders"]),
     ("users", users.router, f"{API_PREFIX}/users", ["Users"]),
-    ("menu_items", menu_items.router, f"{API_PREFIX}/businesses", ["Menu Items"]),
-    ("business_requests", business_requests.router, f"{API_PREFIX}/businesses", ["Business Requests"]),
+    ("menu_items", menu_items.router, f"{API_PREFIX}/menu_items", ["Menu Items"]),
+    ("business_requests", business_requests.router, f"{API_PREFIX}/business_requests", ["Business Requests"]),
     ("businesses", businesses.router, f"{API_PREFIX}/businesses", ["Businesses"]),
     ("promotions", promotions.router, f"{API_PREFIX}/promotions", ["Promotions"]),
     ("admin", admin.router, f"{API_PREFIX}/admin", ["Admin Dashboard"]),

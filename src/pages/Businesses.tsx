@@ -32,13 +32,20 @@ const Businesses = () => {
     }
 
     fetch(url.toString())
-      .then(res => res.json())
-      .then(data => {
-        setBusinesses(data);
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`API request failed ${res.status}: ${text}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setBusinesses(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
+      .catch((err) => {
+        console.error("Businesses fetch error:", err);
+        setBusinesses([]);
         setLoading(false);
       });
   }, [categoryFilter, queryFilter]);

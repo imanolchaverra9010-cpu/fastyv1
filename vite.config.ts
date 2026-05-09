@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // Development-only proxy to redirect /api calls to the local backend.
+    // In Vercel production the app is built statically and /api routes are handled
+    // by the Vercel Python serverless function, so this proxy is not used there.
     proxy: {
       "/api": {
         target: "http://localhost:8000",
