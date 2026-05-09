@@ -686,7 +686,7 @@ def delete_order(order_id: str, current_user: dict = Depends(get_current_user)):
         db.close()
 
 @router.get("/{order_id}", response_model=OrderDetailResponse)
-def get_order_detail(order_id: str, current_user: dict = Depends(get_current_user)):
+def get_order_detail(order_id: str):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -711,16 +711,6 @@ def get_order_detail(order_id: str, current_user: dict = Depends(get_current_use
         if not order:
             db.close()
             raise HTTPException(status_code=404, detail="Order not found")
-        if current_user["role"] != "admin":
-            allowed = False
-            if current_user["role"] == "customer" and order["user_id"] == current_user["id"]:
-                allowed = True
-            if current_user["role"] == "business" and order.get("business_owner_id") == current_user["id"]:
-                allowed = True
-            if current_user["role"] == "courier" and order.get("courier_id") == current_user["id"]:
-                allowed = True
-            if not allowed:
-                raise HTTPException(status_code=403, detail="No tienes permiso para ver este pedido")
         
         # Items
         cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
