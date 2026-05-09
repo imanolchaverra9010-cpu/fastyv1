@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
     // by the Vercel Python serverless function, so this proxy is not used there.
     proxy: {
       "/api": {
-        target: "https://fasty-delta.vercel.app",
+        target: mode === 'production' ? "https://fasty-delta.vercel.app" : "http://localhost:8000",
         changeOrigin: true,
         secure: false,
       },
