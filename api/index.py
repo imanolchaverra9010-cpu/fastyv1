@@ -16,8 +16,32 @@ import traceback
 from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from utils import limiter
 from slowapi.errors import RateLimitExceeded
+
+class ApiPathFixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not request.url.path.startswith("/api"):
+            known_api_paths = (
+                "/auth",
+                "/ai",
+                "/orders",
+                "/users",
+                "/businesses",
+                "/promotions",
+                "/admin",
+                "/couriers",
+                "/push",
+                "/payments",
+                "/maintenance",
+                "/debug-db",
+                "/static",
+            )
+            if any(request.url.path == prefix or request.url.path.startswith(prefix + "/") for prefix in known_api_paths):
+                request.scope["path"] = "/api" + request.scope["path"]
+        return await call_next(request)
+
 
 def spanish_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
@@ -60,6 +84,9 @@ app = FastAPI(
     title="Fasty API",
     description="API para la plataforma de domicilios Fasty"
 )
+
+# Soporte para posibles reescrituras de ruta en Vercel
+app.add_middleware(ApiPathFixMiddleware)
 
 # Configurar Rate Limiting
 app.state.limiter = limiter
