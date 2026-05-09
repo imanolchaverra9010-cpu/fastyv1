@@ -22,11 +22,25 @@ interface Props {
 // Component to handle map bounds automatically
 const MapBounds = ({ points }: { points: { lat: number; lng: number }[] }) => {
   const map = useMap();
+  const [hasFitInitial, setHasFitInitial] = useState(false);
 
   useEffect(() => {
     if (points.length > 0) {
       const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng]));
-      map.fitBounds(bounds, { padding: [50, 50] });
+      
+      // Si es la primera vez o si los puntos cambiaron significativamente
+      if (!hasFitInitial) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+        setHasFitInitial(true);
+      } else {
+        // En actualizaciones posteriores, solo ajustamos si el repartidor se sale del mapa
+        // o si queremos mantener a todos a la vista pero de forma suave
+        map.flyToBounds(bounds, { 
+          padding: [50, 50],
+          duration: 1.5,
+          easeLinearity: 0.25
+        });
+      }
     }
   }, [map, points]);
 
@@ -42,11 +56,14 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
 
     const fetchRoute = async () => {
       const start = courier || pickup;
-      if (!start) {
+      if (!start || !dropoff) {
         setRouteCoords([]);
         return;
       }
 
+      // Evitar peticiones innecesarias si las coordenadas son las mismas
+      // (usamos un pequeño umbral de cambio para evitar ruido del GPS)
+      
       try {
         const response = await fetch(
           `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${dropoff.lng},${dropoff.lat}?overview=full&geometries=geojson`,
@@ -66,19 +83,21 @@ const DeliveryMap = ({ pickup, dropoff, courier }: Props) => {
           setRouteCoords([[start.lat, start.lng], [dropoff.lat, dropoff.lng]]);
         }
       } catch (error) {
-        if (isMounted) {
+        if (isMounted && error.name !== 'AbortError') {
           setRouteCoords([[start.lat, start.lng], [dropoff.lat, dropoff.lng]]);
         }
       }
     };
 
-    fetchRoute();
+    // Debounce de la petición de ruta para no saturar el API de OSRM
+    const timeoutId = setTimeout(fetchRoute, 1000);
 
     return () => {
       isMounted = false;
       controller.abort();
+      clearTimeout(timeoutId);
     };
-  }, [pickup, dropoff, courier]);
+  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, courier?.lat, courier?.lng]);
 
   const origin = courier || pickup;
   const mapsUrl = origin

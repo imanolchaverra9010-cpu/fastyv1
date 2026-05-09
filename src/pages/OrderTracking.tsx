@@ -127,13 +127,20 @@ const OrderTracking = () => {
     const targetUserId = orderRef.current?.user_id;
     if (!targetUserId) return;
 
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+    let isMounted = true;
+
     const connect = () => {
+      if (!isMounted) return;
+      
       const url = getWebSocketUrl(`/ws/user/${targetUserId}`);
       if (!url) return;
 
-      const ws = new WebSocket(url);
+      ws = new WebSocket(url);
 
       ws.onmessage = (event) => {
+        if (!isMounted) return;
         const message = JSON.parse(event.data);
         const currentOrder = orderRef.current;
 
@@ -191,10 +198,20 @@ const OrderTracking = () => {
         }
       };
 
-      ws.onclose = () => setTimeout(connect, 5000);
+      ws.onclose = () => {
+        if (isMounted) {
+          reconnectTimeout = setTimeout(connect, 5000);
+        }
+      };
     };
 
     connect();
+
+    return () => {
+      isMounted = false;
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
   }, [order?.user_id]);
 
   const handleSearch = (e: React.FormEvent) => {

@@ -126,7 +126,9 @@ const CourierPanel = () => {
     if ("geolocation" in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         async (position) => {
-          if (!isUsablePosition(position, 100)) {
+          // Aceptar posiciones con precisión de hasta 200m para evitar bloqueos en zonas difíciles
+          // pero priorizar las de alta precisión.
+          if (!isUsablePosition(position, 200)) {
             console.warn("Ignoring low accuracy courier position:", position.coords.accuracy);
             return;
           }
@@ -168,13 +170,13 @@ const CourierPanel = () => {
   };
 
   useEffect(() => {
-    if (inTransit.length > 0) {
+    if (inTransit.length > 0 || mine.length > 0) {
       startTracking();
     } else {
       stopTracking();
     }
     return () => stopTracking();
-  }, [inTransit.length]);
+  }, [inTransit.length, mine.length]);
 
   const playNotificationSound = () => {
     if (!audioRef.current) {
