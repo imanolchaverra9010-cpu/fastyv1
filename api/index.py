@@ -65,13 +65,21 @@ try:
     import routers
     router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments"]
     
-    # Importar routers dinámicamente y fallar si alguno no se carga
+    # Importar routers dinámicamente y continuar si alguno falla.
     import importlib
+    loaded_routers = {}
     for name in router_names:
-        globals()[name] = importlib.import_module(f"routers.{name}")
-        print(f"Módulo routers.{name} importado")
+        try:
+            loaded_routers[name] = importlib.import_module(f"routers.{name}")
+            print(f"Módulo routers.{name} importado")
+        except Exception as router_exc:
+            print(f"Error importando routers.{name}: {router_exc}")
+            traceback.print_exc()
+    if not loaded_routers:
+        raise RuntimeError("No se pudo cargar ningún router de backend")
 except Exception as e:
     print(f"Error crítico cargando routers: {e}")
+    traceback.print_exc()
     raise
 
 # Crear la aplicación FastAPI (SIN root_path)
@@ -131,6 +139,9 @@ routers_to_load = [
 ]
 
 for name, router_obj, prefix, tags in routers_to_load:
+    if name not in loaded_routers:
+        print(f"Omitiendo router '{name}' porque no se importó correctamente")
+        continue
     try:
         app.include_router(router_obj, prefix=prefix, tags=tags)
         print(f"Router '{name}' cargado exitosamente en {prefix}")
@@ -142,6 +153,7 @@ for name, router_obj, prefix, tags in routers_to_load:
             print(f"Router '{name}' cargado exitosamente también en {alt_prefix}")
     except Exception as e:
         print(f"Error cargando router '{name}': {e}")
+        traceback.print_exc()
         raise
 
 # Ruta raíz
