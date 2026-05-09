@@ -25,7 +25,15 @@ window.fetch = async (...args) => {
     }
   }
   
-  return originalFetch(resource, config);
+  const response = await originalFetch(resource, config);
+  
+  // Handle 401 Unauthorized globally
+  if (response.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    localStorage.removeItem("rapidito_user");
+    window.location.href = '/login';
+  }
+  
+  return response;
 };
 
 // PWA initialization is handled by vite-plugin-pwa
