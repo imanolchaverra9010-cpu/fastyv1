@@ -126,7 +126,7 @@ def create_payment(payment: PaymentCreate, request: Request):
             "reference": reference,
             "currency": payment.currency,
             "redirect-url": f"{frontend_url}/rastreo/{payment.order_id}",
-            "customer-email": payment.customer_email
+            "customer-data:email": payment.customer_email
         }
 
         from urllib.parse import urlencode
