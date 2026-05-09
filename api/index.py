@@ -61,22 +61,13 @@ try:
     import routers
     router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments"]
     
-    # Importar routers dinámicamente para que si uno falla no mate a los demás
+    # Importar routers dinámicamente y fallar si alguno no se carga
     import importlib
     for name in router_names:
-        try:
-            globals()[name] = importlib.import_module(f"routers.{name}")
-            print(f"Módulo routers.{name} importado")
-        except Exception as e:
-            print(f"Error importando routers.{name}: {e}")
-            class Dummy: 
-                def __init__(self):
-                    self.router = APIRouter()
-            globals()[name] = Dummy()
+        globals()[name] = importlib.import_module(f"routers.{name}")
+        print(f"Módulo routers.{name} importado")
 except Exception as e:
     print(f"Error crítico cargando routers: {e}")
-    # No podemos lanzar una excepción aquí porque mataría la app de Vercel
-    # pero al menos lo veremos en los logs.
     raise
 
 # Crear la aplicación FastAPI (SIN root_path)
@@ -138,10 +129,16 @@ routers_to_load = [
 for name, router_obj, prefix, tags in routers_to_load:
     try:
         app.include_router(router_obj, prefix=prefix, tags=tags)
-        print(f"Router '{name}' cargado exitosamente")
+        print(f"Router '{name}' cargado exitosamente en {prefix}")
+
+        if prefix.startswith("/api"):
+            alt_prefix = prefix[4:]
+            # Incluir rutas sin /api también, para soportar posibles reescrituras de Vercel
+            app.include_router(router_obj, prefix=alt_prefix, tags=tags, include_in_schema=False)
+            print(f"Router '{name}' cargado exitosamente también en {alt_prefix}")
     except Exception as e:
         print(f"Error cargando router '{name}': {e}")
-        # Opcional: podrías decidir si fallar o continuar
+        raise
 
 # Ruta raíz
 @app.get(f"{API_PREFIX}/")
