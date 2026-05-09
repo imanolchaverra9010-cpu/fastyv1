@@ -1,6 +1,6 @@
 import os
 from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from database import get_db
 from utils import SECRET_KEY, ALGORITHM
@@ -21,7 +21,7 @@ def verify_token(token: str):
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-async def get_current_user(credentials: HTTPAuthCredentials = Depends(security)):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = verify_token(token)
     email = payload.get("sub")

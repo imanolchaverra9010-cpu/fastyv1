@@ -124,25 +124,26 @@ API_PREFIX = "/api"
 # Incluir Routers con prefijo correcto
 # Lista de routers a cargar
 routers_to_load = [
-    ("auth", auth.router, f"{API_PREFIX}", ["Authentication"]),
-    ("ai", ai.router, f"{API_PREFIX}/ai", ["AI Features"]),
-    ("orders", orders.router, f"{API_PREFIX}/orders", ["Orders"]),
-    ("users", users.router, f"{API_PREFIX}/users", ["Users"]),
-    ("menu_items", menu_items.router, f"{API_PREFIX}/menu_items", ["Menu Items"]),
-    ("business_requests", business_requests.router, f"{API_PREFIX}/business_requests", ["Business Requests"]),
-    ("businesses", businesses.router, f"{API_PREFIX}/businesses", ["Businesses"]),
-    ("promotions", promotions.router, f"{API_PREFIX}/promotions", ["Promotions"]),
-    ("admin", admin.router, f"{API_PREFIX}/admin", ["Admin Dashboard"]),
-    ("couriers", couriers.router, f"{API_PREFIX}/couriers", ["Couriers Panel"]),
-    ("push", push.router, f"{API_PREFIX}/push", ["Push Notifications"]),
-    ("payments", payments.router, f"{API_PREFIX}/payments", ["Payments"]),
+    ("auth", f"{API_PREFIX}", ["Authentication"]),
+    ("ai", f"{API_PREFIX}/ai", ["AI Features"]),
+    ("orders", f"{API_PREFIX}/orders", ["Orders"]),
+    ("users", f"{API_PREFIX}/users", ["Users"]),
+    ("menu_items", f"{API_PREFIX}/menu_items", ["Menu Items"]),
+    ("business_requests", f"{API_PREFIX}/business_requests", ["Business Requests"]),
+    ("businesses", f"{API_PREFIX}/businesses", ["Businesses"]),
+    ("promotions", f"{API_PREFIX}/promotions", ["Promotions"]),
+    ("admin", f"{API_PREFIX}/admin", ["Admin Dashboard"]),
+    ("couriers", f"{API_PREFIX}/couriers", ["Couriers Panel"]),
+    ("push", f"{API_PREFIX}/push", ["Push Notifications"]),
+    ("payments", f"{API_PREFIX}/payments", ["Payments"]),
 ]
 
-for name, router_obj, prefix, tags in routers_to_load:
+for name, prefix, tags in routers_to_load:
     if name not in loaded_routers:
         print(f"Omitiendo router '{name}' porque no se importó correctamente")
         continue
     try:
+        router_obj = loaded_routers[name].router
         app.include_router(router_obj, prefix=prefix, tags=tags)
         print(f"Router '{name}' cargado exitosamente en {prefix}")
 
