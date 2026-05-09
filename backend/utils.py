@@ -1,4 +1,10 @@
+import os
+from dotenv import load_dotenv
 import bcrypt
+
+# Cargar variables de entorno para secretos y configuración
+load_dotenv()
+
 # Workaround for passlib/bcrypt incompatibility in newer versions
 if not hasattr(bcrypt, "__about__"):
     class BCryptAbout:
@@ -42,7 +48,9 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 # Configuración
 limiter = Limiter(key_func=get_remote_address)
-SECRET_KEY = "your-secret-key-change-it-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-it-in-production")
+if SECRET_KEY == "your-secret-key-change-it-in-production":
+    print("WARNING: SECRET_KEY no está configurado. Usa .env para definir SECRET_KEY segura.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

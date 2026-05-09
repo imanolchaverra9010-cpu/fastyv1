@@ -4,11 +4,14 @@ from database import get_db
 from datetime import datetime
 
 from schemas import UserUpdate
+from security import get_current_user
 
 router = APIRouter()
 
 @router.patch("/{user_id}")
-def update_user(user_id: int, user_data: UserUpdate):
+def update_user(user_id: int, user_data: UserUpdate, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar este usuario")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -80,7 +83,9 @@ def update_user(user_id: int, user_data: UserUpdate):
         db.close()
 
 @router.get("/{user_id}/benefits")
-def get_user_benefits(user_id: int):
+def get_user_benefits(user_id: int, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estos beneficios")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

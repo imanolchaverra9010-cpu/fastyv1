@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, Depends
 from typing import List, Optional, Dict
 from database import get_db
 from utils import get_bogota_time
@@ -8,6 +8,7 @@ import os
 import shutil
 import uuid
 from cache import get_cache, set_cache, delete_cache
+from security import get_current_user
 
 from datetime import datetime, timedelta, date
 
@@ -145,7 +146,9 @@ def get_business(business_id: str, response: Response):
 # --- Nuevos endpoints para el Panel de Negocios ---
 
 @router.get("/{user_id}/stats")
-def get_business_stats(user_id: int):
+def get_business_stats(user_id: int, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estas estadísticas")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -225,7 +228,9 @@ def get_business_stats(user_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/owner/{user_id}", response_model=BusinessResponse)
-def get_business_by_owner(user_id: int):
+def get_business_by_owner(user_id: int, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver este negocio")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -242,12 +247,18 @@ def get_business_by_owner(user_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{business_id}/orders")
-def get_business_orders(business_id: str, status_filter: Optional[str] = None):
+def get_business_orders(business_id: str, status_filter: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = db.cursor(dictionary=True)
     try:
+        if current_user["role"] != "admin":
+            cursor.execute("SELECT owner_id FROM businesses WHERE id = %s", (business_id,))
+            biz = cursor.fetchone()
+            if not biz or biz["owner_id"] != current_user["id"]:
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver estos pedidos")
+
         query = "SELECT * FROM orders WHERE business_id = %s"
         params = [business_id]
         if status_filter:

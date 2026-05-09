@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, BackgroundTasks, Depends
 from pydantic import BaseModel
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
+from security import get_current_user
 from datetime import datetime, timedelta
 import os
 import shutil
@@ -83,7 +84,9 @@ def attach_order_items(cursor, orders):
     return orders
 
 @router.post("/{user_id}/photo")
-async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
+async def upload_courier_photo(user_id: int, file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para subir la foto de este domiciliario")
     try:
         from lib.storage import upload_file
     except ImportError:
@@ -116,7 +119,9 @@ async def upload_courier_photo(user_id: int, file: UploadFile = File(...)):
         db.close()
 
 @router.get("/{user_id}/profile")
-def get_courier_profile(user_id: int, response: Response):
+def get_courier_profile(user_id: int, response: Response, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver este perfil")
     # Cache in browser for 10 seconds, but do not cache at Edge because it's user-specific
     response.headers["Cache-Control"] = "private, max-age=10"
     
@@ -136,7 +141,9 @@ def get_courier_profile(user_id: int, response: Response):
         db.close()
 
 @router.patch("/{user_id}/profile")
-def update_courier_profile(user_id: int, profile_data: dict):
+def update_courier_profile(user_id: int, profile_data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este perfil")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -179,7 +186,9 @@ def update_courier_profile(user_id: int, profile_data: dict):
         db.close()
 
 @router.get("/{user_id}/stats")
-def get_courier_stats(user_id: int, response: Response):
+def get_courier_stats(user_id: int, response: Response, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estas estadísticas")
     # Cache in browser for 10 seconds
     response.headers["Cache-Control"] = "private, max-age=10"
     
@@ -295,7 +304,9 @@ def get_available_orders(response: Response):
 
 
 @router.get("/{user_id}/my-orders")
-def get_my_orders(user_id: int, response: Response):
+def get_my_orders(user_id: int, response: Response, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estos pedidos")
     # Cache in browser for 5 seconds
     response.headers["Cache-Control"] = "private, max-age=5"
     
@@ -365,7 +376,9 @@ def get_my_orders(user_id: int, response: Response):
         db.close()
 
 @router.patch("/{user_id}/status")
-def update_courier_status(user_id: int, status_data: dict):
+def update_courier_status(user_id: int, status_data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este domiciliario")
     new_status = status_data.get("status")
     if new_status not in ['online', 'offline', 'busy']:
         raise HTTPException(status_code=400, detail="Invalid status")
@@ -392,7 +405,9 @@ def update_courier_status(user_id: int, status_data: dict):
         db.close()
 
 @router.patch("/{user_id}/location")
-async def update_courier_location(user_id: int, location_data: dict):
+async def update_courier_location(user_id: int, location_data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para actualizar esta ubicación")
     lat = location_data.get("lat")
     lng = location_data.get("lng")
     
@@ -447,7 +462,9 @@ async def update_courier_location(user_id: int, location_data: dict):
         db.close()
 
 @router.post("/{user_id}/accept-order/{order_id}")
-async def accept_order(user_id: int, order_id: str, background_tasks: BackgroundTasks):
+async def accept_order(user_id: int, order_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para aceptar pedidos por este domiciliario")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -542,7 +559,9 @@ async def accept_order(user_id: int, order_id: str, background_tasks: Background
         db.close()
 
 @router.post("/{user_id}/offer/{order_id}")
-def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCreate, background_tasks: BackgroundTasks):
+def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCreate, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para crear ofertas con este domiciliario")
     if offer.amount <= 0:
         raise HTTPException(status_code=400, detail="Offer amount must be greater than zero")
 
@@ -624,7 +643,9 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
         db.close()
 
 @router.post("/{user_id}/reject-order/{order_id}")
-def reject_order(user_id: int, order_id: str):
+def reject_order(user_id: int, order_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para rechazar pedidos con este domiciliario")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -656,7 +677,9 @@ def reject_order(user_id: int, order_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{user_id}/complete-order/{order_id}")
-def complete_order(user_id: int, order_id: str, data: dict = None):
+def complete_order(user_id: int, order_id: str, data: dict = None, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para completar pedidos con este domiciliario")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

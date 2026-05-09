@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends
 from typing import List, Optional
 from datetime import timedelta
 import uuid
 from database import get_db
 from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate, FeeCalculationRequest, FeeCalculationResponse
 from utils import get_bogota_time, calculate_distance
+from security import get_current_user
 import json
 import math
 from .push import send_push_notification
@@ -385,7 +386,9 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         db.close()
 
 @router.get("", response_model=List[OrderResponse])
-def get_orders(status_filter: Optional[str] = None):
+def get_orders(status_filter: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver todos los pedidos")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -479,7 +482,9 @@ def calculate_open_fee(request: FeeCalculationRequest):
         db.close()
 
 @router.get("/user/{user_id}", response_model=List[OrderResponse])
-def get_user_orders(user_id: int):
+def get_user_orders(user_id: int, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and current_user["id"] != user_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver estos pedidos")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -507,7 +512,7 @@ def get_user_orders(user_id: int):
         db.close()
 
 @router.patch("/{order_id}")
-async def update_order(order_id: str, order_data: dict, background_tasks: BackgroundTasks):
+async def update_order(order_id: str, order_data: dict, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -527,6 +532,13 @@ async def update_order(order_id: str, order_data: dict, background_tasks: Backgr
         order = cursor.fetchone()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+        if current_user["role"] != "admin":
+            if current_user["role"] == "customer" and order["user_id"] != current_user["id"]:
+                raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
+            if current_user["role"] == "business" and order["business_user_id"] != current_user["id"]:
+                raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
+            if current_user["role"] == "courier" and order["courier_user_id"] != current_user["id"]:
+                raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
 
         allowed_fields = {
             "customer_name",
@@ -641,16 +653,19 @@ async def update_order(order_id: str, order_data: dict, background_tasks: Backgr
         db.close()
 
 @router.delete("/{order_id}")
-def delete_order(order_id: str):
+def delete_order(order_id: str, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
 
     cursor = db.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id FROM orders WHERE id = %s", (order_id,))
-        if not cursor.fetchone():
+        cursor.execute("SELECT id, user_id FROM orders WHERE id = %s", (order_id,))
+        order = cursor.fetchone()
+        if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+        if current_user["role"] != "admin" and order["user_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este pedido")
 
         for table in ["order_courier_offers", "order_rejections", "order_ratings", "order_status_logs", "order_items"]:
             cursor.execute("SHOW TABLES LIKE %s", (table,))
@@ -671,7 +686,7 @@ def delete_order(order_id: str):
         db.close()
 
 @router.get("/{order_id}", response_model=OrderDetailResponse)
-def get_order_detail(order_id: str):
+def get_order_detail(order_id: str, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -685,7 +700,8 @@ def get_order_detail(order_id: str):
                    c.vehicle as courier_vehicle, c.phone as courier_phone,
                    c.rating as courier_rating,
                    b.latitude as business_lat, b.longitude as business_lng,
-                   b.name as business_name, b.emoji as business_emoji
+                   b.name as business_name, b.emoji as business_emoji,
+                   b.owner_id as business_owner_id
             FROM orders o 
             LEFT JOIN couriers c ON o.courier_id = c.id 
             LEFT JOIN businesses b ON o.business_id = b.id
@@ -695,6 +711,16 @@ def get_order_detail(order_id: str):
         if not order:
             db.close()
             raise HTTPException(status_code=404, detail="Order not found")
+        if current_user["role"] != "admin":
+            allowed = False
+            if current_user["role"] == "customer" and order["user_id"] == current_user["id"]:
+                allowed = True
+            if current_user["role"] == "business" and order.get("business_owner_id") == current_user["id"]:
+                allowed = True
+            if current_user["role"] == "courier" and order.get("courier_id") == current_user["id"]:
+                allowed = True
+            if not allowed:
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver este pedido")
         
         # Items
         cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
