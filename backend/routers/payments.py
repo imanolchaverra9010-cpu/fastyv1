@@ -31,11 +31,41 @@ def verify_wompi_signature(payload: str, signature: str) -> bool:
     ).hexdigest()
     return hmac.compare_digest(expected_signature, signature)
 
+
+def normalize_payment_method(payment_method: str | None) -> str:
+    if not payment_method:
+        return "card"
+
+    normalized = payment_method.strip().lower()
+    if normalized in ["card", "credit_card", "debit_card"]:
+        return "card"
+    if normalized in ["wallet", "digital_wallet"]:
+        return "wallet"
+    if normalized in ["transfer", "transferencia", "pse", "bank_transfer"]:
+        return "transfer"
+    return "card"
+
+
+def parse_wompi_amount_cents(transaction_data: dict) -> int | None:
+    if transaction_data is None:
+        return None
+    if transaction_data.get("amount_in_cents") is not None:
+        return int(transaction_data["amount_in_cents"])
+    if transaction_data.get("amount") is not None:
+        return int(transaction_data["amount"])
+    if transaction_data.get("pricing_method") is not None:
+        return None
+    return None
+
+
 @router.post("/create", response_model=dict)
 def create_payment(payment: PaymentCreate, request: Request):
     """Create a payment intent and return Wompi checkout info"""
     if not WOMPI_PUBLIC_KEY:
         raise HTTPException(status_code=500, detail="Wompi not configured (Public Key missing)")
+
+    if payment.amount <= 0:
+        raise HTTPException(status_code=400, detail="El monto del pago debe ser mayor a cero")
 
     db = get_db()
     if not db:
@@ -59,22 +89,34 @@ def create_payment(payment: PaymentCreate, request: Request):
         order = cursor.fetchone()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
-        
-        # In a real app, we'd check if status is pending_payment
-        # For flexibility, we'll allow it if it's pending or pending_payment
+
         if order['status'] not in ['pending', 'pending_payment']:
-             # If it's already confirmed, don't allow payment again unless we have a specific reason
-             if order['status'] == 'confirmed':
-                 return {
-                     "status": "ALREADY_PAID",
-                     "message": "Este pedido ya ha sido pagado"
-                 }
+            if order['status'] == 'confirmed':
+                return {
+                    "status": "ALREADY_PAID",
+                    "message": "Este pedido ya ha sido pagado"
+                }
+            raise HTTPException(status_code=400, detail=f"No se puede pagar un pedido con estado '{order['status']}'")
 
-        # Create a unique reference for this payment attempt
-        reference = f"FASTYY-{payment.order_id}-{int(get_bogota_time().timestamp())}"
-        payment_method = (payment.payment_method or "card").lower()
+        if payment.customer_email is None or not payment.customer_email.strip():
+            raise HTTPException(status_code=400, detail="El correo del cliente es obligatorio para el pago")
 
-        # We'll use the Hosted Checkout flow (Redirect)
+        order_total = float(order.get('total') or 0)
+        if order_total <= 0:
+            raise HTTPException(status_code=400, detail="El pedido tiene un total inválido")
+
+        if float(payment.amount) != order_total:
+            raise HTTPException(status_code=400, detail="El monto del pago no coincide con el total del pedido")
+
+        if order['status'] == 'pending':
+            cursor.execute("UPDATE orders SET status = 'pending_payment' WHERE id = %s", (payment.order_id,))
+            cursor.execute("INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)", (payment.order_id, 'pending_payment'))
+
+        # Create a unique reference for this payment attempt, not guessable
+        reference = f"FASTYY-{payment.order_id}-{uuid.uuid4().hex[:10].upper()}"
+        payment_method = normalize_payment_method(payment.payment_method)
+
+        # Hosted Checkout flow (Redirect)
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         checkout_base = "https://checkout.wompi.co/p/"
 
@@ -132,15 +174,19 @@ async def wompi_webhook(request: Request):
     try:
         body = await request.body()
         payload = body.decode('utf-8')
-        
-        # Get signature from headers
+
         signature = request.headers.get('X-Wompi-Signature')
-        if signature and not verify_wompi_signature(payload, signature):
+        if not signature:
+            raise HTTPException(status_code=401, detail="Missing webhook signature")
+        if not verify_wompi_signature(payload, signature):
             raise HTTPException(status_code=401, detail="Invalid signature")
 
         webhook_data = json.loads(payload)
         event = webhook_data.get('event')
         transaction_data = webhook_data.get('data', {})
+
+        if not isinstance(transaction_data, dict) or not transaction_data.get('id'):
+            raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
         db = get_db()
         if not db:
@@ -148,48 +194,58 @@ async def wompi_webhook(request: Request):
 
         cursor = db.cursor(dictionary=True)
         try:
-            # Find payment by Wompi transaction ID
+            # Find payment by Wompi transaction ID first, then reference
             cursor.execute(
                 "SELECT * FROM payments WHERE wompi_transaction_id = %s",
                 (transaction_data.get('id'),)
             )
             payment = cursor.fetchone()
-            
+
             if not payment:
-                # Try by reference
                 cursor.execute(
                     "SELECT * FROM payments WHERE reference = %s",
                     (transaction_data.get('reference'),)
                 )
                 payment = cursor.fetchone()
-            
+
             if not payment:
                 return {"status": "ignored"}
 
-            # Determine payment type for persistence
-            wompi_payment_method = transaction_data.get('payment_method_type') or transaction_data.get('payment_method', 'CARD')
-            normalized_payment_method = 'transfer' if wompi_payment_method and wompi_payment_method.upper() in ['PSE', 'TRANSFER', 'BANK_TRANSFER'] else 'card'
+            amount_cents = parse_wompi_amount_cents(transaction_data)
+            if amount_cents is not None and amount_cents != int(payment['amount'] * 100):
+                raise HTTPException(status_code=400, detail="Webhook amount does not match payment amount")
 
-            # Update payment status
+            wompi_payment_method = transaction_data.get('payment_method_type') or transaction_data.get('payment_method') or payment.get('payment_method')
+            normalized_payment_method = normalize_payment_method(wompi_payment_method)
+            transaction_status = (transaction_data.get('status') or '').upper()
+            transaction_id = transaction_data.get('id')
+
             cursor.execute("""
-                UPDATE payments 
-                SET status = %s, payment_method = %s, updated_at = %s
+                UPDATE payments
+                SET status = %s,
+                    payment_method = %s,
+                    wompi_transaction_id = %s,
+                    updated_at = %s
                 WHERE id = %s
             """, (
-                transaction_data.get('status'),
+                transaction_status,
                 normalized_payment_method,
+                transaction_id,
                 get_bogota_time(),
                 payment['id']
             ))
 
-            # If payment approved, update order status
-            if event == 'transaction.updated' and transaction_data.get('status') == 'APPROVED':
+            if event == 'transaction.updated' and transaction_status == 'APPROVED':
                 cursor.execute("""
-                    UPDATE orders 
+                    UPDATE orders
                     SET status = 'confirmed', payment_method = %s
-                    WHERE id = %s
+                    WHERE id = %s AND status IN ('pending_payment', 'pending')
                 """, (normalized_payment_method, payment['order_id']))
-            
+                cursor.execute(
+                    "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
+                    (payment['order_id'], 'confirmed')
+                )
+
             db.commit()
             return {"status": "processed"}
 
@@ -197,6 +253,8 @@ async def wompi_webhook(request: Request):
             cursor.close()
             db.close()
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
