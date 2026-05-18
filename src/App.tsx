@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "lucide-react";
 import { CartProvider, useCart } from "@/context/CartContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import Index from "./pages/Index1.tsx";
+import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Businesses from "./pages/Businesses.tsx";
 import BusinessDetail from "./pages/BusinessDetail.tsx";
