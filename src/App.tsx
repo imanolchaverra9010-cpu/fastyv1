@@ -112,7 +112,7 @@ const AppContent = () => {
       clearInterval(interval);
     };
     */
-    setIsMaintenance(false);
+    setIsMaintenance(true);
     setCheckingMaint(false);
   }, [pathname]);
 
