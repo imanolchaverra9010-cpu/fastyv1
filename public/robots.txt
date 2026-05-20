@@ -1,14 +1,9 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Robots rules for Fasty
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /api/debug-db
+
+# Sitemap
+Sitemap: https://fasty-delta.vercel.app/sitemap.xml
