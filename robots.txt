@@ -1,0 +1,11 @@
+# Robots rules: adjust as needed
+User-agent: *
+Allow: /
+
+# Block admin/debug endpoints from being crawled
+Disallow: /api/admin
+Disallow: /admin
+Disallow: /api/debug-db
+
+# Sitemap
+Sitemap: https://fasty-delta.vercel.app/sitemap.xml

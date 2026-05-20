@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,24 +8,83 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fasty" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Fasty</title>
-    <link rel="icon" type="image/png" href="/src/assets/logo.png" />
-    <meta name="description" content="Fasty - La mejor app de domicilios rápidos" />
-    <meta name="author" content="Fasty" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    <meta property="og:title" content="Fasty App" />
-    <meta property="og:description" content="La mejor app de domicilios rápidos con Fasty" />
+    <title>Fasty — Domicilios en Quibdó | Envíos rápidos y seguros</title>
+    <link rel="icon" type="image/png" href="/src/assets/logo.png" />
+
+    <!-- Primary metadata -->
+    <meta name="description" content="Fasty - Domicilios rápidos en Quibdó. Pide a restaurantes y tiendas locales, entrega fiable y rápida." />
+    <meta name="keywords" content="domicilios en Quibdó, domicilios Quibdó, delivery Quibdó, Fasty, domicilios rápidos, envíos Quibdó, entregas a domicilio" />
+    <meta name="author" content="Fasty" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:site_name" content="Fasty" />
+    <meta property="og:title" content="Fasty — Domicilios en Quibdó | Envíos rápidos y seguros" />
+    <meta property="og:description" content="Pide domicilios en Quibdó con Fasty. Entregas rápidas desde restaurantes y tiendas locales." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/pwa-512x512.png" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Fasty" />
+    <meta name="twitter:title" content="Fasty — Domicilios en Quibdó" />
+    <meta name="twitter:description" content="Domicilios rápidos en Quibdó. Pide a restaurantes locales con Fasty." />
     <meta name="twitter:image" content="/pwa-512x512.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://fasty-delta.vercel.app/" />
+
+    <!-- Locality/geotag (helps local search) -->
+    <meta name="geo.region" content="CO-CHO" />
+    <meta name="geo.placename" content="Quibdó" />
+
+    <!-- Structured data: LocalBusiness + WebSite (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Fasty",
+      "description": "Fasty - Domicilios rápidos en Quibdó. Pide a restaurantes y tiendas locales, entrega fiable y rápida.",
+      "url": "https://fasty-delta.vercel.app/",
+      "telephone": "+573204405039",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Quibdó",
+        "addressLocality": "Quibdó",
+        "addressRegion": "Chocó",
+        "addressCountry": "CO"
+      },
+      "areaServed": "Quibdó",
+      "sameAs": []
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "url": "https://fasty-delta.vercel.app/",
+      "name": "Fasty",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://fasty-delta.vercel.app/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </head>
 
   <body>
+    <!-- Visible SEO fallback for crawlers and noscript users -->
+    <noscript>
+      <div style="padding:20px; font-family:Arial,Helvetica,sans-serif;">
+        <h1>Fasty — Domicilios en Quibdó</h1>
+        <p>Pedidos y entregas rápidas en Quibdó. Encuentra restaurantes y tiendas locales con servicio a domicilio.</p>
+      </div>
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
