@@ -324,222 +324,246 @@ export default function AdminBanners() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
+      <div className="flex min-h-screen w-full bg-gradient-warm">
         <AdminSidebar />
-        <SidebarInset className="flex flex-col flex-1 overflow-hidden bg-slate-950">
+        <SidebarInset className="flex-1 bg-transparent">
           {/* Header */}
-          <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-6 border-b border-slate-800/60 bg-slate-900/40 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="text-slate-400 hover:text-slate-100" />
-              <div className="h-4 w-[1px] bg-slate-800" />
-              <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-primary" />
-                Gestión de Banners y Carruseles
-              </h1>
-            </div>
-            <Button
-              onClick={() => {
-                resetForm();
-                setIsFormOpen(true);
-              }}
-              className="bg-primary hover:bg-primary/95 text-white shadow-lg hover:shadow-primary/20 transition-all font-semibold flex items-center gap-2 px-4 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo Banner
-            </Button>
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
+            <SidebarTrigger className="-ml-1" />
+            <div className="h-4 w-px bg-border/60 mx-2" />
+            <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-primary" />
+              Banners Promocionales
+            </h2>
           </header>
 
           {/* Body Content */}
-          <main className="flex-1 overflow-y-auto p-6 bg-slate-950">
-            <div className="max-w-6xl mx-auto space-y-6">
+          <main className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
+            {/* Page Title & Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="text-xs md:text-sm text-primary font-semibold">Administración</p>
+                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Banners y Carruseles</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Crea y gestiona las campañas promocionales que se muestran dinámicamente en la página de inicio.
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  resetForm();
+                  setIsFormOpen(true);
+                }}
+                className="w-full sm:w-auto bg-primary hover:bg-primary/95 text-white shadow-glow hover:scale-[1.01] active:scale-[0.99] transition-all font-bold h-12 rounded-2xl flex items-center gap-2 px-6"
+              >
+                <Plus className="h-5 w-5" />
+                Nuevo Banner
+              </Button>
+            </div>
               
-              {/* Premium Hero Stats Info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c0f1d] to-slate-900 border border-slate-800/60 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                    {banners.filter(b => b.slot_position === 'left').length}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Slot Izquierdo</h3>
-                    <p className="text-xs text-slate-500 mt-1">Sustituye Samsung. Si hay &gt;1, se vuelve carrusel.</p>
-                  </div>
+            {/* Premium Hero Stats Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-card flex items-center gap-4 hover:shadow-glow transition-all duration-300">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black shrink-0">
+                  {banners.filter(b => b.slot_position === 'left').length}
                 </div>
-
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c0f1d] to-slate-900 border border-slate-800/60 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 font-bold shrink-0">
-                    {banners.filter(b => b.slot_position === 'right_top').length}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Slot Derecho Sup.</h3>
-                    <p className="text-xs text-slate-500 mt-1">Sustituye Gaming. Si hay &gt;1, se vuelve carrusel.</p>
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c0f1d] to-slate-900 border border-slate-800/60 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 font-bold shrink-0">
-                    {banners.filter(b => b.slot_position === 'right_bottom').length}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Slot Derecho Inf.</h3>
-                    <p className="text-xs text-slate-500 mt-1">Sustituye Muebles. Si hay &gt;1, se vuelve carrusel.</p>
-                  </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Slot Izquierdo</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Sustituye Samsung. Si hay &gt;1, se vuelve carrusel.</p>
                 </div>
               </div>
 
-              {/* Banners Listing Table/Cards */}
-              {isLoading ? (
-                <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-3 bg-slate-900/30 rounded-2xl border border-slate-800/60">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p>Consultando base de datos...</p>
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-card flex items-center gap-4 hover:shadow-glow transition-all duration-300">
+                <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 font-black shrink-0">
+                  {banners.filter(b => b.slot_position === 'right_top').length}
                 </div>
-              ) : banners.length === 0 ? (
-                <div className="h-80 flex flex-col items-center justify-center text-slate-400 gap-4 bg-slate-900/30 rounded-2xl border border-slate-800/60 p-8 text-center max-w-xl mx-auto">
-                  <div className="h-16 w-16 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
-                    <ImageIcon className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-200">No hay banners configurados</h2>
-                    <p className="text-sm text-slate-400 mt-1">
-                      El cliente mostrará los banners predeterminados premium. ¡Sube tu primera promoción ahora mismo!
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      resetForm();
-                      setIsFormOpen(true);
-                    }}
-                    className="bg-primary hover:bg-primary/95 text-white font-semibold rounded-full mt-2"
-                  >
-                    Crear Primer Banner
-                  </Button>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Slot Derecho Sup.</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Sustituye Gaming. Si hay &gt;1, se vuelve carrusel.</p>
                 </div>
-              ) : (
-                <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 overflow-hidden shadow-2xl">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-800/80 bg-slate-900/80 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          <th className="px-6 py-4">Banner</th>
-                          <th className="px-6 py-4">Slot / Ubicación</th>
-                          <th className="px-6 py-4">Gradient de Fondo</th>
-                          <th className="px-6 py-4 text-center">Estado</th>
-                          <th className="px-6 py-4 text-right">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/40 text-sm">
-                        {banners.map((banner) => (
-                          <tr key={banner.id} className="hover:bg-slate-900/20 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-4">
-                                <div className="h-12 w-20 rounded-lg overflow-hidden bg-slate-800 border border-slate-700/50 shrink-0 relative">
-                                  <img
-                                    src={banner.image_url}
-                                    alt={banner.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = "https://placehold.co/120x80/1e293b/white?text=Img";
-                                    }}
-                                  />
-                                </div>
-                                <div className="max-w-[240px] overflow-hidden">
-                                  {banner.tag && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider block w-max">
-                                      {banner.tag}
-                                    </span>
-                                  )}
-                                  <p className="font-semibold text-slate-200 truncate mt-1">{banner.title}</p>
-                                  {banner.subtitle && (
-                                    <p className="text-xs text-slate-400 truncate">{banner.subtitle}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="font-medium text-slate-300">
-                                {banner.slot_position === "left"
-                                  ? "Izquierdo (Grande)"
-                                  : banner.slot_position === "right_top"
-                                  ? "Derecho Superior"
-                                  : "Derecho Inferior"}
-                              </span>
-                              {banner.redirect_url && (
-                                <a
-                                  href={banner.redirect_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary hover:underline flex items-center gap-1 mt-1 font-mono"
-                                >
-                                  Ver link <ExternalLink className="h-3 w-3" />
-                                </a>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 font-mono text-xs max-w-[200px]">
-                              <div className="flex items-center gap-2">
-                                <span className={`h-4 w-8 rounded ${banner.bg_gradient || "bg-slate-800"}`} />
-                                <span className="text-slate-400 truncate w-[140px] block">
-                                  {banner.bg_gradient || "Por defecto"}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <button
-                                onClick={() => handleToggleActive(banner)}
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                                  banner.is_active
-                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
-                                    : "bg-slate-800 text-slate-400 border border-slate-700/60 hover:bg-slate-700/55"
-                                }`}
-                              >
-                                {banner.is_active ? (
-                                  <>
-                                    <Eye className="h-3.5 w-3.5" /> Activo
-                                  </>
-                                ) : (
-                                  <>
-                                    <EyeOff className="h-3.5 w-3.5" /> Inactivo
-                                  </>
-                                )}
-                              </button>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditClick(banner)}
-                                  className="h-8 w-8 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 rounded-lg"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(banner.id)}
-                                  className="h-8 w-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-card flex items-center gap-4 hover:shadow-glow transition-all duration-300">
+                <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 font-black shrink-0">
+                  {banners.filter(b => b.slot_position === 'right_bottom').length}
                 </div>
-              )}
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Slot Derecho Inf.</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Sustituye Muebles. Si hay &gt;1, se vuelve carrusel.</p>
+                </div>
+              </div>
             </div>
+
+            {/* Banners Listing Table/Cards */}
+            {isLoading ? (
+              <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-3 bg-card border border-border/60 rounded-3xl shadow-card">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-xs font-bold">Consultando base de datos...</p>
+              </div>
+            ) : banners.length === 0 ? (
+              <div className="border border-dashed border-border/80 rounded-3xl p-12 text-center text-muted-foreground space-y-4 max-w-xl mx-auto bg-card/40 backdrop-blur-sm">
+                <div className="h-20 w-20 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground/60 mx-auto shadow-inner">
+                  <ImageIcon className="h-10 w-10" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">No hay banners configurados</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    El cliente mostrará los banners predeterminados premium de Fasty. ¡Sube tu primera promoción ahora mismo!
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    resetForm();
+                    setIsFormOpen(true);
+                  }}
+                  className="bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl h-11 px-6 shadow-glow"
+                >
+                  Crear Primer Banner
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-border/60 bg-card shadow-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground font-semibold text-xs uppercase tracking-wider">
+                        <th className="px-6 py-4">Banner</th>
+                        <th className="px-6 py-4">Slot / Ubicación</th>
+                        <th className="px-6 py-4">Estilo Fondo</th>
+                        <th className="px-6 py-4 text-center">Estado</th>
+                        <th className="px-6 py-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/30 bg-card text-foreground">
+                      {banners.map((banner) => (
+                        <tr key={banner.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-4">
+                              <div 
+                                className={`h-12 w-20 rounded-xl overflow-hidden border border-border/40 shrink-0 relative flex items-center justify-center p-1 ${
+                                  (banner.bg_gradient && !banner.bg_gradient.startsWith('#') && !banner.bg_gradient.startsWith('rgb') && !banner.bg_gradient.startsWith('linear-gradient')) 
+                                    ? banner.bg_gradient 
+                                    : !banner.bg_gradient 
+                                    ? "bg-muted" 
+                                    : ""
+                                }`}
+                                style={banner.bg_gradient && (banner.bg_gradient.startsWith('#') || banner.bg_gradient.startsWith('rgb') || banner.bg_gradient.startsWith('linear-gradient')) ? { background: banner.bg_gradient } : undefined}
+                              >
+                                <img
+                                  src={banner.image_url}
+                                  alt={banner.title}
+                                  className="max-h-full max-w-full object-contain filter drop-shadow-md transition-transform duration-300 hover:scale-105"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://placehold.co/120x80/e2e8f0/64748b?text=Img";
+                                  }}
+                                />
+                              </div>
+                              <div className="max-w-[240px] overflow-hidden">
+                                {banner.tag && (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 uppercase tracking-widest block w-max leading-none">
+                                    {banner.tag}
+                                  </span>
+                                )}
+                                <p className="font-bold text-foreground truncate mt-1">{banner.title}</p>
+                                {banner.subtitle && (
+                                  <p className="text-xs text-muted-foreground truncate">{banner.subtitle}</p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-bold text-foreground block">
+                              {banner.slot_position === "left"
+                                ? "Izquierdo (Grande)"
+                                : banner.slot_position === "right_top"
+                                ? "Derecho Superior"
+                                : "Derecho Inferior"}
+                            </span>
+                            {banner.redirect_url && (
+                              <a
+                                href={banner.redirect_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1 font-mono font-medium"
+                              >
+                                Ver link <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs max-w-[200px]">
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className={`h-5 w-10 rounded-lg border border-white/10 ${
+                                  (banner.bg_gradient && !banner.bg_gradient.startsWith('#') && !banner.bg_gradient.startsWith('rgb') && !banner.bg_gradient.startsWith('linear-gradient')) 
+                                    ? banner.bg_gradient 
+                                    : !banner.bg_gradient 
+                                    ? "bg-slate-800" 
+                                    : ""
+                                }`}
+                                style={banner.bg_gradient && (banner.bg_gradient.startsWith('#') || banner.bg_gradient.startsWith('rgb') || banner.bg_gradient.startsWith('linear-gradient')) ? { background: banner.bg_gradient } : undefined}
+                              />
+                              <span className="text-muted-foreground truncate w-[140px] block font-medium">
+                                {banner.bg_gradient || "Por defecto"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              onClick={() => handleToggleActive(banner)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                banner.is_active
+                                  ? "bg-success/10 text-success border border-success/20 hover:bg-success/20"
+                                  : "bg-muted text-muted-foreground border border-border/60 hover:bg-muted/80"
+                              }`}
+                            >
+                              {banner.is_active ? (
+                                <>
+                                  <Eye className="h-3.5 w-3.5" /> Visible
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="h-3.5 w-3.5" /> Oculto
+                                </>
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditClick(banner)}
+                                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl"
+                              >
+                                <Edit className="h-4.5 w-4.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(banner.id)}
+                                className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                              >
+                                <Trash2 className="h-4.5 w-4.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </main>
 
           {/* Modal / Dialog Form Overlay */}
           {isFormOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-              <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl my-8 animate-in fade-in zoom-in-95 duration-200">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 md:p-8">
+              <div className="relative w-full max-w-2xl bg-card border border-border/60 rounded-[2.5rem] overflow-hidden shadow-glow my-auto animate-in fade-in zoom-in-95 duration-200">
                 
                 {/* Modal Header */}
-                <div className="p-6 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-                    <Sparkles className="text-primary h-5 w-5" />
+                <div className="p-6 border-b border-border/40 bg-muted/20 flex items-center justify-between">
+                  <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+                    <Sparkles className="text-primary h-5 w-5 animate-pulse" />
                     {editingBanner ? "Modificar Banner" : "Nuevo Banner Promocional"}
                   </h2>
                   <button
@@ -547,7 +571,7 @@ export default function AdminBanners() {
                       setIsFormOpen(false);
                       resetForm();
                     }}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+                    className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
                     <X className="h-6 w-6" />
                   </button>
@@ -561,27 +585,27 @@ export default function AdminBanners() {
                     
                     {/* Position Selector */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ubicación / Slot</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ubicación / Slot</label>
                       <select
                         value={slotPosition}
                         onChange={(e) => setSlotPosition(e.target.value)}
-                        className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary transition-colors"
+                        className="flex h-11 w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 text-foreground font-semibold"
                       >
                         {slotOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
+                          <option key={opt.value} value={opt.value} className="bg-card text-foreground">
                             {opt.label}
                           </option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-slate-500 font-mono">
+                      <p className="text-[10px] text-muted-foreground font-medium italic">
                         {slotOptions.find(o => o.value === slotPosition)?.dimensions}
                       </p>
                     </div>
 
                     {/* Active State */}
                     <div className="space-y-2 flex flex-col justify-end">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">¿Mostrar en tienda?</span>
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-background/50 h-11">
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">¿Mostrar en tienda?</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -589,75 +613,75 @@ export default function AdminBanners() {
                             onChange={(e) => setIsActive(e.target.checked)}
                             className="sr-only peer"
                           />
-                          <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                         </label>
                       </div>
                     </div>
 
                     {/* Tag overlay */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Etiqueta (Tag)</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Etiqueta (Tag)</label>
                       <Input
                         type="text"
                         placeholder="Ej. SAMSUNG PREMIUM o ÚLTIMO MODELO"
                         value={tag}
                         onChange={(e) => setTag(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-medium"
                       />
                     </div>
 
                     {/* Main Title */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Título Principal</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Título Principal</label>
                       <Input
                         type="text"
                         placeholder="Ej. Galaxy S24 Ultra o Gaming Fest"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-medium"
                         required
                       />
                     </div>
 
                     {/* Subtitle description */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subtítulo o Descripción corta</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subtítulo o Descripción corta</label>
                       <Input
                         type="text"
                         placeholder="Ej. Hasta 30% OFF en tecnología"
                         value={subtitle}
                         onChange={(e) => setSubtitle(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-medium"
                       />
                     </div>
 
                     {/* Button Text */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Texto del Botón</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Texto del Botón</label>
                       <Input
                         type="text"
                         placeholder="Ej. Comprar Ahora o Clic aquí"
                         value={buttonText}
                         onChange={(e) => setButtonText(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-medium"
                       />
                     </div>
 
                     {/* Redirect URL */}
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Link de Redirección (Link en la plataforma)</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Link de Redirección (Link en la plataforma)</label>
                       <Input
                         type="text"
                         placeholder="Ej. /negocios?category=Tecnologia o /negocios/samsung-store"
                         value={redirectUrl}
                         onChange={(e) => setRedirectUrl(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl font-mono text-sm"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-mono text-sm font-medium"
                       />
                     </div>
 
                     {/* Image URL with Paste & Drag Drop Container */}
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Foto del Producto (PNG transparente recomendado)</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Foto del Producto (PNG transparente recomendado)</label>
                       
                       {/* Paste URL directly */}
                       <Input
@@ -665,7 +689,7 @@ export default function AdminBanners() {
                         placeholder="Pega la URL absoluta de una imagen o usa el contenedor de abajo para subir un archivo"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl text-xs font-mono mb-2"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 text-xs font-mono mb-2 font-medium"
                       />
 
                       {/* Drag & Drop */}
@@ -678,29 +702,29 @@ export default function AdminBanners() {
                           dragActive
                             ? "border-primary bg-primary/5 text-primary scale-[1.01]"
                             : imageUrl
-                            ? "border-emerald-500/40 bg-slate-950/40 text-slate-300"
-                            : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:bg-slate-950/80"
+                            ? "border-success/40 bg-success/5 text-foreground"
+                            : "border-border/60 bg-muted/10 text-muted-foreground hover:border-muted hover:bg-muted/20"
                         }`}
                       >
                         {uploadingImage ? (
                           <>
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="text-xs">Subiendo imagen al servidor...</p>
+                            <p className="text-xs font-bold">Subiendo imagen al servidor...</p>
                           </>
                         ) : imageUrl ? (
                           <div className="flex items-center gap-4 w-full justify-center">
-                            <div className="h-16 w-24 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 shrink-0">
+                            <div className="h-16 w-24 rounded-lg overflow-hidden border border-border/60 bg-white shrink-0">
                               <img src={imageUrl} alt="Thumbnail" className="w-full h-full object-contain" />
                             </div>
                             <div className="text-left max-w-xs">
-                              <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                              <p className="text-xs text-success font-bold flex items-center gap-1">
                                 <Check className="h-3.5 w-3.5" /> Imagen asignada con éxito
                               </p>
-                              <p className="text-[10px] text-slate-500 truncate font-mono mt-1">{imageUrl}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono mt-1">{imageUrl}</p>
                               <button
                                 type="button"
                                 onClick={() => setImageUrl("")}
-                                className="text-rose-400 hover:underline text-[11px] font-bold block mt-1"
+                                className="text-primary hover:underline text-[11px] font-bold block mt-1"
                               >
                                 Reemplazar imagen
                               </button>
@@ -708,8 +732,8 @@ export default function AdminBanners() {
                           </div>
                         ) : (
                           <>
-                            <UploadCloud className="h-8 w-8" />
-                            <p className="text-xs font-medium text-center">
+                            <UploadCloud className="h-8 w-8 text-primary" />
+                            <p className="text-xs font-bold text-center">
                               Arrastra tu archivo aquí o{" "}
                               <label className="text-primary hover:underline cursor-pointer font-bold">
                                 explora tus archivos
@@ -721,7 +745,7 @@ export default function AdminBanners() {
                                 />
                               </label>
                             </p>
-                            <p className="text-[10px] text-slate-500">JPG, PNG o WebP. Fondo transparente sugerido.</p>
+                            <p className="text-[10px] text-muted-foreground font-medium">JPG, PNG o WebP. Fondo transparente sugerido.</p>
                           </>
                         )}
                       </div>
@@ -729,13 +753,13 @@ export default function AdminBanners() {
 
                     {/* Gradient background class choice */}
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Estilo del Fondo (Degradado de fondo)</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Estilo del Fondo (Degradado de fondo)</label>
                       <Input
                         type="text"
                         placeholder="Clases CSS o Gradient (ej. bg-gradient-to-r from-teal-900 to-cyan-900)"
                         value={bgGradient}
                         onChange={(e) => setBgGradient(e.target.value)}
-                        className="bg-slate-950 border-slate-800 rounded-xl font-mono text-sm mb-2"
+                        className="rounded-xl h-11 border-border/60 focus-visible:ring-primary/20 font-mono text-sm mb-2 font-medium"
                       />
                       
                       {/* Presets Grid */}
@@ -748,11 +772,11 @@ export default function AdminBanners() {
                             className={`p-2.5 rounded-xl border text-[11px] font-medium text-left flex flex-col justify-between h-14 hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden ${preset.value} ${
                               bgGradient === preset.value
                                 ? "border-primary ring-2 ring-primary/20 scale-[1.02] text-white"
-                                : "border-slate-800 text-slate-300"
+                                : "border-border/60 text-slate-300"
                             }`}
                           >
                             <span className="truncate w-full block drop-shadow-md text-white font-bold">{preset.name}</span>
-                            <span className="text-[8px] text-white/60 truncate w-full font-mono mt-1">{preset.value}</span>
+                            <span className="text-[8px] text-white/60 truncate w-full font-mono mt-0.5">{preset.value}</span>
                           </button>
                         ))}
                       </div>
@@ -760,21 +784,21 @@ export default function AdminBanners() {
 
                     {/* Contrast & Text color choice */}
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Contraste de Texto</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Contraste de Texto</label>
                       <div className="grid grid-cols-2 gap-4">
                         {textColors.map((color) => (
                           <button
                             key={color.value}
                             type="button"
                             onClick={() => setTextColor(color.value)}
-                            className={`p-3 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all ${
+                            className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all ${
                               textColor === color.value
-                                ? "border-primary ring-2 ring-primary/20 bg-slate-900 text-slate-100"
-                                : "border-slate-800 bg-slate-950 text-slate-400 hover:bg-slate-900/50"
+                                ? "border-primary ring-2 ring-primary/20 bg-primary/5 text-foreground"
+                                : "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/50"
                             }`}
                           >
                             <span>{color.label}</span>
-                            <span className={`h-4 w-4 rounded-full border border-slate-700/60 ${color.preview}`} />
+                            <span className={`h-4 w-4 rounded-full border border-border/60 ${color.preview}`} />
                           </button>
                         ))}
                       </div>
@@ -783,9 +807,12 @@ export default function AdminBanners() {
 
                   {/* Banner LIVE visual preview! */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Vista Previa Interactiva (Fasty Premium Design)</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Vista Previa Interactiva (Fasty Premium Design)</label>
                     <div
-                      className={`w-full rounded-2xl p-6 ${bgGradient} ${textColor} relative overflow-hidden min-h-[160px] flex items-center border border-white/10`}
+                      className={`w-full rounded-2xl p-6 ${textColor} relative overflow-hidden min-h-[160px] flex items-center border border-white/10 ${
+                        (bgGradient && !bgGradient.startsWith('#') && !bgGradient.startsWith('rgb') && !bgGradient.startsWith('linear-gradient')) ? bgGradient : ""
+                      }`}
+                      style={bgGradient && (bgGradient.startsWith('#') || bgGradient.startsWith('rgb') || bgGradient.startsWith('linear-gradient')) ? { background: bgGradient } : undefined}
                     >
                       <div className="max-w-[60%] space-y-2 relative z-10 flex flex-col justify-center h-full">
                         {tag && (
@@ -793,7 +820,7 @@ export default function AdminBanners() {
                             {tag}
                           </span>
                         )}
-                        <h4 className="text-lg md:text-xl font-extrabold tracking-tight drop-shadow-sm leading-tight">
+                        <h4 className="text-lg md:text-xl font-extrabold tracking-tight drop-shadow-sm leading-tight text-inherit">
                           {title || "Mi Promoción"}
                         </h4>
                         <p className="text-xs text-inherit opacity-90 truncate leading-snug">
@@ -813,7 +840,7 @@ export default function AdminBanners() {
                           <img
                             src={imageUrl}
                             alt="Preview Product"
-                            className="max-h-[90%] max-w-full object-contain filter drop-shadow-xl animate-pulse"
+                            className="max-h-[90%] max-w-full object-contain filter drop-shadow-2xl transition-all duration-300 hover:scale-105"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = "https://placehold.co/120x85/000000/000000?text=";
                             }}
@@ -828,7 +855,7 @@ export default function AdminBanners() {
                   </div>
 
                   {/* Actions buttons */}
-                  <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                  <div className="pt-4 border-t border-border/40 flex items-center justify-end gap-3">
                     <Button
                       type="button"
                       variant="ghost"
@@ -836,14 +863,14 @@ export default function AdminBanners() {
                         setIsFormOpen(false);
                         resetForm();
                       }}
-                      className="rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                      className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted font-bold"
                     >
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSubmitting || uploadingImage}
-                      className="bg-primary hover:bg-primary/95 text-white font-bold rounded-full min-w-[120px]"
+                      className="bg-primary hover:bg-primary/95 text-white font-bold rounded-full min-w-[120px] shadow-glow"
                     >
                       {isSubmitting ? (
                         <>

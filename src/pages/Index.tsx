@@ -254,7 +254,14 @@ const Index = () => {
             return (
               <div 
                 key={`left-banner-${currentLeft.id}`}
-                className={`lg:col-span-2 relative overflow-hidden rounded-[2rem] ${currentLeft.bg_gradient || "bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400"} ${currentLeft.text_color || "text-white"} min-h-[350px] lg:min-h-[420px] shadow-lg flex flex-col justify-between p-8 md:p-12 group hover:shadow-xl transition-all duration-300 animate-in fade-in duration-500`}
+                className={`lg:col-span-2 relative overflow-hidden rounded-[2rem] ${currentLeft.text_color || "text-white"} min-h-[350px] lg:min-h-[420px] shadow-lg flex flex-col justify-between p-8 md:p-12 group hover:shadow-xl transition-all duration-300 animate-in fade-in duration-500 ${
+                  (currentLeft.bg_gradient && !currentLeft.bg_gradient.startsWith('#') && !currentLeft.bg_gradient.startsWith('rgb') && !currentLeft.bg_gradient.startsWith('linear-gradient')) 
+                    ? currentLeft.bg_gradient 
+                    : !currentLeft.bg_gradient 
+                    ? "bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400" 
+                    : ""
+                }`}
+                style={currentLeft.bg_gradient && (currentLeft.bg_gradient.startsWith('#') || currentLeft.bg_gradient.startsWith('rgb') || currentLeft.bg_gradient.startsWith('linear-gradient')) ? { background: currentLeft.bg_gradient } : undefined}
               >
                 {currentLeft.image_url && (
                   <div className="absolute top-4 right-4 bottom-4 w-1/2 opacity-95 transition-transform group-hover:scale-105 duration-700 pointer-events-none flex items-center justify-end">
@@ -361,7 +368,14 @@ const Index = () => {
               return (
                 <div
                   key={`top-banner-${currentTop.id}`}
-                  className={`relative overflow-hidden rounded-[2rem] ${currentTop.bg_gradient || "bg-[#0c0f1d]"} ${currentTop.text_color || "text-white"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500`}
+                  className={`relative overflow-hidden rounded-[2rem] ${currentTop.text_color || "text-white"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500 ${
+                    (currentTop.bg_gradient && !currentTop.bg_gradient.startsWith('#') && !currentTop.bg_gradient.startsWith('rgb') && !currentTop.bg_gradient.startsWith('linear-gradient')) 
+                      ? currentTop.bg_gradient 
+                      : !currentTop.bg_gradient 
+                      ? "bg-[#0c0f1d]" 
+                      : ""
+                  }`}
+                  style={currentTop.bg_gradient && (currentTop.bg_gradient.startsWith('#') || currentTop.bg_gradient.startsWith('rgb') || currentTop.bg_gradient.startsWith('linear-gradient')) ? { background: currentTop.bg_gradient } : undefined}
                 >
                   {currentTop.image_url && (
                     <div className="absolute top-2 right-2 bottom-2 w-[40%] opacity-90 pointer-events-none flex items-center justify-end">
@@ -461,7 +475,14 @@ const Index = () => {
               return (
                 <div
                   key={`bottom-banner-${currentBottom.id}`}
-                  className={`relative overflow-hidden rounded-[2rem] ${currentBottom.bg_gradient || "bg-gradient-to-br from-[#fcfaf7] to-[#f3ebd9]"} ${currentBottom.text_color || "text-slate-800"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500`}
+                  className={`relative overflow-hidden rounded-[2rem] ${currentBottom.text_color || "text-slate-800"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500 ${
+                    (currentBottom.bg_gradient && !currentBottom.bg_gradient.startsWith('#') && !currentBottom.bg_gradient.startsWith('rgb') && !currentBottom.bg_gradient.startsWith('linear-gradient')) 
+                      ? currentBottom.bg_gradient 
+                      : !currentBottom.bg_gradient 
+                      ? "bg-gradient-to-br from-[#fcfaf7] to-[#f3ebd9]" 
+                      : ""
+                  }`}
+                  style={currentBottom.bg_gradient && (currentBottom.bg_gradient.startsWith('#') || currentBottom.bg_gradient.startsWith('rgb') || currentBottom.bg_gradient.startsWith('linear-gradient')) ? { background: currentBottom.bg_gradient } : undefined}
                 >
                   {currentBottom.image_url && (
                     <div className="absolute top-2 right-2 bottom-2 w-[40%] opacity-90 pointer-events-none flex items-center justify-end">
