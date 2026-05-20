@@ -47,6 +47,54 @@ const Index = () => {
   const { count } = useCart();
   const [searchVal, setSearchVal] = useState("");
 
+  // Cargar banners activos del backend
+  const { data: activeBanners } = useQuery<any[]>({
+    queryKey: ["activeBanners"],
+    queryFn: async () => {
+      const response = await fetch("/api/banners/active");
+      if (!response.ok) {
+        throw new Error("Error fetching banners");
+      }
+      return response.json();
+    },
+  });
+
+  // Carrusel sliding indexes
+  const [leftIndex, setLeftIndex] = useState(0);
+  const [rightTopIndex, setRightTopIndex] = useState(0);
+  const [rightBottomIndex, setRightBottomIndex] = useState(0);
+
+  // Auto slide timers
+  useEffect(() => {
+    const leftBanners = activeBanners?.filter(b => b.slot_position === 'left') || [];
+    if (leftBanners.length > 1) {
+      const interval = setInterval(() => {
+        setLeftIndex((prev) => (prev + 1) % leftBanners.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeBanners]);
+
+  useEffect(() => {
+    const topBanners = activeBanners?.filter(b => b.slot_position === 'right_top') || [];
+    if (topBanners.length > 1) {
+      const interval = setInterval(() => {
+        setRightTopIndex((prev) => (prev + 1) % topBanners.length);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [activeBanners]);
+
+  useEffect(() => {
+    const bottomBanners = activeBanners?.filter(b => b.slot_position === 'right_bottom') || [];
+    if (bottomBanners.length > 1) {
+      const interval = setInterval(() => {
+        setRightBottomIndex((prev) => (prev + 1) % bottomBanners.length);
+      }, 7000);
+      return () => clearInterval(interval);
+    }
+  }, [activeBanners]);
+
   // Cargar negocios destacados del backend
   const { data: businesses, isLoading: isLoadingBusinesses, error: errorBusinesses } = useQuery<any[]>({
     queryKey: ["featuredBusinesses"],
@@ -199,110 +247,315 @@ const Index = () => {
       <section className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Banner Principal Izquierdo (Samsung) */}
-          <div className="lg:col-span-2 relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-white min-h-[350px] lg:min-h-[420px] shadow-lg flex flex-col justify-between p-8 md:p-12 group hover:shadow-xl transition-all duration-300">
-            <div className="absolute top-0 right-0 w-1/2 h-full opacity-90 lg:opacity-100 transition-transform group-hover:scale-105 duration-700 pointer-events-none flex items-center justify-end">
-              <img
-                src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&auto=format&fit=crop&q=80"
-                alt="Teléfono Samsung"
-                className="h-full w-full object-cover object-left rounded-r-[2rem]"
-              />
-            </div>
-            
-            {/* Contenido Izquierdo */}
-            <div className="relative z-10 max-w-[60%] flex flex-col justify-between h-full items-start">
-              <div>
-                <span className="inline-block bg-white/25 backdrop-blur-md text-white text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4 border border-white/20">
-                  Samsung Premium
-                </span>
-                <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-3 text-white drop-shadow-sm font-sans uppercase">
-                  OFERTA DE <br />VERANO
-                </h2>
-                <p className="text-lg md:text-xl font-medium text-sky-50 opacity-95 mb-6">
-                  Teléfono Samsung
-                </p>
+          {/* Banner Principal Izquierdo */}
+          {activeBanners?.filter(b => b.slot_position === 'left').length ? (() => {
+            const leftBanners = activeBanners.filter(b => b.slot_position === 'left');
+            const currentLeft = leftBanners[leftIndex % leftBanners.length];
+            return (
+              <div 
+                key={`left-banner-${currentLeft.id}`}
+                className={`lg:col-span-2 relative overflow-hidden rounded-[2rem] ${currentLeft.bg_gradient || "bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400"} ${currentLeft.text_color || "text-white"} min-h-[350px] lg:min-h-[420px] shadow-lg flex flex-col justify-between p-8 md:p-12 group hover:shadow-xl transition-all duration-300 animate-in fade-in duration-500`}
+              >
+                {currentLeft.image_url && (
+                  <div className="absolute top-4 right-4 bottom-4 w-1/2 opacity-95 transition-transform group-hover:scale-105 duration-700 pointer-events-none flex items-center justify-end">
+                    <img
+                      src={currentLeft.image_url}
+                      alt={currentLeft.title}
+                      className="h-full w-full object-contain filter drop-shadow-2xl"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://placehold.co/400x400/000000/000000?text=";
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <div className="relative z-10 max-w-[55%] flex flex-col justify-between h-full items-start">
+                  <div>
+                    {currentLeft.tag && (
+                      <span className="inline-block bg-white/20 backdrop-blur-md text-inherit text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4 border border-white/10">
+                        {currentLeft.tag}
+                      </span>
+                    )}
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-none mb-3 uppercase drop-shadow-sm">
+                      {currentLeft.title}
+                    </h2>
+                    {currentLeft.subtitle && (
+                      <p className="text-base md:text-lg font-medium opacity-90 mb-6 leading-tight">
+                        {currentLeft.subtitle}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {currentLeft.button_text && (
+                    <button
+                      onClick={() => {
+                        if (currentLeft.redirect_url) {
+                          navigate(currentLeft.redirect_url);
+                        }
+                      }}
+                      className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-extrabold px-8 py-3.5 rounded-2xl transition-all duration-300 shadow-md transform hover:-translate-y-0.5"
+                    >
+                      {currentLeft.button_text}
+                    </button>
+                  )}
+                </div>
+
+                {leftBanners.length > 1 && (
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                    {leftBanners.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLeftIndex(dotIdx);
+                        }}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          (leftIndex % leftBanners.length) === dotIdx ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })() : (
+            <div className="lg:col-span-2 relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400 text-white min-h-[350px] lg:min-h-[420px] shadow-lg flex flex-col justify-between p-8 md:p-12 group hover:shadow-xl transition-all duration-300">
+              <div className="absolute top-0 right-0 w-1/2 h-full opacity-90 lg:opacity-100 transition-transform group-hover:scale-105 duration-700 pointer-events-none flex items-center justify-end">
+                <img
+                  src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&auto=format&fit=crop&q=80"
+                  alt="Teléfono Samsung"
+                  className="h-full w-full object-cover object-left rounded-r-[2rem]"
+                />
               </div>
               
-              <button
-                onClick={() => navigate('/negocios?search=samsung')}
-                className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-extrabold px-8 py-3.5 rounded-2xl transition-all duration-300 shadow-md transform hover:-translate-y-0.5"
-              >
-                Clic aquí
-              </button>
+              <div className="relative z-10 max-w-[60%] flex flex-col justify-between h-full items-start">
+                <div>
+                  <span className="inline-block bg-white/25 backdrop-blur-md text-white text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4 border border-white/20">
+                    Samsung Premium
+                  </span>
+                  <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-3 text-white drop-shadow-sm font-sans uppercase">
+                    OFERTA DE <br />VERANO
+                  </h2>
+                  <p className="text-lg md:text-xl font-medium text-sky-50 opacity-95 mb-6">
+                    Teléfono Samsung
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => navigate('/negocios?search=samsung')}
+                  className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-extrabold px-8 py-3.5 rounded-2xl transition-all duration-300 shadow-md transform hover:-translate-y-0.5"
+                >
+                  Clic aquí
+                </button>
+              </div>
             </div>
-
-            {/* Dots de Carrusel Estéticos */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-              <span className="w-6 h-1.5 rounded-full bg-white"></span>
-              <span className="w-2 h-1.5 rounded-full bg-white/40"></span>
-              <span className="w-2 h-1.5 rounded-full bg-white/40"></span>
-              <span className="w-2 h-1.5 rounded-full bg-white/40"></span>
-            </div>
-          </div>
+          )}
 
           {/* Columna Derecha con Dos Tarjetas Apiladas */}
           <div className="flex flex-col gap-6">
             
-            {/* Tarjeta Superior (Gaming Oferta de Verano) */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-[#0c0f1d] border border-blue-500/20 text-white min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300">
-              <div className="absolute top-0 right-0 w-2/5 h-full opacity-80 pointer-events-none">
-                <img
-                  src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80"
-                  alt="Gaming headset"
-                  className="h-full w-full object-cover object-center rounded-r-[2rem]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#0c0f1d] via-transparent to-transparent"></div>
-              </div>
-
-              <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[65%]">
-                <div>
-                  <span className="text-[10px] text-cyan-400 font-black tracking-widest uppercase">
-                    OFERTA DE VERANO
-                  </span>
-                  <h3 className="text-lg md:text-xl font-bold tracking-tight text-white mt-1 leading-tight">
-                    Domina la arena, diseños exclusivos para este verano
-                  </h3>
-                </div>
-                <button
-                  onClick={() => navigate('/negocios?search=gaming')}
-                  className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-black text-xs px-5 py-2.5 rounded-xl transition-all duration-300 shadow-sm mt-3"
+            {/* Tarjeta Superior */}
+            {activeBanners?.filter(b => b.slot_position === 'right_top').length ? (() => {
+              const topBanners = activeBanners.filter(b => b.slot_position === 'right_top');
+              const currentTop = topBanners[rightTopIndex % topBanners.length];
+              return (
+                <div
+                  key={`top-banner-${currentTop.id}`}
+                  className={`relative overflow-hidden rounded-[2rem] ${currentTop.bg_gradient || "bg-[#0c0f1d]"} ${currentTop.text_color || "text-white"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500`}
                 >
-                  Comprar Ahora
-                </button>
-              </div>
-            </div>
+                  {currentTop.image_url && (
+                    <div className="absolute top-2 right-2 bottom-2 w-[40%] opacity-90 pointer-events-none flex items-center justify-end">
+                      <img
+                        src={currentTop.image_url}
+                        alt={currentTop.title}
+                        className="max-h-full max-w-full object-contain filter drop-shadow-2xl"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placehold.co/200x200/000000/000000?text=";
+                        }}
+                      />
+                    </div>
+                  )}
 
-            {/* Tarjeta Inferior (Muebles de Diseño) */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fcfaf7] to-[#f3ebd9] border border-amber-200/20 text-slate-800 min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300">
-              <div className="absolute top-0 right-0 w-2/5 h-full opacity-90 pointer-events-none">
-                <img
-                  src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80"
-                  alt="Muebles premium"
-                  className="h-full w-full object-cover object-center rounded-r-[2rem]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#fcfaf7] via-transparent to-transparent"></div>
-              </div>
+                  <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[60%]">
+                    <div>
+                      {currentTop.tag && (
+                        <span className="text-[10px] text-cyan-400 font-black tracking-widest uppercase">
+                          {currentTop.tag}
+                        </span>
+                      )}
+                      <h3 className="text-base md:text-lg font-bold tracking-tight mt-1 leading-tight">
+                        {currentTop.title}
+                      </h3>
+                      {currentTop.subtitle && (
+                        <p className="text-[11px] opacity-80 mt-1 line-clamp-2 leading-tight">
+                          {currentTop.subtitle}
+                        </p>
+                      )}
+                    </div>
+                    {currentTop.button_text && (
+                      <button
+                        onClick={() => {
+                          if (currentTop.redirect_url) {
+                            navigate(currentTop.redirect_url);
+                          }
+                        }}
+                        className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-black text-[10px] px-4 py-2 rounded-xl transition-all duration-300 shadow-sm mt-3"
+                      >
+                        {currentTop.button_text}
+                      </button>
+                    )}
+                  </div>
 
-              <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[65%]">
-                <div>
-                  <span className="text-[10px] text-primary font-black tracking-widest uppercase">
-                    Confort que Enamora
-                  </span>
-                  <h3 className="text-lg md:text-xl font-bold tracking-tight text-slate-800 mt-1 leading-tight">
-                    Tu Sala, Tu Estilo
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                    Muebles de Diseño para el Hogar. Comodidad Superior.
-                  </p>
+                  {topBanners.length > 1 && (
+                    <div className="absolute bottom-3 left-6 flex gap-1 z-20">
+                      {topBanners.map((_, dotIdx) => (
+                        <button
+                          key={dotIdx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRightTopIndex(dotIdx);
+                          }}
+                          className={`h-1 rounded-full transition-all duration-300 ${
+                            (rightTopIndex % topBanners.length) === dotIdx ? "w-4 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => navigate('/negocios?category=Hogar')}
-                  className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-300 shadow-sm mt-3"
-                >
-                  Ver Oferta
-                </button>
+              );
+            })() : (
+              <div className="relative overflow-hidden rounded-[2rem] bg-[#0c0f1d] border border-blue-500/20 text-white min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300">
+                <div className="absolute top-0 right-0 w-2/5 h-full opacity-80 pointer-events-none">
+                  <img
+                    src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80"
+                    alt="Gaming headset"
+                    className="h-full w-full object-cover object-center rounded-r-[2rem]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0c0f1d] via-transparent to-transparent"></div>
+                </div>
+
+                <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[65%]">
+                  <div>
+                    <span className="text-[10px] text-cyan-400 font-black tracking-widest uppercase">
+                      OFERTA DE VERANO
+                    </span>
+                    <h3 className="text-lg md:text-xl font-bold tracking-tight text-white mt-1 leading-tight">
+                      Domina la arena, diseños exclusivos para este verano
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => navigate('/negocios?search=gaming')}
+                    className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-black text-xs px-5 py-2.5 rounded-xl transition-all duration-300 shadow-sm mt-3"
+                  >
+                    Comprar Ahora
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Tarjeta Inferior */}
+            {activeBanners?.filter(b => b.slot_position === 'right_bottom').length ? (() => {
+              const bottomBanners = activeBanners.filter(b => b.slot_position === 'right_bottom');
+              const currentBottom = bottomBanners[rightBottomIndex % bottomBanners.length];
+              return (
+                <div
+                  key={`bottom-banner-${currentBottom.id}`}
+                  className={`relative overflow-hidden rounded-[2rem] ${currentBottom.bg_gradient || "bg-gradient-to-br from-[#fcfaf7] to-[#f3ebd9]"} ${currentBottom.text_color || "text-slate-800"} min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300 animate-in fade-in duration-500`}
+                >
+                  {currentBottom.image_url && (
+                    <div className="absolute top-2 right-2 bottom-2 w-[40%] opacity-90 pointer-events-none flex items-center justify-end">
+                      <img
+                        src={currentBottom.image_url}
+                        alt={currentBottom.title}
+                        className="max-h-full max-w-full object-contain filter drop-shadow-2xl"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placehold.co/200x200/000000/000000?text=";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[60%]">
+                    <div>
+                      {currentBottom.tag && (
+                        <span className="text-[10px] text-primary font-black tracking-widest uppercase">
+                          {currentBottom.tag}
+                        </span>
+                      )}
+                      <h3 className="text-base md:text-lg font-bold tracking-tight mt-1 leading-tight">
+                        {currentBottom.title}
+                      </h3>
+                      {currentBottom.subtitle && (
+                        <p className="text-[11px] opacity-80 mt-1 line-clamp-2 leading-tight">
+                          {currentBottom.subtitle}
+                        </p>
+                      )}
+                    </div>
+                    {currentBottom.button_text && (
+                      <button
+                        onClick={() => {
+                          if (currentBottom.redirect_url) {
+                            navigate(currentBottom.redirect_url);
+                          }
+                        }}
+                        className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-bold text-[10px] px-5 py-2 rounded-xl transition-all duration-300 shadow-sm mt-3"
+                      >
+                        {currentBottom.button_text}
+                      </button>
+                    )}
+                  </div>
+
+                  {bottomBanners.length > 1 && (
+                    <div className="absolute bottom-3 left-6 flex gap-1 z-20">
+                      {bottomBanners.map((_, dotIdx) => (
+                        <button
+                          key={dotIdx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRightBottomIndex(dotIdx);
+                          }}
+                          className={`h-1 rounded-full transition-all duration-300 ${
+                            (rightBottomIndex % bottomBanners.length) === dotIdx ? "w-4 bg-slate-800" : "w-1.5 bg-slate-800/40 hover:bg-slate-800/60"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
+              <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fcfaf7] to-[#f3ebd9] border border-amber-200/20 text-slate-800 min-h-[190px] lg:min-h-[200px] shadow-md flex flex-col justify-between p-6 group hover:shadow-lg transition-all duration-300">
+                <div className="absolute top-0 right-0 w-2/5 h-full opacity-90 pointer-events-none">
+                  <img
+                    src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80"
+                    alt="Muebles premium"
+                    className="h-full w-full object-cover object-center rounded-r-[2rem]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#fcfaf7] via-transparent to-transparent"></div>
+                </div>
+
+                <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[65%]">
+                  <div>
+                    <span className="text-[10px] text-primary font-black tracking-widest uppercase">
+                      Confort que Enamora
+                    </span>
+                    <h3 className="text-lg md:text-xl font-bold tracking-tight text-slate-800 mt-1 leading-tight">
+                      Tu Sala, Tu Estilo
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                      Muebles de Diseño para el Hogar. Comodidad Superior.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/negocios?category=Hogar')}
+                    className="bg-[#ffd200] hover:bg-[#ffe34d] text-slate-900 font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-300 shadow-sm mt-3"
+                  >
+                    Ver Oferta
+                  </button>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

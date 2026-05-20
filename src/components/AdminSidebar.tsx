@@ -1,6 +1,7 @@
 import {
   Bike,
   ChevronUp,
+  Image,
   LayoutDashboard,
   LogOut,
   Package,
@@ -39,6 +40,7 @@ const adminNav = [
   { icon: Store, label: "Negocios", to: "/admin/negocios" },
   { icon: Users, label: "Domiciliarios", to: "/admin/domiciliarios" },
   { icon: Palette, label: "Personalización", to: "/admin/colores" },
+  { icon: Image, label: "Banners", to: "/admin/banners" },
 ];
 
 export function AdminSidebar() {

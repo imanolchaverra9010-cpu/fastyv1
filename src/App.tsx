@@ -26,6 +26,7 @@ import { CouriersTab } from "@/components/business/CouriersTab";
 import OrderTracking from "./pages/OrderTracking.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import AdminColors from "./pages/AdminColors.tsx";
+import AdminBanners from "./pages/AdminBanners.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
 import AdminBusinesses from "./pages/AdminBusinesses.tsx";
 import AdminRequests from "./pages/AdminRequests.tsx";
@@ -247,6 +248,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminColors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/banners"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminBanners />
             </ProtectedRoute>
           }
         />
