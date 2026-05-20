@@ -10,7 +10,8 @@ import {
   Search, 
   Smartphone, 
   Gamepad2, 
-  Dog 
+  Dog,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,13 +34,35 @@ export default function AdminColors() {
   const [selectedColor, setSelectedColor] = useState("#f97316");
   const [originalColor, setOriginalColor] = useState("#f97316");
   const [inputVal, setInputVal] = useState("#f97316");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Load current theme color on mount
   useEffect(() => {
+    // Primero cargamos del cache local para respuesta instantánea
     const activeColor = getThemeColor();
     setSelectedColor(activeColor);
     setOriginalColor(activeColor);
     setInputVal(activeColor);
+
+    // Luego consultamos al backend para sincronizar
+    const fetchLatestTheme = async () => {
+      try {
+        const res = await fetch("/api/theme-color");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.theme_color) {
+            setSelectedColor(data.theme_color);
+            setOriginalColor(data.theme_color);
+            setInputVal(data.theme_color);
+            applyTheme(data.theme_color);
+          }
+        }
+      } catch (err) {
+        console.error("Error al sincronizar color del backend:", err);
+      }
+    };
+    fetchLatestTheme();
   }, []);
 
   // Update theme as the user selects a color (real-time preview)
@@ -61,24 +84,65 @@ export default function AdminColors() {
     applyTheme(hex);
   };
 
-  const handleSave = () => {
-    applyTheme(selectedColor);
-    setOriginalColor(selectedColor);
-    toast({
-      title: "Tema guardado correctamente",
-      description: `El color de la plataforma se ha actualizado a ${selectedColor.toUpperCase()} de forma persistente.`,
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/admin/theme-color", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme_color: selectedColor }),
+      });
+
+      if (response.ok) {
+        applyTheme(selectedColor);
+        setOriginalColor(selectedColor);
+        toast({
+          title: "Tema guardado correctamente",
+          description: `El color de la plataforma se ha guardado en la base de datos y actualizado a ${selectedColor.toUpperCase()} para todos los clientes de forma persistente.`,
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error al guardar el tema.");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error al guardar",
+        description: err.message || "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleReset = () => {
-    resetTheme();
-    setSelectedColor("#f97316");
-    setOriginalColor("#f97316");
-    setInputVal("#f97316");
-    toast({
-      title: "Tema restaurado",
-      description: "Se ha restablecido el color naranja predeterminado de Fasty.",
-    });
+  const handleReset = async () => {
+    setIsResetting(true);
+    try {
+      const response = await fetch("/api/admin/theme-color", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        resetTheme();
+        setSelectedColor("#f97316");
+        setOriginalColor("#f97316");
+        setInputVal("#f97316");
+        toast({
+          title: "Tema restaurado",
+          description: "Se ha restablecido el color naranja predeterminado de Fasty en la base de datos y en toda la plataforma.",
+        });
+      } else {
+        throw new Error("Error al restaurar el tema.");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error al restaurar",
+        description: err.message || "No se pudo conectar con el servidor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -171,18 +235,28 @@ export default function AdminColors() {
                 <div className="flex gap-4">
                   <Button 
                     onClick={handleSave} 
+                    disabled={isSaving || isResetting}
                     className="flex-1 rounded-2xl h-12 gap-2 text-sm font-bold"
                   >
-                    <Check className="h-5 w-5" />
-                    Guardar Cambios
+                    {isSaving ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Check className="h-5 w-5" />
+                    )}
+                    {isSaving ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                   <Button 
                     onClick={handleReset} 
+                    disabled={isSaving || isResetting}
                     variant="outline" 
                     className="rounded-2xl h-12 gap-2 text-sm font-semibold border-primary/20 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
                   >
-                    <RotateCcw className="h-4 w-4" />
-                    Restaurar
+                    {isResetting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
+                    {isResetting ? "Restaurando..." : "Restaurar"}
                   </Button>
                 </div>
 

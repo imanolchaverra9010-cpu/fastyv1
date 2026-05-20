@@ -407,6 +407,60 @@ def toggle_maintenance_mode(data: dict):
     finally:
         db.close()
 
+@router.get("/theme-color")
+def get_theme_color_admin():
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
+        result = cursor.fetchone()
+        return {"theme_color": result['config_value'] if result else "#f97316"}
+    finally:
+        db.close()
+
+@router.post("/theme-color")
+def save_theme_color(data: dict):
+    theme_color = data.get("theme_color", "#f97316").strip()
+    if not theme_color.startswith("#") or len(theme_color) not in [4, 7]:
+        raise HTTPException(status_code=400, detail="Formato de color hexadecimal inválido")
+        
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
+        result = cursor.fetchone()
+        if result:
+            cursor.execute("UPDATE system_config SET config_value = %s WHERE config_key = 'theme_color'", (theme_color,))
+        else:
+            cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES ('theme_color', %s)", (theme_color,))
+        db.commit()
+        return {"message": "Color de tema actualizado correctamente", "theme_color": theme_color}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
+@router.delete("/theme-color")
+def reset_theme_color():
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor()
+    try:
+        cursor.execute("DELETE FROM system_config WHERE config_key = 'theme_color'")
+        db.commit()
+        return {"message": "Color restaurado al naranja original de Fasty", "theme_color": "#f97316"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
 @router.delete("/couriers/{courier_id}")
 def delete_courier(courier_id: int):
     db = get_db()

@@ -792,7 +792,7 @@ const Checkout = () => {
                 )}
 
                 {!latitude && !longitude && (
-                  <div className="bg-orange-500/5 border border-orange-500/10 rounded-xl p-3 text-[10px] text-orange-600 leading-relaxed italic">
+                  <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-[10px] text-primary leading-relaxed italic">
                     * La tarifa de envío es estimada. Usa GPS para obtener el valor exacto según la distancia.
                   </div>
                 )}

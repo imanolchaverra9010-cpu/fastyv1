@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { applyTheme } from "@/utils/theme";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -70,6 +71,24 @@ const AppContent = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [isMaintenance, setIsMaintenance] = useState(true);
   const [checkingMaint, setCheckingMaint] = useState(true);
+
+  // Cargar y aplicar el color de tema personalizado desde el backend al iniciar la app
+  useEffect(() => {
+    const fetchThemeColor = async () => {
+      try {
+        const res = await fetch("/api/theme-color");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.theme_color) {
+            applyTheme(data.theme_color);
+          }
+        }
+      } catch (err) {
+        console.error("Error al cargar el color del tema dinámico:", err);
+      }
+    };
+    fetchThemeColor();
+  }, []);
 
   useEffect(() => {
     /* 

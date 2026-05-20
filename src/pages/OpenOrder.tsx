@@ -426,11 +426,11 @@ const OpenOrder = () => {
               </button>
             </div>
 
-            <div className="mt-6 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-                <ShoppingBag className="h-4 w-4 text-orange-600" />
+            <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <ShoppingBag className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-[11px] text-orange-800 font-medium leading-relaxed italic">
+              <p className="text-[11px] text-primary/90 font-medium leading-relaxed italic">
                 * El valor de los productos comprados se pagará contra entrega presentando el recibo físico. Fasty solo gestiona el servicio de transporte.
               </p>
             </div>

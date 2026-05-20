@@ -21,6 +21,8 @@ import {
   Heart,
   User,
   Gamepad2,
+  ClipboardList,
+  Compass,
   Laptop as LaptopIcon,
   Wrench,
   Smartphone,
@@ -42,7 +44,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { cart, clearCart } = useCart();
+  const { count } = useCart();
   const [searchVal, setSearchVal] = useState("");
 
   // Cargar negocios destacados del backend
@@ -97,8 +99,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       
-      {/* 1. Header Premium estilo Teal como el de KEMI en la captura */}
-      <header className="bg-[#0d8496] text-white shadow-md sticky top-0 z-50">
+      {/* 1. Header Premium Adaptable con el Tema Dinámico */}
+      <header className="bg-primary text-white shadow-md sticky top-0 z-50 transition-colors duration-300">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20 gap-4">
             
@@ -117,9 +119,9 @@ const Index = () => {
                   placeholder="Buscar productos..."
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
-                  className="w-full px-5 py-3 pr-12 rounded-full bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-300 shadow-inner transition-all placeholder:text-slate-400"
+                  className="w-full px-5 py-3 pr-12 rounded-full bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/45 shadow-inner transition-all placeholder:text-slate-400"
                 />
-                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0d8496] transition-colors">
+                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors">
                   <Search className="h-5 w-5" />
                 </button>
               </form>
@@ -127,18 +129,23 @@ const Index = () => {
 
             {/* Iconos de la derecha */}
             <div className="flex items-center gap-6">
-              <Link to="/negocios" className="hover:text-cyan-150 transition-colors hidden sm:block font-semibold text-sm">
+              <Link to="/negocios" className="hover:text-white/80 transition-colors hidden sm:block font-semibold text-sm">
                 Explorar
               </Link>
-              <button onClick={() => navigate('/perfil')} className="hover:scale-105 transition-transform" title="Favoritos">
-                <Heart className="h-6 w-6 text-white hover:text-red-200 transition-colors" />
+              <button onClick={() => navigate('/checkout')} className="hover:scale-105 transition-transform relative" title="Carrito de Compras">
+                <ShoppingCart className="h-6 w-6 text-white hover:text-white/80 transition-colors" />
+                {count > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground font-bold rounded-full text-[9px] h-4 min-w-[1rem] px-0.5 flex items-center justify-center border border-primary">
+                    {count}
+                  </span>
+                )}
               </button>
               
               <div className="relative">
                 {user ? (
                   <button 
                     onClick={() => navigate(user.role === 'customer' ? '/perfil' : '/admin')} 
-                    className="flex items-center gap-2 bg-[#0b7282] hover:bg-[#095f6d] px-4 py-2 rounded-full border border-cyan-400/20 transition-all"
+                    className="flex items-center gap-2 bg-black/15 hover:bg-black/25 px-4 py-2 rounded-full border border-white/10 transition-all"
                   >
                     <User className="h-4 w-4" />
                     <span className="text-sm font-bold max-w-[100px] truncate">{user.username}</span>
@@ -153,17 +160,19 @@ const Index = () => {
           </div>
 
           {/* Sub-Header Row */}
-          <div className="border-t border-cyan-400/20 py-2.5 flex items-center justify-between text-xs sm:text-sm font-medium">
-            <div className="flex items-center gap-2 text-cyan-50">
+          <div className="border-t border-white/10 py-2.5 flex items-center justify-between text-xs sm:text-sm font-medium">
+            <div className="flex items-center gap-2 text-white/90">
               <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>+300 Clientes satisfechos</span>
             </div>
             <div className="flex items-center gap-6">
-              <Link to="/admin" className="text-white hover:text-cyan-100 transition-colors hover:underline">
-                Admin
+              <Link to="/pedido-abierto" className="text-white hover:text-white/80 transition-colors hover:underline flex items-center gap-1.5 font-semibold">
+                <ClipboardList className="h-4 w-4 shrink-0" />
+                Pedido Abierto
               </Link>
-              <Link to="/negocios/registro" className="text-white hover:text-cyan-100 transition-colors hover:underline">
-                Vender
+              <Link to="/rastreo" className="text-white hover:text-white/80 transition-colors hover:underline flex items-center gap-1.5 font-semibold">
+                <Compass className="h-4 w-4 shrink-0" />
+                Rastrear
               </Link>
             </div>
           </div>
@@ -178,7 +187,7 @@ const Index = () => {
             placeholder="Buscar productos..."
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
-            className="w-full px-5 py-3 pr-12 rounded-2xl bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0d8496] shadow-sm transition-all"
+            className="w-full px-5 py-3 pr-12 rounded-2xl bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/45 shadow-sm transition-all"
           />
           <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
             <Search className="h-5 w-5" />
@@ -276,7 +285,7 @@ const Index = () => {
 
               <div className="relative z-10 flex flex-col justify-between h-full items-start max-w-[65%]">
                 <div>
-                  <span className="text-[10px] text-[#0d8496] font-black tracking-widest uppercase">
+                  <span className="text-[10px] text-primary font-black tracking-widest uppercase">
                     Confort que Enamora
                   </span>
                   <h3 className="text-lg md:text-xl font-bold tracking-tight text-slate-800 mt-1 leading-tight">
@@ -315,7 +324,7 @@ const Index = () => {
                   <div className={`h-20 w-20 rounded-full ${cat.bgColor} flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
                     <IconComp className={`h-9 w-9 ${cat.iconColor} transition-transform group-hover:rotate-6 duration-300`} />
                   </div>
-                  <span className="text-xs md:text-sm font-bold text-slate-700 group-hover:text-[#0d8496] transition-colors text-center w-20 line-clamp-2 leading-tight">
+                  <span className="text-xs md:text-sm font-bold text-slate-700 group-hover:text-primary transition-colors text-center w-20 line-clamp-2 leading-tight">
                     {cat.label}
                   </span>
                 </Link>
@@ -352,7 +361,7 @@ const Index = () => {
               className="rounded-full px-6 font-bold shadow-sm hidden md:flex border-slate-200 text-slate-700 hover:bg-slate-50 group transition-all"
               onClick={() => navigate('/negocios')}
             >
-              Ver todos <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform text-[#0d8496]" />
+              Ver todos <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform text-primary" />
             </Button>
             
             <div className="flex gap-2">
@@ -395,7 +404,7 @@ const Index = () => {
                   to={`/negocios/${b.id}`}
                   className="flex flex-col items-center gap-4 group transition-all snap-start min-w-[160px] md:min-w-[200px] pt-2"
                 >
-                  <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center group-hover:shadow-md group-hover:border-[#0d8496] group-hover:scale-105 transition-all p-2 overflow-hidden">
+                  <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center group-hover:shadow-md group-hover:border-primary group-hover:scale-105 transition-all p-2 overflow-hidden">
                     {b.image_url ? (
                       <img
                         src={b.image_url.startsWith("http") ? b.image_url : `/api/media${b.image_url}`}
@@ -403,7 +412,7 @@ const Index = () => {
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
-                      <div className="h-full w-full bg-gradient-to-tr from-[#0d8496] to-cyan-400 flex items-center justify-center text-white rounded-full">
+                      <div className="h-full w-full bg-gradient-hero flex items-center justify-center text-white rounded-full">
                         <Store className="h-16 w-16" />
                       </div>
                     )}
@@ -414,7 +423,7 @@ const Index = () => {
                     </div>
                   </div>
                   
-                  <h3 className="font-bold text-center text-sm md:text-base text-slate-700 group-hover:text-[#0d8496] transition-colors truncate w-full px-2">
+                  <h3 className="font-bold text-center text-sm md:text-base text-slate-700 group-hover:text-primary transition-colors truncate w-full px-2">
                     {b.name}
                   </h3>
                 </Link>
@@ -453,7 +462,7 @@ const Index = () => {
 
       {/* 6. Pedido Abierto CTA */}
       <section className="container mx-auto px-4 py-10">
-        <div className="bg-gradient-to-r from-[#0d8496] to-cyan-500 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-md">
+        <div className="bg-gradient-hero rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-glow">
           <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
             <div>
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-white/10">
@@ -464,13 +473,13 @@ const Index = () => {
                 ¿No encuentras lo que buscas?
               </h2>
               
-              <p className="text-base text-cyan-50 mb-8 leading-relaxed max-w-lg">
+              <p className="text-base text-white/95 mb-8 leading-relaxed max-w-lg">
                 Si la tienda no está en nuestra plataforma, ¡no te preocupes! Dinos qué necesitas y de dónde, y nosotros lo compramos por ti.
               </p>
               
               <Button
                 size="lg"
-                className="bg-white text-[#0d8496] hover:bg-cyan-50 px-8 py-4 rounded-xl text-md font-bold shadow-md hover:shadow-lg transition-all group"
+                className="bg-white text-primary hover:bg-white/95 px-8 py-4 rounded-xl text-md font-bold shadow-md hover:shadow-lg transition-all group"
                 onClick={() => navigate('/pedido-abierto')}
               >
                 Hacer Pedido Abierto <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -504,24 +513,24 @@ const Index = () => {
       </section>
 
       {/* Footer Fasty/KEMI */}
-      <footer className="bg-[#0b7282] py-12 text-white border-t border-cyan-800">
+      <footer className="bg-slate-900 py-12 text-white border-t border-slate-800 transition-colors duration-300">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col items-center md:items-start gap-2">
               <Link to="/" className="flex items-center gap-2 group shrink-0 mb-1">
                 <img src={logo} alt="Fasty Logo" className="h-9 w-auto transition-transform group-hover:scale-105" />
               </Link>
-              <p className="text-cyan-100 text-sm">Tu ciudad a un clic de distancia.</p>
+              <p className="text-slate-400 text-sm">Tu ciudad a un clic de distancia.</p>
             </div>
             
             <div className="flex gap-8 text-sm font-semibold">
-              <Link to="/negocios" className="hover:text-cyan-200 transition-colors">Negocios</Link>
-              <Link to="/domiciliario" className="hover:text-cyan-200 transition-colors">Domiciliarios</Link>
-              <Link to="/admin" className="hover:text-cyan-200 transition-colors">Administración</Link>
+              <Link to="/negocios" className="hover:text-primary transition-colors">Negocios</Link>
+              <Link to="/domiciliario" className="hover:text-primary transition-colors">Domiciliarios</Link>
+              <Link to="/admin" className="hover:text-primary transition-colors">Administración</Link>
             </div>
           </div>
           
-          <div className="mt-12 pt-8 border-t border-cyan-700/50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-cyan-200/70">
+          <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
             <p>© {new Date().getFullYear()} Fasty · Todos los derechos reservados.</p>
             <p>Hecho con 🩵 para tu confort y rapidez.</p>
           </div>

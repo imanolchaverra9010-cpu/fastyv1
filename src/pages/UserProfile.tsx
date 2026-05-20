@@ -206,8 +206,8 @@ const UserProfile = () => {
               <p className="text-2xl font-bold text-primary">{benefitsData?.order_count || 0}</p>
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Pedidos</p>
             </div>
-            <div className="bg-orange-500/5 rounded-2xl p-4 text-center border border-orange-500/10">
-              <p className="text-2xl font-bold text-orange-600">{benefitsData?.benefits?.length || 0}</p>
+            <div className="bg-primary/5 rounded-2xl p-4 text-center border border-primary/10">
+              <p className="text-2xl font-bold text-primary">{benefitsData?.benefits?.length || 0}</p>
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Beneficios</p>
             </div>
             <div className="bg-success/5 rounded-2xl p-4 text-center border border-success/10">
