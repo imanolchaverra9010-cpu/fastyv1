@@ -1,11 +1,55 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from utils import pwd_context, hash_password, get_bogota_time
 from pydantic import BaseModel
+from security import get_current_user
+from .push import broadcast_push_notification
 
 router = APIRouter()
+
+# WebSocket Manager support
+websocket_manager = None
+
+def set_websocket_manager(manager):
+    global websocket_manager
+    websocket_manager = manager
+
+# Schema de notificaciones masivas
+class BroadcastRequest(BaseModel):
+    title: str
+    body: str
+    redirect_url: Optional[str] = "/"
+
+# Inicializar tabla de notificaciones masivas
+def init_broadcast_table():
+    conn = get_db()
+    if not conn:
+        print("Error: No se pudo conectar a la base de datos para inicializar broadcast_notifications")
+        return
+    cursor = conn.cursor()
+    try:
+        sql = """
+        CREATE TABLE IF NOT EXISTS broadcast_notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            body TEXT NOT NULL,
+            redirect_url VARCHAR(255) DEFAULT '/',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """
+        cursor.execute(sql)
+        conn.commit()
+        print("Tabla 'broadcast_notifications' inicializada exitosamente.")
+    except Exception as e:
+        print(f"Error al crear tabla broadcast_notifications: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# Auto ejecutar al importar
+init_broadcast_table()
 
 # Schema para crear un domiciliario con credenciales manuales
 class CourierCreateRequest(BaseModel):
@@ -532,6 +576,93 @@ def get_daily_report():
             courier['orders'] = cursor.fetchall()
             
         return report
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/broadcast")
+async def send_broadcast(data: BroadcastRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+        
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    cursor = db.cursor(dictionary=True)
+    try:
+        # 1. Guardar en base de datos
+        sql = """
+        INSERT INTO broadcast_notifications (title, body, redirect_url)
+        VALUES (%s, %s, %s)
+        """
+        cursor.execute(sql, (data.title, data.body, data.redirect_url))
+        db.commit()
+        broadcast_id = cursor.lastrowid
+        
+        # 2. Notificación en Tiempo Real vía WebSocket
+        if websocket_manager:
+            payload = {
+                "type": "admin_broadcast",
+                "id": broadcast_id,
+                "title": data.title,
+                "body": data.body,
+                "redirect_url": data.redirect_url
+            }
+            
+            import asyncio
+            ws_tasks = []
+            
+            for ws in list(websocket_manager.user_connections.values()):
+                ws_tasks.append(ws.send_json(payload))
+            for ws in list(websocket_manager.courier_connections.values()):
+                ws_tasks.append(ws.send_json(payload))
+            for ws in list(websocket_manager.business_connections.values()):
+                ws_tasks.append(ws.send_json(payload))
+                
+            if ws_tasks:
+                async def safe_ws_broadcast(tasks):
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                background_tasks.add_task(safe_ws_broadcast, ws_tasks)
+        
+        # 3. Notificación Push Masiva vía Web Push (Segundo plano)
+        push_payload = {
+            "title": data.title,
+            "body": data.body,
+            "url": data.redirect_url
+        }
+        background_tasks.add_task(broadcast_push_notification, push_payload)
+        
+        return {
+            "id": broadcast_id,
+            "title": data.title,
+            "body": data.body,
+            "redirect_url": data.redirect_url,
+            "message": "Notificación masiva en proceso de envío"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+@router.get("/broadcasts", response_model=List[dict])
+def get_broadcasts_history(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+        
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM broadcast_notifications ORDER BY id DESC")
+        return cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()

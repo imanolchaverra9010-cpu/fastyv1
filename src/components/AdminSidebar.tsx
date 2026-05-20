@@ -6,6 +6,7 @@ import {
   LogOut,
   Package,
   Palette,
+  Send,
   Settings,
   Store,
   Users,
@@ -41,6 +42,7 @@ const adminNav = [
   { icon: Users, label: "Domiciliarios", to: "/admin/domiciliarios" },
   { icon: Palette, label: "Personalización", to: "/admin/colores" },
   { icon: Image, label: "Banners", to: "/admin/banners" },
+  { icon: Send, label: "Notificaciones", to: "/admin/notificaciones" },
 ];
 
 export function AdminSidebar() {

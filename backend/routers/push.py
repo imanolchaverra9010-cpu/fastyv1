@@ -194,3 +194,60 @@ def send_push_notification(user_id: int, message_body: dict):
     cursor.close()
     db.close()
     return success
+
+def broadcast_push_notification(message_body: dict):
+    if not PUSH_SUPPORTED:
+        print("Push notifications skipped: pywebpush not installed.")
+        return False
+
+    if not VAPID_PRIVATE_KEY:
+        print("Push notifications skipped: VAPID_PRIVATE_KEY is not configured.")
+        return False
+        
+    db = get_db()
+    if not db:
+        return False
+    
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, user_id, subscription_json FROM push_subscriptions")
+        subscriptions = cursor.fetchall()
+        
+        if not subscriptions:
+            return False
+
+        success = False
+        stale_ids = []
+        for sub_row in subscriptions:
+            try:
+                subscription_info = json.loads(sub_row["subscription_json"])
+                webpush(
+                    subscription_info=subscription_info,
+                    data=json.dumps(message_body),
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims={"sub": VAPID_EMAIL}
+                )
+                success = True
+            except WebPushException as ex:
+                print(f"WebPush error on broadcast: {ex}")
+                if ex.response and ex.response.status_code in [404, 410]:
+                    stale_ids.append(sub_row["id"])
+            except Exception as e:
+                print(f"Unexpected broadcast push error: {e}")
+
+        if stale_ids:
+            try:
+                placeholders = ",".join(["%s"] * len(stale_ids))
+                cursor.execute(f"DELETE FROM push_subscriptions WHERE id IN ({placeholders})", tuple(stale_ids))
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"Failed to delete stale push subscriptions: {e}")
+
+        return success
+    except Exception as e:
+        print(f"Error during push broadcasting: {e}")
+        return False
+    finally:
+        cursor.close()
+        db.close()

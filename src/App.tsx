@@ -27,6 +27,7 @@ import OrderTracking from "./pages/OrderTracking.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import AdminColors from "./pages/AdminColors.tsx";
 import AdminBanners from "./pages/AdminBanners.tsx";
+import AdminNotifications from "./pages/AdminNotifications.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
 import AdminBusinesses from "./pages/AdminBusinesses.tsx";
 import AdminRequests from "./pages/AdminRequests.tsx";
@@ -133,7 +134,7 @@ const AppContent = () => {
       clearInterval(interval);
     };
     */
-    setIsMaintenance(false);
+    setIsMaintenance(true);
     setCheckingMaint(false);
   }, [pathname]);
 
@@ -256,6 +257,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminBanners />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/notificaciones"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminNotifications />
             </ProtectedRoute>
           }
         />
