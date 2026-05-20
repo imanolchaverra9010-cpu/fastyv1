@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => ({
       srcDir: 'src',
       filename: 'service-worker.js',
       registerType: 'autoUpdate',
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Fasty Delivery',
