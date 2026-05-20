@@ -200,6 +200,26 @@ def check_maintenance():
     # Desactivado para reducir carga en producción
     return {"maintenance_mode": False}
 
+@app.get("/api/theme-color")
+@app.get("/theme-color")
+def get_theme_color_public():
+    try:
+        from database import get_db
+        db = get_db()
+        if not db:
+            return {"theme_color": "#f97316"}
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
+            result = cursor.fetchone()
+            return {"theme_color": result['config_value'] if result else "#f97316"}
+        except Exception:
+            return {"theme_color": "#f97316"}
+        finally:
+            db.close()
+    except Exception:
+        return {"theme_color": "#f97316"}
+
 # Diagnóstico de base de datos
 @app.get(f"{API_PREFIX}/debug-db")
 def debug_db():
