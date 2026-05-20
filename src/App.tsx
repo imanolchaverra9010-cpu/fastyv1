@@ -67,7 +67,7 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   const { pathname } = useLocation();
   const { user, isLoading: authLoading } = useAuth();
-  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(true);
   const [checkingMaint, setCheckingMaint] = useState(true);
 
   useEffect(() => {
