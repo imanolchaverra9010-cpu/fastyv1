@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Palette,
   Settings,
   Store,
   Users,
@@ -37,6 +38,7 @@ const adminNav = [
   { icon: Package, label: "Pedidos", to: "/admin/pedidos" },
   { icon: Store, label: "Negocios", to: "/admin/negocios" },
   { icon: Users, label: "Domiciliarios", to: "/admin/domiciliarios" },
+  { icon: Palette, label: "Personalización", to: "/admin/colores" },
 ];
 
 export function AdminSidebar() {

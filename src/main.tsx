@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initTheme } from "./utils/theme";
+
+// Inicializar el tema dinámico personalizado
+initTheme();
 
 // Global fetch interceptor to automatically attach JWT tokens
 const originalFetch = window.fetch;

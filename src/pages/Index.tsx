@@ -36,6 +36,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/context/CartContext";
 import PromoModal from "@/components/PromoModal";
 import { useAuth } from "@/context/AuthContext";
+import logo from "@/assets/logo.png";
 
 const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -103,8 +104,8 @@ const Index = () => {
             
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <Link to="/" className="text-3xl font-display font-black tracking-wider text-white hover:opacity-90 transition-opacity">
-                KEMI
+              <Link to="/" className="flex items-center gap-2 group shrink-0">
+                <img src={logo} alt="Fasty Logo" className="h-11 w-auto transition-transform group-hover:scale-105" />
               </Link>
             </div>
 
@@ -341,7 +342,7 @@ const Index = () => {
             <h2 className="text-2xl md:text-3xl font-display font-black tracking-tight text-slate-800">
               Negocios Recomendados
             </h2>
-            <p className="text-sm text-slate-500 mt-1">Los favoritos de nuestra comunidad en KEMI</p>
+            <p className="text-sm text-slate-500 mt-1">Los favoritos de nuestra comunidad en Fasty</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -507,9 +508,9 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col items-center md:items-start gap-2">
-              <p className="font-display font-black text-3xl tracking-wider text-white">
-                KEMI<span className="text-cyan-300">.</span>
-              </p>
+              <Link to="/" className="flex items-center gap-2 group shrink-0 mb-1">
+                <img src={logo} alt="Fasty Logo" className="h-9 w-auto transition-transform group-hover:scale-105" />
+              </Link>
               <p className="text-cyan-100 text-sm">Tu ciudad a un clic de distancia.</p>
             </div>
             
@@ -521,7 +522,7 @@ const Index = () => {
           </div>
           
           <div className="mt-12 pt-8 border-t border-cyan-700/50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-cyan-200/70">
-            <p>© {new Date().getFullYear()} KEMI & Fasty · Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} Fasty · Todos los derechos reservados.</p>
             <p>Hecho con 🩵 para tu confort y rapidez.</p>
           </div>
         </div>
