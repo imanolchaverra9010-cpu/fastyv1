@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { formatCOP } from "@/data/mock";
 import { Order, BusinessContextType } from "@/types/business";
 import { useOutletContext, Link } from "react-router-dom";
-import DeliveryMap from "@/components/DeliveryMap";
+import DeliveryMap from "@/components/MapboxDeliveryMap";
 import { RequestDeliveryModal } from "./RequestDeliveryModal";
 
 const STATUS_CONFIG = {

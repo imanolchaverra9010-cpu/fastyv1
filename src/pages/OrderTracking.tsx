@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCOP } from "@/data/mock";
-import DeliveryMap from "@/components/DeliveryMap";
+import DeliveryMap from "@/components/MapboxDeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
 import { getWebSocketUrl } from "@/lib/utils";
 
