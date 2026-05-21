@@ -4,8 +4,6 @@ import {
   Bike,
   Clock,
   MapPin,
-  Search,
-  ShieldCheck,
   Sparkles,
   Star,
   Store,
@@ -19,9 +17,8 @@ import {
   Plus,
   ShoppingCart,
   Heart,
-  User,
   Gamepad2,
-  ClipboardList,
+  Plus as PlusIcon,
   Compass,
   Laptop as LaptopIcon,
   Wrench,
@@ -32,20 +29,16 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import SearchInput from "@/components/SearchInput";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/context/CartContext";
 import PromoModal from "@/components/PromoModal";
-import { useAuth } from "@/context/AuthContext";
 import logo from "@/assets/logo.png";
 
 const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const { count } = useCart();
-  const [searchVal, setSearchVal] = useState("");
 
   // Cargar banners activos del backend
   const { data: activeBanners } = useQuery<any[]>({
@@ -118,15 +111,7 @@ const Index = () => {
     }
   }, [errorBusinesses]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchVal.trim()) {
-      navigate(`/negocios?search=${encodeURIComponent(searchVal.trim())}`);
-    }
-  };
-
   const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
       const { scrollLeft, clientWidth } = scrollRef.current;
       const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth;
       scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
@@ -147,103 +132,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       
-      {/* 1. Header Premium Adaptable con el Tema Dinámico */}
-      <header className="bg-primary text-white shadow-md sticky top-0 z-50 transition-colors duration-300">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-20 gap-4">
-            
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <Link to="/" className="flex items-center gap-2 group shrink-0">
-                <img src={logo} alt="Fasty Logo" className="h-11 w-auto transition-transform group-hover:scale-105" />
-              </Link>
-            </div>
-
-            {/* Barra de Búsqueda central */}
-            <div className="flex-1 max-w-2xl hidden md:block">
-              <form onSubmit={handleSearchSubmit} className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Buscar productos..."
-                  value={searchVal}
-                  onChange={(e) => setSearchVal(e.target.value)}
-                  className="w-full px-5 py-3 pr-12 rounded-full bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/45 shadow-inner transition-all placeholder:text-slate-400"
-                />
-                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors">
-                  <Search className="h-5 w-5" />
-                </button>
-              </form>
-            </div>
-
-            {/* Iconos de la derecha */}
-            <div className="flex items-center gap-6">
-              <Link to="/negocios" className="hover:text-white/80 transition-colors hidden sm:block font-semibold text-sm">
-                Explorar
-              </Link>
-              <button onClick={() => navigate('/checkout')} className="hover:scale-105 transition-transform relative" title="Carrito de Compras">
-                <ShoppingCart className="h-6 w-6 text-white hover:text-white/80 transition-colors" />
-                {count > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground font-bold rounded-full text-[9px] h-4 min-w-[1rem] px-0.5 flex items-center justify-center border border-primary">
-                    {count}
-                  </span>
-                )}
-              </button>
-              
-              <div className="relative">
-                {user ? (
-                  <button 
-                    onClick={() => navigate(user.role === 'customer' ? '/perfil' : '/admin')} 
-                    className="flex items-center gap-2 bg-black/15 hover:bg-black/25 px-4 py-2 rounded-full border border-white/10 transition-all"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="text-sm font-bold max-w-[100px] truncate">{user.username}</span>
-                  </button>
-                ) : (
-                  <Link to="/login" className="hover:scale-105 transition-transform" title="Mi Cuenta">
-                    <User className="h-6 w-6 text-white" />
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Sub-Header Row */}
-          <div className="border-t border-white/10 py-2.5 flex items-center justify-between text-xs sm:text-sm font-medium">
-            <div className="flex items-center gap-2 text-white/90">
-              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>+300 Clientes satisfechos</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <Link to="/pedido-abierto" className="text-white hover:text-white/80 transition-colors hover:underline flex items-center gap-1.5 font-semibold">
-                <ClipboardList className="h-4 w-4 shrink-0" />
-                Pedido Abierto
-              </Link>
-              <Link to="/rastreo" className="text-white hover:text-white/80 transition-colors hover:underline flex items-center gap-1.5 font-semibold">
-                <Compass className="h-4 w-4 shrink-0" />
-                Rastrear
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* 2. Sección de Búsqueda para Móviles */}
-      <div className="container mx-auto px-4 py-4 md:hidden">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <input
-            type="text"
-            placeholder="Buscar productos..."
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            className="w-full px-5 py-3 pr-12 rounded-2xl bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/45 shadow-sm transition-all"
-          />
-          <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-            <Search className="h-5 w-5" />
-          </button>
-        </form>
-      </div>
-
-      {/* 3. Hero/Banners Grid al estilo de la captura */}
+      {/* 2. Hero Section con Banners Dinámicos */}
       <section className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
