@@ -167,7 +167,7 @@ const OpenOrder = () => {
 
   const getCurrentLocation = () => {
     setLocationLoading(true);
-    getPreciseCurrentPosition({ desiredAccuracy: 25, fallbackAccuracy: 80, timeout: 18000 })
+    getPreciseCurrentPosition()
       .then(async (position) => {
           const lat = position.latitude;
           const lon = position.longitude;

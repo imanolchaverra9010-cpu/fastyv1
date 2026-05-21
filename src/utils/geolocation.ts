@@ -12,19 +12,19 @@ type PreciseLocationOptions = {
 };
 
 const DEFAULT_OPTIONS = {
-  desiredAccuracy: 30, // Un poco más permisivo (antes 15)
-  fallbackAccuracy: 150, // Mucho más permisivo para interiores (antes 60)
-  timeout: 15000, // Menos tiempo de espera para no frustrar al usuario
-  maximumAge: 0,
+  desiredAccuracy: 40, // Permisivo para exteriores
+  fallbackAccuracy: 300, // Permisivo para interiores/Wi-Fi
+  timeout: 12000, // Tiempo razonable de espera
+  maximumAge: 5000, // Permitir caché reciente para mayor rapidez
 };
 
 export const getPositionErrorMessage = (error: GeolocationPositionError | Error) => {
   if ("code" in error) {
-    if (error.code === error.PERMISSION_DENIED) return "Debes permitir el acceso a tu ubicacion para continuar.";
-    if (error.code === error.POSITION_UNAVAILABLE) return "No se pudo detectar tu ubicacion. Activa el GPS e intentalo de nuevo.";
-    if (error.code === error.TIMEOUT) return "La ubicacion tardo demasiado. Intentalo otra vez en un lugar con mejor senal.";
+    if (error.code === error.PERMISSION_DENIED) return "Debes permitir el acceso a tu ubicación en el navegador para continuar.";
+    if (error.code === error.POSITION_UNAVAILABLE) return "El GPS parece estar desactivado o no disponible en este momento.";
+    if (error.code === error.TIMEOUT) return "La señal es muy débil. Intenta moverte a un lugar más abierto.";
   }
-  return error.message || "No se pudo obtener tu ubicacion actual.";
+  return error.message || "No se pudo obtener tu ubicación actual.";
 };
 
 export const getPreciseCurrentPosition = (options: PreciseLocationOptions = {}): Promise<PrecisePosition> => {
@@ -32,7 +32,7 @@ export const getPreciseCurrentPosition = (options: PreciseLocationOptions = {}):
 
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) {
-      reject(new Error("Tu navegador no soporta la geolocalizacion."));
+      reject(new Error("Tu navegador no soporta geolocalización."));
       return;
     }
 
@@ -54,30 +54,44 @@ export const getPreciseCurrentPosition = (options: PreciseLocationOptions = {}):
       resolve({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+        accuracy: position.coords.accuracy,
       });
+    };
+
+    // Fallback final: Si falla el modo preciso, intentar el modo básico una última vez
+    const finalFallback = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolveWith(pos),
+        (err) => {
+          if (bestPosition) {
+            resolveWith(bestPosition);
+          } else {
+            reject(new Error("No se pudo obtener una ubicación. Verifica que el GPS esté activo."));
+          }
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
     };
 
     const timeoutId = window.setTimeout(() => {
       if (settled) return;
-      if (bestPosition) {
-        const accuracy = bestPosition.coords.accuracy || Infinity;
-        if (accuracy <= config.fallbackAccuracy) {
-          resolveWith(bestPosition);
-          return;
-        }
+      
+      if (bestPosition && bestPosition.coords.accuracy <= config.fallbackAccuracy) {
+        resolveWith(bestPosition);
+      } else {
+        // Antes de rendirnos, intentamos el fallback básico
+        cleanup();
+        finalFallback();
       }
-      settled = true;
-      cleanup();
-      reject(new Error("No se logro una lectura GPS precisa. Acercate a una ventana o activa el GPS."));
     }, config.timeout);
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
         if (settled) return;
 
-        const accuracy = position.coords.accuracy || Infinity;
+        const accuracy = position.coords.accuracy;
         const bestAccuracy = bestPosition?.coords.accuracy || Infinity;
+
         if (!bestPosition || accuracy < bestAccuracy) {
           bestPosition = position;
         }
@@ -89,16 +103,22 @@ export const getPreciseCurrentPosition = (options: PreciseLocationOptions = {}):
       },
       (error) => {
         if (settled) return;
-        if (bestPosition) return;
-        settled = true;
-        window.clearTimeout(timeoutId);
-        cleanup();
-        reject(error);
+        // Si hay error pero tenemos una posición previa aceptable, la usamos
+        if (bestPosition && bestPosition.coords.accuracy <= config.fallbackAccuracy) {
+          window.clearTimeout(timeoutId);
+          resolveWith(bestPosition);
+        } else {
+          // Si falla inmediatamente (ej. permiso denegado), no esperar al timeout
+          settled = true;
+          window.clearTimeout(timeoutId);
+          cleanup();
+          reject(error);
+        }
       },
       {
         enableHighAccuracy: true,
         maximumAge: config.maximumAge,
-        timeout: config.timeout,
+        timeout: config.timeout
       }
     );
   });

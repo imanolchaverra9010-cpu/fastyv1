@@ -29,7 +29,7 @@ const BusinessRegister = () => {
   
   const getCurrentLocation = () => {
     setGettingLocation(true);
-    getPreciseCurrentPosition({ desiredAccuracy: 20, fallbackAccuracy: 70, timeout: 18000 })
+    getPreciseCurrentPosition()
       .then((position) => {
           setCoords({
             lat: position.latitude,
