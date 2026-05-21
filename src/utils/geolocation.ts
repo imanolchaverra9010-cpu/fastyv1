@@ -12,9 +12,9 @@ type PreciseLocationOptions = {
 };
 
 const DEFAULT_OPTIONS = {
-  desiredAccuracy: 15, // Más estricto (antes 35)
-  fallbackAccuracy: 60, // Más estricto (antes 120)
-  timeout: 20000, // Más tiempo para estabilizar (antes 15000)
+  desiredAccuracy: 30, // Un poco más permisivo (antes 15)
+  fallbackAccuracy: 150, // Mucho más permisivo para interiores (antes 60)
+  timeout: 15000, // Menos tiempo de espera para no frustrar al usuario
   maximumAge: 0,
 };
 
