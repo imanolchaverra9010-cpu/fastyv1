@@ -466,7 +466,7 @@ const OrderTracking = () => {
                       dropoff={{
                         lat: order.latitude || 4.68,
                         lng: order.longitude || -74.06,
-                        label: "Tu destino"
+                        label: order.order_type === 'open' ? "Cliente" : "Tu destino"
                       }}
                       courier={order.courier_lat && order.courier_lng ? {
                         lat: order.courier_lat,

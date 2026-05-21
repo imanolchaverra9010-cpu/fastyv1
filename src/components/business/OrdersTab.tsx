@@ -148,7 +148,7 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
               </p>
               <div className="h-[160px] sm:h-[200px] rounded-xl overflow-hidden border border-border/60 shadow-inner">
                 <DeliveryMap 
-                   pickup={{ 
+                   pickup={order.order_type === 'open' ? undefined : {
                       lat: businessCoords?.lat || 4.6533, 
                       lng: businessCoords?.lng || -74.0836, 
                       label: "Tu Negocio",
