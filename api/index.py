@@ -137,6 +137,7 @@ routers_to_load = [
     ("push", f"{API_PREFIX}/push", ["Push Notifications"]),
     ("payments", f"{API_PREFIX}/payments", ["Payments"]),
     ("banners", f"{API_PREFIX}/banners", ["Banners"]),
+    ("couriers", f"{API_PREFIX}/couriers", ["Couriers Panel"]),
 ]
 
 for name, prefix, tags in routers_to_load:
