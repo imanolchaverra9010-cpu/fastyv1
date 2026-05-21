@@ -36,6 +36,7 @@ import OpenOrder from "./pages/OpenOrder.tsx";
 import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import MaintenancePage from "./pages/Maintenance.tsx";
 import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
@@ -70,6 +71,10 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   const { pathname } = useLocation();
   const { user, isLoading: authLoading } = useAuth();
+  
+  // MODO MANTENIMIENTO: Cambia a 'true' para bloquear el acceso a clientes
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [checkingMaint, setCheckingMaint] = useState(false);
 
   // Cargar y aplicar el color de tema personalizado desde el backend al iniciar la app
   useEffect(() => {
@@ -90,15 +95,20 @@ const AppContent = () => {
   }, []);
 
   const isAdmin = user?.role === 'admin';
+  const isMaintenanceActive = isMaintenance && !isAdmin;
   const isLoginPage = pathname === "/login";
   const isAdminPath = pathname.startsWith("/admin");
 
-  if (authLoading && !isLoginPage) {
+  if ((checkingMaint || authLoading) && !isLoginPage) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-warm">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isMaintenanceActive && !isAdminPath && !isLoginPage) {
+    return <MaintenancePage />;
   }
 
   const hideHeader = ["/login", "/register"].includes(pathname) ||
