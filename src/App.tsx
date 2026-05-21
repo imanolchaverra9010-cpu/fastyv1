@@ -36,7 +36,6 @@ import OpenOrder from "./pages/OpenOrder.tsx";
 import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
-import MaintenancePage from "./pages/Maintenance.tsx";
 import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
@@ -71,8 +70,6 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   const { pathname } = useLocation();
   const { user, isLoading: authLoading } = useAuth();
-  const [isMaintenance, setIsMaintenance] = useState(true);
-  const [checkingMaint, setCheckingMaint] = useState(true);
 
   // Cargar y aplicar el color de tema personalizado desde el backend al iniciar la app
   useEffect(() => {
@@ -92,58 +89,11 @@ const AppContent = () => {
     fetchThemeColor();
   }, []);
 
-  useEffect(() => {
-    /* 
-    // Mantenimiento desactivado para reducir consultas a la base de datos en producción
-    const checkMaint = async () => {
-      try {
-        const res = await fetch("/api/maintenance", { 
-          cache: 'no-store',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setIsMaintenance(!!data.maintenance_mode);
-        } else {
-          // Si falla el endpoint /api, intentar /maintenance como fallback
-          const fallbackRes = await fetch("/maintenance", { cache: 'no-store' });
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            setIsMaintenance(!!fallbackData.maintenance_mode);
-          }
-        }
-      } catch (e) {
-        // No loguear error si es un fallo de conexión común
-        if (e instanceof TypeError && e.message === 'Failed to fetch') {
-          // Silencioso
-        } else {
-          console.error("Error checking maintenance:", e);
-        }
-      } finally {
-        setCheckingMaint(false);
-      }
-    };
-    
-    checkMaint();
-    window.addEventListener('focus', checkMaint);
-    const interval = setInterval(checkMaint, 30000);
-    
-    return () => {
-      window.removeEventListener('focus', checkMaint);
-      clearInterval(interval);
-    };
-    */
-    setIsMaintenance(true);
-    setCheckingMaint(false);
-  }, [pathname]);
-
   const isAdmin = user?.role === 'admin';
-  const isMaintenanceActive = isMaintenance && !isAdmin;
   const isLoginPage = pathname === "/login";
   const isAdminPath = pathname.startsWith("/admin");
 
-  if ((checkingMaint || authLoading) && !isLoginPage) {
+  if (authLoading && !isLoginPage) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-warm">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -151,9 +101,6 @@ const AppContent = () => {
     );
   }
 
-  if (isMaintenanceActive && !isAdminPath && !isLoginPage) {
-    return <MaintenancePage />;
-  }
   const hideHeader = ["/login", "/register"].includes(pathname) ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/domiciliario");
