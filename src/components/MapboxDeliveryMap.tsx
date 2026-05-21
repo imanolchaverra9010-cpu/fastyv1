@@ -28,10 +28,12 @@ const MapboxDeliveryMap = ({ pickup, dropoff, courier }: Props) => {
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: "mapbox://styles/mapbox/navigation-night-v1", // Estilo premium nocturno
       center: [lng, lat],
       zoom: zoom,
-      pitch: 45, // Inclinación para efecto 3D
+      pitch: 60, // Mayor inclinación para efecto 3D
+      bearing: -15, // Ligera rotación para profundidad
+      antialias: true
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
@@ -39,7 +41,54 @@ const MapboxDeliveryMap = ({ pickup, dropoff, courier }: Props) => {
     map.current.on("load", () => {
       if (!map.current) return;
 
-      // Añadir capa para la ruta
+      // Configurar el cielo para atmósfera 3D
+      map.current.setFog({
+        'range': [0.5, 10],
+        'color': '#242b4b',
+        'horizon-blend': 0.3
+      });
+
+      // Añadir capa de edificios 3D
+      const layers = map.current.getStyle().layers;
+      const labelLayerId = layers?.find(
+        (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+      )?.id;
+
+      map.current.addLayer(
+        {
+          'id': 'add-3d-buildings',
+          'source': 'composite',
+          'source-layer': 'building',
+          'filter': ['==', 'extrude', 'true'],
+          'type': 'fill-extrusion',
+          'minzoom': 15,
+          'paint': {
+            'fill-extrusion-color': '#334155',
+            'fill-extrusion-height': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              15,
+              0,
+              15.05,
+              ['get', 'height']
+            ],
+            'fill-extrusion-base': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              15,
+              0,
+              15.05,
+              ['get', 'min_height']
+            ],
+            'fill-extrusion-opacity': 0.6
+          }
+        },
+        labelLayerId
+      );
+
+      // Añadir capa para la ruta con gradiente
       map.current.addSource("route", {
         type: "geojson",
         data: {
@@ -61,11 +110,29 @@ const MapboxDeliveryMap = ({ pickup, dropoff, courier }: Props) => {
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#0ea5e9", // primary color
-          "line-width": 5,
-          "line-opacity": 0.75,
+          "line-color": "#38bdf8", // Sky-400
+          "line-width": 6,
+          "line-opacity": 0.8,
+          "line-blur": 1,
         },
       });
+
+      // Añadir efecto de brillo debajo de la línea
+      map.current.addLayer({
+        id: "route-glow",
+        type: "line",
+        source: "route",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#38bdf8",
+          "line-width": 12,
+          "line-opacity": 0.2,
+          "line-blur": 8,
+        },
+      }, "route");
     });
   }, []);
 
@@ -84,9 +151,22 @@ const MapboxDeliveryMap = ({ pickup, dropoff, courier }: Props) => {
 
       if (!markers.current[id]) {
         const el = document.createElement("div");
-        el.className = "flex items-center justify-center w-10 h-10 rounded-full shadow-lg border-2 border-white text-xl bg-white";
-        el.innerHTML = emoji || (id === "courier" ? "🛵" : "📍");
-        if (id === "courier") el.classList.add("animate-bounce");
+        el.className = `flex items-center justify-center w-12 h-12 rounded-2xl shadow-2xl border-2 border-white/20 text-2xl transition-all duration-500 backdrop-blur-md ${
+          id === "courier" ? "bg-primary/90 text-white z-50 scale-110" : "bg-card/90"
+        }`;
+        
+        // Estilo especial para el domiciliario
+        if (id === "courier") {
+          el.innerHTML = `
+            <div class="relative">
+              <span class="relative z-10">🛵</span>
+              <div class="absolute inset-0 bg-primary blur-lg opacity-50 animate-pulse"></div>
+            </div>
+          `;
+          el.classList.add("animate-bounce");
+        } else {
+          el.innerHTML = emoji || "📍";
+        }
 
         markers.current[id] = new mapboxgl.Marker(el)
           .setLngLat([coords.lng, coords.lat])

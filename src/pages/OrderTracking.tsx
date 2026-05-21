@@ -454,7 +454,7 @@ const OrderTracking = () => {
             <div className="grid lg:grid-cols-[1fr_400px] gap-8">
               {/* Columna Izquierda: Mapa o Estado Visual */}
               <div className="space-y-8">
-                <div className="bg-card border border-border/60 rounded-[2rem] overflow-hidden shadow-card h-[400px] md:h-[500px] relative group">
+                <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl h-[450px] md:h-[550px] relative group p-1">
                   {order.status === 'shipped' || order.status === 'in_transit' ? (
                     <DeliveryMap
                       pickup={order.order_type === 'open' ? undefined : {
