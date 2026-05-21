@@ -497,7 +497,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Informative Banner / Note */}
+      {/* Informative Banner / Note 
       <div className="container mx-auto px-4 mb-6">
         <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 rounded-2xl p-4 text-sm text-teal-800 flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-teal-600 animate-pulse shrink-0" />
@@ -505,7 +505,7 @@ const Index = () => {
             <strong>Diseño Fasty V2:</strong> Para alternar entre este diseño y el tradicional, simplemente renombra este archivo a <code>index.tsx</code> en la carpeta <code>src/pages</code> o edita el import principal en <code>src/App.tsx</code>.
           </span>
         </div>
-      </div>
+      </div>*/}
 
       {/* 5. Negocios Calificados (Dinámicos del Backend) */}
       <section className="container mx-auto px-4 py-8">
