@@ -18,7 +18,6 @@ import {
   ShoppingCart,
   Heart,
   Gamepad2,
-  Plus as PlusIcon,
   Compass,
   Laptop as LaptopIcon,
   Wrench,
@@ -112,6 +111,7 @@ const Index = () => {
   }, [errorBusinesses]);
 
   const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
       const { scrollLeft, clientWidth } = scrollRef.current;
       const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth;
       scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
