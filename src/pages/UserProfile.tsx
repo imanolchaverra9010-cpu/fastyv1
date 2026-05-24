@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useCart } from "@/context/CartContext";
 
 interface Order {
   id: string;
@@ -35,6 +36,7 @@ interface Order {
   status: string;
   created_at: string;
   is_rated: boolean;
+  items?: any[];
 }
 
 interface Benefit {
@@ -55,6 +57,7 @@ const AVATARS = [
 
 const UserProfile = () => {
   const { user, logout, updateUser } = useAuth();
+  const { add } = useCart();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"orders" | "benefits">("orders");
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
@@ -66,6 +69,20 @@ const UserProfile = () => {
   const [editName, setEditName] = useState(user?.username || "");
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editAvatar, setEditAvatar] = useState(user?.avatar_url || "");
+
+  const reorder = (order: Order) => {
+    if (!order.items?.length) {
+      toast({ title: "No se puede reordenar", description: "Este pedido no tiene productos disponibles para repetir.", variant: "destructive" });
+      return;
+    }
+    order.items.forEach((item: any) => {
+      const quantity = Number(item.quantity || 1);
+      for (let i = 0; i < quantity; i += 1) {
+        add({ ...item, business_id: order.business_id }, order.business_name || "Negocio");
+      }
+    });
+    toast({ title: "Pedido agregado al carrito", description: "Revisa tu carrito antes de confirmar." });
+  };
 
   // Update Profile Mutation
   const updateProfileMutation = useMutation({
@@ -292,6 +309,16 @@ const UserProfile = () => {
                       <div className="flex items-center gap-1 text-success text-xs font-bold">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Calificado
                       </div>
+                    )}
+                    {order.status === "delivered" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl h-9 text-xs font-bold"
+                        onClick={() => reorder(order)}
+                      >
+                        Reordenar
+                      </Button>
                     )}
                   </div>
 

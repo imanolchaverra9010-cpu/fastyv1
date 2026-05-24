@@ -6,6 +6,7 @@ import {
   LogOut,
   Package,
   Palette,
+  PiggyBank,
   Send,
   Settings,
   Store,
@@ -36,6 +37,7 @@ import logo from "@/assets/logo.png"; // Importar el logo
 
 const adminNav = [
   { icon: LayoutDashboard, label: "Panel Principal", to: "/admin" },
+  { icon: PiggyBank, label: "Operación", to: "/admin/operacion" },
   { icon: Utensils, label: "Solicitudes", to: "/admin/solicitudes" },
   { icon: Package, label: "Pedidos", to: "/admin/pedidos" },
   { icon: Store, label: "Negocios", to: "/admin/negocios" },

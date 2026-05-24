@@ -16,6 +16,37 @@ COURIER_TO_PICKUP_SPEED_KMH = 25
 DELIVERY_SPEED_KMH = 22
 PICKUP_HANDOFF_MINUTES = 4
 PREPARING_BUFFER_MINUTES = 12
+VALID_ORDER_STATUSES = {"pending_payment", "pending", "preparing", "shipped", "in_transit", "delivered", "cancelled"}
+FINAL_ORDER_STATUSES = {"delivered", "cancelled"}
+ORDER_STATUS_TRANSITIONS = {
+    "pending_payment": {"pending", "cancelled"},
+    "pending": {"preparing", "shipped", "cancelled"},
+    "preparing": {"shipped", "cancelled"},
+    "shipped": {"in_transit", "cancelled"},
+    "in_transit": {"delivered", "cancelled"},
+    "delivered": set(),
+    "cancelled": set(),
+}
+
+
+def validate_order_status_transition(current_status: str | None, new_status: str | None, courier_id: int | None = None):
+    if not new_status:
+        return
+    if new_status not in VALID_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado de pedido inválido")
+    if current_status == new_status:
+        return
+    if current_status not in VALID_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail=f"El estado actual '{current_status}' no es válido")
+    if current_status in FINAL_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail=f"No se puede cambiar un pedido en estado '{current_status}'")
+    if new_status not in ORDER_STATUS_TRANSITIONS[current_status]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transición inválida: no puedes cambiar un pedido de '{current_status}' a '{new_status}'"
+        )
+    if new_status in {"shipped", "in_transit", "delivered"} and not courier_id:
+        raise HTTPException(status_code=400, detail="El pedido debe tener un domiciliario asignado para avanzar a este estado")
 
 def _safe_alter_table_column(cursor, db, table_name, column_name, column_def):
     try:
@@ -521,7 +552,7 @@ async def update_order(order_id: str, order_data: dict, background_tasks: Backgr
     try:
         # Fetch order info with business owner and courier user IDs for notifications
         cursor.execute("""
-            SELECT o.id, o.business_id, o.user_id, o.courier_id,
+            SELECT o.id, o.business_id, o.user_id, o.courier_id, o.status,
                    b.owner_id as business_user_id, c.user_id as courier_user_id,
                    b.name as business_name
             FROM orders o
@@ -539,6 +570,14 @@ async def update_order(order_id: str, order_data: dict, background_tasks: Backgr
                 raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
             if current_user["role"] == "courier" and order["courier_user_id"] != current_user["id"]:
                 raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
+        if current_user["role"] != "admin" and "status" in order_data:
+            raise HTTPException(status_code=403, detail="Solo un administrador puede editar el estado desde este endpoint")
+        if "status" in order_data:
+            validate_order_status_transition(
+                order.get("status"),
+                order_data.get("status"),
+                order.get("courier_id")
+            )
 
         allowed_fields = {
             "customer_name",
@@ -820,12 +859,12 @@ def accept_open_order_offer(order_id: str, offer_id: int, background_tasks: Back
 
 
 @router.patch("/{order_id}/status")
-async def update_order_status(order_id: str, status_data: dict, background_tasks: BackgroundTasks):
+async def update_order_status(order_id: str, status_data: dict, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     new_status = status_data.get("status")
     reason = status_data.get("reason")
     courier_id = status_data.get("courier_id")
-    if new_status and new_status not in ["pending", "preparing", "shipped", "in_transit", "delivered", "cancelled"]:
-        raise HTTPException(status_code=400, detail="Invalid status")
+    if new_status and new_status not in VALID_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado de pedido inválido")
         
     db = get_db()
     if not db:
@@ -835,7 +874,7 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
     try:
         # Fetch order info with business owner and courier user IDs
         cursor.execute("""
-            SELECT o.id, o.business_id, o.user_id, o.courier_id,
+            SELECT o.id, o.business_id, o.user_id, o.courier_id, o.status,
                    b.owner_id as business_user_id, c.user_id as courier_user_id,
                    b.name as business_name
             FROM orders o
@@ -848,6 +887,25 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
         if not orders:
             db.close()
             raise HTTPException(status_code=404, detail="Order(s) not found")
+
+        for order in orders:
+            effective_courier_id = courier_id or order.get("courier_id")
+            if current_user["role"] != "admin":
+                if new_status == "preparing" and (
+                    current_user["role"] != "business" or order.get("business_user_id") != current_user["id"]
+                ):
+                    raise HTTPException(status_code=403, detail="Solo el negocio asignado puede preparar este pedido")
+                if new_status in {"in_transit", "delivered"} and (
+                    current_user["role"] != "courier" or order.get("courier_user_id") != current_user["id"]
+                ):
+                    raise HTTPException(status_code=403, detail="Solo el domiciliario asignado puede avanzar este pedido")
+                if new_status == "cancelled" and current_user["role"] not in {"customer", "business"}:
+                    raise HTTPException(status_code=403, detail="No tienes permiso para cancelar este pedido")
+                if current_user["role"] == "customer" and order.get("user_id") != current_user["id"]:
+                    raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
+                if current_user["role"] == "business" and order.get("business_user_id") != current_user["id"]:
+                    raise HTTPException(status_code=403, detail="No tienes permiso para actualizar este pedido")
+            validate_order_status_transition(order.get("status"), new_status, effective_courier_id)
 
         # Construir query dinámica
         updates = []
@@ -951,6 +1009,10 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
         db.commit()
         db.close()
         return {"message": f"Updated {len(orders)} order(s) successfully"}
+    except HTTPException:
+        db.rollback()
+        db.close()
+        raise
     except Exception as e:
         db.rollback()
         db.close()
@@ -995,10 +1057,13 @@ def smart_assign_courier(order_id: str, background_tasks: BackgroundTasks):
         if eta_minutes:
             estimated_delivery_time = (get_bogota_time() + timedelta(minutes=eta_minutes)).replace(tzinfo=None)
 
+        validate_order_status_transition(order.get("status"), "shipped", selected["id"])
         cursor.execute(
-            "UPDATE orders SET courier_id = %s, status = 'shipped', estimated_delivery_time = %s WHERE id = %s",
+            "UPDATE orders SET courier_id = %s, status = 'shipped', estimated_delivery_time = %s WHERE id = %s AND courier_id IS NULL AND status IN ('pending', 'preparing')",
             (selected["id"], estimated_delivery_time, order_id)
         )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=409, detail="El pedido ya fue asignado o cambió de estado")
         cursor.execute(
             "INSERT INTO order_status_logs (order_id, status) VALUES (%s, %s)",
             (order_id, 'shipped')
@@ -1060,18 +1125,38 @@ def smart_assign_courier(order_id: str, background_tasks: BackgroundTasks):
         db.close()
 
 @router.patch("/{order_id}/assign")
-def assign_courier(order_id: str, data: dict):
+def assign_courier(order_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Solo un administrador puede asignar domiciliarios")
     courier_id = data.get("courier_id")
+    if not courier_id:
+        raise HTTPException(status_code=400, detail="courier_id es requerido")
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = db.cursor(dictionary=True)
     try:
-        cursor.execute("UPDATE orders SET courier_id = %s, status = 'shipped' WHERE id = %s", (courier_id, order_id))
+        cursor.execute("SELECT id, status, courier_id FROM orders WHERE id = %s", (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        if order.get("courier_id"):
+            raise HTTPException(status_code=400, detail="Order already has a courier assigned")
+        validate_order_status_transition(order.get("status"), "shipped", courier_id)
+        cursor.execute(
+            "UPDATE orders SET courier_id = %s, status = 'shipped' WHERE id = %s AND courier_id IS NULL AND status IN ('pending', 'preparing')",
+            (courier_id, order_id)
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=409, detail="El pedido ya fue asignado o cambió de estado")
         cursor.execute("INSERT INTO order_status_logs (order_id, status) VALUES (%s, 'shipped')", (order_id,))
         db.commit()
         db.close()
         return {"message": "Courier assigned and status updated to shipped"}
+    except HTTPException:
+        db.rollback()
+        db.close()
+        raise
     except Exception as e:
         db.rollback()
         db.close()

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesario
@@ -22,6 +22,10 @@ interface Business {
   eta: string;
   status: string;
   created_at: string;
+  opening_time?: string;
+  closing_time?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface MenuItem {
@@ -42,6 +46,13 @@ const BusinessDetail = () => {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("fasty_favorite_businesses") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const toggleItem = (itemId: number) => {
     setExpandedItems(prev => {
@@ -123,6 +134,17 @@ const BusinessDetail = () => {
   };
 
   const isOpen = isBusinessOpen();
+  const isFavorite = !!id && favorites.includes(id);
+
+  const toggleFavorite = () => {
+    if (!id) return;
+    const next = isFavorite ? favorites.filter((fav) => fav !== id) : [...favorites, id];
+    setFavorites(next);
+    localStorage.setItem("fasty_favorite_businesses", JSON.stringify(next));
+    toast({ title: isFavorite ? "Quitado de favoritos" : "Agregado a favoritos", description: business?.name });
+  };
+
+  const contactUrl = business?.phone ? `https://wa.me/57${String(business.phone).replace(/\D/g, "").slice(-10)}` : "";
 
   // Filtrado y agrupación lógica
   const filteredGroupedItems = useMemo(() => {
@@ -241,9 +263,32 @@ const BusinessDetail = () => {
                   {isOpen ? "ABIERTO" : "CERRADO"}
                 </span>
               </div>
+              <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
+                <Button type="button" variant="secondary" className="rounded-full gap-2 bg-white/90 text-foreground hover:bg-white" onClick={toggleFavorite}>
+                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+                  {isFavorite ? "Favorito" : "Guardar favorito"}
+                </Button>
+                {business.phone && (
+                  <>
+                    <Button asChild type="button" variant="secondary" className="rounded-full gap-2 bg-white/90 text-foreground hover:bg-white">
+                      <a href={`tel:${business.phone}`}><Phone className="h-4 w-4" /> Llamar</a>
+                    </Button>
+                    <Button asChild type="button" variant="secondary" className="rounded-full gap-2 bg-white/90 text-foreground hover:bg-white">
+                      <a href={contactUrl} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
+        {!isOpen && (
+          <div className="mt-6 rounded-3xl border border-destructive/20 bg-destructive/10 p-5">
+            <h3 className="font-bold text-destructive">Este negocio está cerrado ahora</h3>
+            <p className="text-sm text-muted-foreground mt-1">Puedes revisar el menú, guardar el negocio en favoritos o contactarlo, pero no se aceptan pedidos hasta que abra.</p>
+          </div>
+        )}
 
         {/* Cabecera del Menú con Buscador */}
         <div className="mt-10 mb-8 space-y-6">
@@ -366,7 +411,12 @@ const BusinessDetail = () => {
             })}
           </div>
         ) : (
-          <p className="text-muted-foreground">Este negocio aún no tiene productos.</p>
+          <div className="text-center py-16 rounded-3xl border border-dashed border-border/60 bg-card/40">
+            <Store className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
+            <h3 className="font-bold text-lg">No hay productos disponibles</h3>
+            <p className="text-muted-foreground mt-1">{searchQuery ? "No encontramos productos con esa búsqueda." : "Este negocio aún no tiene productos activos."}</p>
+            {searchQuery && <Button variant="soft" className="mt-4 rounded-xl" onClick={() => setSearchQuery("")}>Limpiar búsqueda</Button>}
+          </div>
         )}
       </main>
     </div>

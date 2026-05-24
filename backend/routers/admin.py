@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi.responses import PlainTextResponse
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from utils import pwd_context, hash_password, get_bogota_time
+from utils import pwd_context, hash_password, get_bogota_time, log_event
 from pydantic import BaseModel
 from security import get_current_user
 from .push import broadcast_push_notification
@@ -576,6 +577,201 @@ def get_daily_report():
             courier['orders'] = cursor.fetchall()
             
         return report
+    finally:
+        cursor.close()
+        db.close()
+
+@router.get("/operations")
+def get_admin_operations(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_orders,
+                SUM(CASE WHEN o.status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
+                SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+                SUM(CASE WHEN o.status IN ('pending', 'preparing', 'shipped', 'in_transit') THEN 1 ELSE 0 END) as active_orders,
+                SUM(CASE WHEN o.status != 'cancelled' THEN COALESCE(o.total, 0) ELSE 0 END) as gross_sales,
+                SUM(CASE WHEN o.status != 'cancelled' THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) ELSE 0 END) as delivery_income
+            FROM orders o
+        """)
+        financial = cursor.fetchone() or {}
+
+        cursor.execute("""
+            SELECT
+                b.id,
+                b.name,
+                COUNT(o.id) as orders,
+                SUM(CASE WHEN o.status != 'cancelled' THEN COALESCE(o.total, 0) ELSE 0 END) as sales,
+                SUM(CASE WHEN o.status = 'delivered' THEN COALESCE(o.total, 0) ELSE 0 END) as payable_base
+            FROM businesses b
+            LEFT JOIN orders o ON o.business_id = b.id
+            GROUP BY b.id, b.name
+            ORDER BY sales DESC
+            LIMIT 10
+        """)
+        business_sales = cursor.fetchall()
+
+        commission_rate = 0.08
+        for row in business_sales:
+            payable_base = float(row.get("payable_base") or 0)
+            row["commission_rate"] = commission_rate
+            row["commission"] = round(payable_base * commission_rate, 2)
+            row["settlement"] = round(payable_base - row["commission"], 2)
+
+        cursor.execute("""
+            SELECT
+                COALESCE(payment_method, 'sin_definir') as payment_method,
+                COUNT(*) as count,
+                SUM(COALESCE(total, 0)) as amount
+            FROM orders
+            WHERE status != 'cancelled'
+            GROUP BY COALESCE(payment_method, 'sin_definir')
+            ORDER BY amount DESC
+        """)
+        payments = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                c.id,
+                c.name,
+                c.status,
+                c.rating,
+                COUNT(o.id) as assigned_orders,
+                SUM(CASE WHEN o.status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
+                SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+                SUM(CASE WHEN o.status = 'delivered' THEN COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0) ELSE 0 END) as generated_delivery_income
+            FROM couriers c
+            LEFT JOIN orders o ON o.courier_id = c.id
+            GROUP BY c.id, c.name, c.status, c.rating
+            ORDER BY delivered_orders DESC
+            LIMIT 10
+        """)
+        courier_performance = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                osl.order_id,
+                osl.status,
+                osl.changed_at,
+                o.customer_name,
+                b.name as business_name
+            FROM order_status_logs osl
+            LEFT JOIN orders o ON o.id = osl.order_id
+            LEFT JOIN businesses b ON b.id = o.business_id
+            ORDER BY osl.changed_at DESC
+            LIMIT 25
+        """)
+        audit = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                id,
+                customer_name,
+                customer_phone,
+                cancellation_reason,
+                created_at
+            FROM orders
+            WHERE status = 'cancelled'
+            ORDER BY created_at DESC
+            LIMIT 15
+        """)
+        support_cases = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                DATE(created_at) as date,
+                COUNT(*) as orders,
+                SUM(CASE WHEN status != 'cancelled' THEN COALESCE(total, 0) ELSE 0 END) as sales
+            FROM orders
+            WHERE created_at >= %s
+            GROUP BY DATE(created_at)
+            ORDER BY date DESC
+        """, ((get_bogota_time() - timedelta(days=30)).date(),))
+        daily_sales = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                MIN(delivery_fee) as min_fee,
+                MAX(delivery_fee) as max_fee,
+                AVG(delivery_fee) as avg_fee,
+                MIN(night_fee) as min_night_fee,
+                MAX(night_fee) as max_night_fee,
+                AVG(night_fee) as avg_night_fee
+            FROM orders
+            WHERE status != 'cancelled'
+        """)
+        zone_fees = cursor.fetchone() or {}
+
+        return {
+            "financial": financial,
+            "business_sales": business_sales,
+            "payments": payments,
+            "courier_performance": courier_performance,
+            "audit": audit,
+            "support_cases": support_cases,
+            "daily_sales": daily_sales,
+            "zone_fees": zone_fees,
+            "settings": {
+                "commission_rate": commission_rate,
+                "zone_pricing_model": "base + distancia + recargo nocturno"
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+@router.get("/backup.sql", response_class=PlainTextResponse)
+def download_database_backup(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SHOW TABLES")
+        table_key = next(iter(cursor.column_names))
+        tables = [row[table_key] for row in cursor.fetchall()]
+        lines = [
+            "-- Fasty database backup",
+            f"-- Generated at {get_bogota_time().isoformat()}",
+            "SET FOREIGN_KEY_CHECKS=0;",
+        ]
+        for table in tables:
+            cursor.execute(f"SHOW CREATE TABLE `{table}`")
+            create_row = cursor.fetchone()
+            lines.append(f"DROP TABLE IF EXISTS `{table}`;")
+            lines.append(f"{create_row['Create Table']};")
+            cursor.execute(f"SELECT * FROM `{table}`")
+            rows = cursor.fetchall()
+            for row in rows:
+                columns = ", ".join(f"`{column}`" for column in row.keys())
+                values = []
+                for value in row.values():
+                    if value is None:
+                        values.append("NULL")
+                    else:
+                        escaped = str(value).replace("\\", "\\\\").replace("'", "''")
+                        values.append(f"'{escaped}'")
+                lines.append(f"INSERT INTO `{table}` ({columns}) VALUES ({', '.join(values)});")
+        lines.append("SET FOREIGN_KEY_CHECKS=1;")
+        log_event("database_backup_generated", admin_id=current_user["id"], tables=len(tables))
+        return "\n".join(lines)
+    except Exception as e:
+        log_event("database_backup_failed", "error", admin_id=current_user["id"], error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()

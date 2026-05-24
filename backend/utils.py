@@ -1,4 +1,6 @@
 import os
+import json
+import logging
 from dotenv import load_dotenv
 import bcrypt
 
@@ -18,6 +20,29 @@ from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import math
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.getenv("LOG_FILE", "logs/fasty.log")
+log_dir = os.path.dirname(LOG_FILE)
+if log_dir:
+    os.makedirs(log_dir, exist_ok=True)
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(LOG_FILE, encoding="utf-8")
+    ]
+)
+logger = logging.getLogger("fasty")
+
+def log_event(event: str, level: str = "info", **data):
+    payload = {
+        "event": event,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        **data
+    }
+    getattr(logger, level, logger.info)(json.dumps(payload, default=str, ensure_ascii=False))
 
 # Zona horaria de Bogotá (UTC-5)
 BOGOTA_TZ = timezone(timedelta(hours=-5))

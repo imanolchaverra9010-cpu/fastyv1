@@ -7,7 +7,7 @@ import hmac
 import hashlib
 from database import get_db
 from schemas import PaymentCreate, PaymentResponse, WompiWebhook
-from utils import get_bogota_time
+from utils import get_bogota_time, log_event
 import uuid
 
 router = APIRouter()
@@ -19,6 +19,15 @@ WOMPI_EVENTS_KEY = os.getenv("WOMPI_EVENTS_KEY")
 WOMPI_BASE_URL = "https://production.wompi.co/v1"
 if os.getenv("ENV") == "development":
     WOMPI_BASE_URL = "https://sandbox.wompi.co/v1"
+
+def alert_wompi_failure(event: str, **data):
+    log_event(event, "error", provider="wompi", **data)
+    webhook_url = os.getenv("PAYMENT_ALERT_WEBHOOK_URL")
+    if webhook_url:
+        try:
+            requests.post(webhook_url, json={"event": event, **data}, timeout=5)
+        except Exception as exc:
+            log_event("payment_alert_webhook_failed", "error", error=str(exc))
 
 def verify_wompi_signature(payload: str, signature: str) -> bool:
     """Verify Wompi webhook signature"""
@@ -62,6 +71,7 @@ def parse_wompi_amount_cents(transaction_data: dict) -> int | None:
 def create_payment(payment: PaymentCreate, request: Request):
     """Create a payment intent and return Wompi checkout info"""
     if not WOMPI_PUBLIC_KEY:
+        alert_wompi_failure("wompi_missing_public_key", order_id=payment.order_id)
         raise HTTPException(status_code=500, detail="Wompi not configured (Public Key missing)")
 
     if payment.amount <= 0:
@@ -131,8 +141,7 @@ def create_payment(payment: PaymentCreate, request: Request):
 
         from urllib.parse import urlencode
         checkout_url = f"{checkout_base}?{urlencode(params)}"
-        print(f"Wompi checkout URL generated: {checkout_url}")
-        print(f"Using frontend redirect URL: {frontend_url}/rastreo/{payment.order_id}")
+        log_event("wompi_checkout_created", order_id=payment.order_id, payment_method=payment_method, amount=payment.amount)
 
         # Store payment intent in database
         payment_id = str(uuid.uuid4())
@@ -162,7 +171,7 @@ def create_payment(payment: PaymentCreate, request: Request):
 
     except Exception as e:
         db.rollback()
-        print(f"Error creating payment: {str(e)}")
+        alert_wompi_failure("wompi_payment_create_failed", order_id=payment.order_id, error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
@@ -177,8 +186,10 @@ async def wompi_webhook(request: Request):
 
         signature = request.headers.get('X-Wompi-Signature')
         if not signature:
+            alert_wompi_failure("wompi_webhook_missing_signature")
             raise HTTPException(status_code=401, detail="Missing webhook signature")
         if not verify_wompi_signature(payload, signature):
+            alert_wompi_failure("wompi_webhook_invalid_signature")
             raise HTTPException(status_code=401, detail="Invalid signature")
 
         webhook_data = json.loads(payload)
@@ -209,10 +220,12 @@ async def wompi_webhook(request: Request):
                 payment = cursor.fetchone()
 
             if not payment:
+                log_event("wompi_webhook_payment_ignored", "warning", reference=transaction_data.get('reference'), transaction_id=transaction_data.get('id'))
                 return {"status": "ignored"}
 
             amount_cents = parse_wompi_amount_cents(transaction_data)
             if amount_cents is not None and amount_cents != int(payment['amount'] * 100):
+                alert_wompi_failure("wompi_webhook_amount_mismatch", payment_id=payment['id'], order_id=payment['order_id'])
                 raise HTTPException(status_code=400, detail="Webhook amount does not match payment amount")
 
             wompi_payment_method = transaction_data.get('payment_method_type') or transaction_data.get('payment_method') or payment.get('payment_method')
@@ -247,6 +260,7 @@ async def wompi_webhook(request: Request):
                 )
 
             db.commit()
+            log_event("wompi_webhook_processed", payment_id=payment['id'], order_id=payment['order_id'], status=transaction_status)
             return {"status": "processed"}
 
         finally:
@@ -256,6 +270,7 @@ async def wompi_webhook(request: Request):
     except HTTPException:
         raise
     except Exception as e:
+        alert_wompi_failure("wompi_webhook_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{order_id}", response_model=PaymentResponse)

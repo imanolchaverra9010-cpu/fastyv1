@@ -70,6 +70,20 @@ const Checkout = () => {
     address: ""
   });
   const [addressValue, setAddressValue] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("fasty_saved_addresses") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("fasty_saved_payment_methods") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const fetchLastOrder = async () => {
@@ -265,6 +279,16 @@ const Checkout = () => {
     setLoading(true);
 
     const { customerName, customerPhone, deliveryAddress, paymentMethod, notes } = pendingFormData;
+    if (deliveryAddress) {
+      const nextAddresses = [deliveryAddress, ...savedAddresses.filter((address) => address !== deliveryAddress)].slice(0, 5);
+      setSavedAddresses(nextAddresses);
+      localStorage.setItem("fasty_saved_addresses", JSON.stringify(nextAddresses));
+    }
+    if (paymentMethod) {
+      const nextPaymentMethods = [paymentMethod, ...savedPaymentMethods.filter((method) => method !== paymentMethod)].slice(0, 3);
+      setSavedPaymentMethods(nextPaymentMethods);
+      localStorage.setItem("fasty_saved_payment_methods", JSON.stringify(nextPaymentMethods));
+    }
 
     const linesByBusiness: Record<string, typeof lines> = {};
     lines.forEach(l => {
@@ -529,6 +553,22 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address" className="ml-1 font-bold text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground">Dirección exacta</Label>
+                  {savedAddresses.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {savedAddresses.map((address) => (
+                        <Button
+                          key={address}
+                          type="button"
+                          variant="soft"
+                          size="sm"
+                          className="rounded-full max-w-full truncate"
+                          onClick={() => setAddressValue(address)}
+                        >
+                          {address}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                   <div className="relative group">
                     <Input
                       id="address"
@@ -646,6 +686,18 @@ const Checkout = () => {
                   </Label>
                 ))}
               </RadioGroup>
+              {savedPaymentMethods.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Usados recientemente</p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedPaymentMethods.map((method) => (
+                      <Button key={method} type="button" variant="outline" size="sm" className="rounded-full capitalize" onClick={() => setPaymentMethod(method)}>
+                        {method === "cash" ? "Efectivo" : method}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <div className="pt-4">

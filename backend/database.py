@@ -2,17 +2,18 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 import time
+from utils import log_event
 
 # Cargar variables de entorno
 load_dotenv()
 
 # Base de datos - Railway
 db_config = {
-    "host": os.getenv("DATABASE_HOST", "switchback.proxy.rlwy.net"),
-    "user": os.getenv("DATABASE_USER", "root"),
-    "password": os.getenv("DATABASE_PASSWORD", "OyDRGvdWqQwOLiknRFLmFFdhPOVuwgws"),
-    "database": os.getenv("DATABASE_NAME", "railway"),
-    "port": int(os.getenv("DATABASE_PORT") or "46587"),
+    "host": os.getenv("DATABASE_HOST"),
+    "user": os.getenv("DATABASE_USER"),
+    "password": os.getenv("DATABASE_PASSWORD"),
+    "database": os.getenv("DATABASE_NAME"),
+    "port": int(os.getenv("DATABASE_PORT") or "3306"),
     "ssl_disabled": False,
     "ssl_verify_cert": False,
     "ssl_verify_identity": False,
@@ -29,6 +30,12 @@ def get_db():
     multiplicando drásticamente las conexiones activas y causando el error 
     '1040: Too many connections' en el servidor MySQL.
     """
+    required = ["host", "user", "password", "database"]
+    missing = [key for key in required if not db_config.get(key)]
+    if missing:
+        log_event("database_config_missing", "error", missing=missing)
+        return None
+
     for attempt in range(3):
         try:
             conn = mysql.connector.connect(**db_config)
@@ -46,14 +53,14 @@ def get_db():
         except mysql.connector.errors.DatabaseError as e:
             # 1040 es 'Too many connections'
             if getattr(e, 'errno', 0) == 1040:
-                print(f"Servidor lleno (1040). Reintentando {attempt+1}/3...")
+                log_event("database_too_many_connections", "warning", attempt=attempt + 1)
                 time.sleep(0.5) # Esperar a que otra instancia libere conexión
             else:
-                print(f"Error de BD: {e}")
+                log_event("database_error", "error", error=str(e), attempt=attempt + 1)
                 time.sleep(0.2)
         except Exception as e:
-            print(f"Error de conexión: {e}")
+            log_event("database_connection_error", "error", error=str(e), attempt=attempt + 1)
             time.sleep(0.2)
             
-    print("CRÍTICO: No se pudo obtener conexión a la BD tras múltiples intentos.")
+    log_event("database_connection_failed", "critical")
     return None

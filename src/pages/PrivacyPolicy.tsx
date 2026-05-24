@@ -71,6 +71,33 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
+            <section>
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-3">
+                <FileText className="h-5 w-5 text-primary" /> 5. Pagos, proveedores y monitoreo
+              </h2>
+              <p>
+                Los pagos digitales pueden ser procesados por terceros autorizados como pasarelas de pago. Fasty conserva referencias de pago, estado de transacción, método de pago y datos mínimos necesarios para soporte, conciliación y prevención de fraude.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-3">
+                <Eye className="h-5 w-5 text-primary" /> 6. Logs, soporte y retención
+              </h2>
+              <p>
+                Podemos registrar eventos técnicos como errores, intentos fallidos, cambios de estado y actividad operativa para mejorar seguridad, estabilidad y atención de reclamos. La información se conserva durante el tiempo necesario para cumplir fines operativos, legales y contables.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-3">
+                <Lock className="h-5 w-5 text-primary" /> 7. Derechos del usuario
+              </h2>
+              <p>
+                Puedes solicitar acceso, actualización, corrección o eliminación de tus datos personales cuando sea legalmente procedente. Algunas solicitudes pueden requerir conservar datos mínimos por obligaciones contables, antifraude o soporte.
+              </p>
+            </section>
+
             <section className="bg-muted/30 p-6 rounded-2xl border border-border/50">
               <h2 className="text-lg font-bold text-foreground mb-2">Contacto</h2>
               <p className="text-sm">

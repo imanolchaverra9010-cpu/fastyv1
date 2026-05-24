@@ -28,6 +28,7 @@ import AdminPanel from "./pages/AdminPanel.tsx";
 import AdminColors from "./pages/AdminColors.tsx";
 import AdminBanners from "./pages/AdminBanners.tsx";
 import AdminNotifications from "./pages/AdminNotifications.tsx";
+import AdminOperations from "./pages/AdminOperations.tsx";
 import Pedidos from "./pages/Pedidos.tsx";
 import AdminBusinesses from "./pages/AdminBusinesses.tsx";
 import AdminRequests from "./pages/AdminRequests.tsx";
@@ -36,6 +37,8 @@ import OpenOrder from "./pages/OpenOrder.tsx";
 import UserProfile from "./pages/UserProfile.tsx";
 import Login from "./pages/Login.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import Terms from "./pages/Terms.tsx";
+import Support from "./pages/Support.tsx";
 import MaintenancePage from "./pages/Maintenance.tsx";
 import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
@@ -135,6 +138,8 @@ const AppContent = () => {
         <Route path="/rastreo" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/rastreo/:orderId" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
+        <Route path="/terminos-y-condiciones" element={<Terms />} />
+        <Route path="/soporte" element={<Support />} />
 
         {/* Protected Routes */}
         <Route
@@ -222,6 +227,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminNotifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/operacion"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminOperations />
             </ProtectedRoute>
           }
         />

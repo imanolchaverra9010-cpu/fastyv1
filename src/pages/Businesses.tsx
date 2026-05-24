@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { Clock, Plus, Star, Loader2, Store, Filter } from "lucide-react";
+import { Clock, Plus, Star, Loader2, Store, Filter, Heart, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
@@ -19,6 +19,16 @@ const Businesses = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category");
   const queryFilter = searchParams.get("q");
+  const [openFilter, setOpenFilter] = useState<"all" | "open" | "closed">("all");
+  const [distanceFilter, setDistanceFilter] = useState<"all" | "near">("all");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("fasty_favorite_businesses") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -49,6 +59,49 @@ const Businesses = () => {
         setLoading(false);
       });
   }, [categoryFilter, queryFilter]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
+      () => undefined,
+      { maximumAge: 1000 * 60 * 10, timeout: 5000 }
+    );
+  }, []);
+
+  const isBusinessOpen = (business: any) => {
+    if (business.status && business.status !== "active") return false;
+    if (!business.opening_time || !business.closing_time) return true;
+    const bogotaNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }));
+    const currentTime = bogotaNow.getHours() * 100 + bogotaNow.getMinutes();
+    const [openH, openM] = business.opening_time.split(":").map(Number);
+    const [closeH, closeM] = business.closing_time.split(":").map(Number);
+    const openTime = openH * 100 + openM;
+    const closeTime = closeH * 100 + closeM;
+    return closeTime < openTime ? currentTime >= openTime || currentTime <= closeTime : currentTime >= openTime && currentTime <= closeTime;
+  };
+
+  const getDistanceKm = (business: any) => {
+    if (!userLocation || !business.latitude || !business.longitude) return null;
+    const R = 6371;
+    const dLat = (Number(business.latitude) - userLocation.lat) * Math.PI / 180;
+    const dLon = (Number(business.longitude) - userLocation.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(Number(business.latitude) * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  };
+
+  const toggleFavorite = (id: string) => {
+    const next = favorites.includes(id) ? favorites.filter((fav) => fav !== id) : [...favorites, id];
+    setFavorites(next);
+    localStorage.setItem("fasty_favorite_businesses", JSON.stringify(next));
+  };
+
+  const visibleBusinesses = (businesses || [])
+    .filter((business) => openFilter === "all" || (openFilter === "open" ? isBusinessOpen(business) : !isBusinessOpen(business)))
+    .filter((business) => distanceFilter === "all" || (getDistanceKm(business) !== null && Number(getDistanceKm(business)) <= 5))
+    .sort((a, b) => Number(favorites.includes(String(b.id))) - Number(favorites.includes(String(a.id))));
+
+  const openBusinessesCount = (businesses || []).filter(isBusinessOpen).length;
 
   const handleCategorySelect = (category: string | null) => {
     if (category) {
@@ -94,7 +147,7 @@ const Businesses = () => {
                 </DropdownMenuItem>
                 {CATEGORIES.map((cat) => (
                   <DropdownMenuItem key={cat.name} onClick={() => handleCategorySelect(cat.name)}>
-                    <span className="mr-2">{cat.icon && <cat.icon className="h-4 w-4" />}</span>
+                    <span className="mr-2">{cat.emoji}</span>
                     {cat.name}
                   </DropdownMenuItem>
                 ))}
@@ -103,31 +156,64 @@ const Businesses = () => {
           </div>
         </div>
 
+        <div className="mb-8 flex flex-wrap gap-3">
+          {[
+            { value: "all", label: "Todos" },
+            { value: "open", label: "Abiertos ahora" },
+            { value: "closed", label: "Cerrados" },
+          ].map((option) => (
+            <Button key={option.value} variant={openFilter === option.value ? "hero" : "soft"} size="sm" className="rounded-full" onClick={() => setOpenFilter(option.value as any)}>
+              {option.label}
+            </Button>
+          ))}
+          <Button variant={distanceFilter === "near" ? "hero" : "soft"} size="sm" className="rounded-full gap-2" onClick={() => setDistanceFilter(distanceFilter === "near" ? "all" : "near")} disabled={!userLocation}>
+            <MapPin className="h-4 w-4" /> Cerca de mí
+          </Button>
+        </div>
+
+        {!loading && businesses.length > 0 && openBusinessesCount === 0 && (
+          <div className="mb-8 rounded-3xl border border-warning/20 bg-warning/10 p-5 text-sm">
+            <h3 className="font-bold text-warning">No hay negocios abiertos en este momento</h3>
+            <p className="text-muted-foreground mt-1">Puedes explorar el menú de negocios cerrados y volver cuando estén disponibles.</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
             <p className="text-muted-foreground font-medium">Buscando los mejores sabores...</p>
           </div>
-        ) : (businesses || []).length === 0 ? (
+        ) : visibleBusinesses.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
               <Store className="h-10 w-10 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">No se encontraron negocios</h3>
-              <p className="text-muted-foreground mt-1">Intenta con otra búsqueda o categoría.</p>
+              <h3 className="text-xl font-bold">No hay negocios para este filtro</h3>
+              <p className="text-muted-foreground mt-1">Cambia la categoría, distancia o estado abierto/cerrado.</p>
             </div>
             <Button variant="soft" onClick={() => handleCategorySelect(null)}>Ver todos los negocios</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {(businesses || []).map((b) => (
+            {visibleBusinesses.map((b) => (
               <Link
                 to={`/negocios/${b.id}`}
                 key={b.id}
                 onClick={playClickSound}
                 className="group relative aspect-[4/3.2] rounded-[2rem] bg-white border border-border/40 overflow-hidden shadow-card hover:shadow-glow hover:-translate-y-1.5 active:scale-95 transition-all duration-500"
               >
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleFavorite(String(b.id));
+                  }}
+                  className="absolute top-4 left-4 z-30 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-soft border border-border/40"
+                >
+                  <Heart className={`h-4 w-4 ${favorites.includes(String(b.id)) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                </button>
                 {/* Background/Image Container */}
                 <div className="absolute inset-0 w-full h-full p-6 pb-20 bg-white">
                   {b.image_url ? (
@@ -164,7 +250,7 @@ const Businesses = () => {
                   <div className="mt-4 flex items-center justify-between text-xs border-t border-border/60 pt-4">
                     <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
                       <Clock className="h-4 w-4 text-primary/70" />
-                      {b.eta}
+                      {getDistanceKm(b) ? `${b.eta} · ${Number(getDistanceKm(b)).toFixed(1)} km` : b.eta}
                     </div>
                     <div className="font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                       Ver menú <Plus className="h-3.5 w-3.5" />

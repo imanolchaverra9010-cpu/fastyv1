@@ -17,7 +17,7 @@ from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from utils import limiter
+from utils import limiter, log_event
 from slowapi.errors import RateLimitExceeded
 
 class ApiPathFixMiddleware(BaseHTTPMiddleware):
@@ -39,6 +39,7 @@ class ApiPathFixMiddleware(BaseHTTPMiddleware):
                 "/couriers",
                 "/push",
                 "/payments",
+                "/support",
                 "/maintenance",
                 "/debug-db",
                 "/static",
@@ -64,7 +65,7 @@ try:
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
     import routers
-    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners"]
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners", "support"]
     
     # Importar routers dinámicamente y continuar si alguno falla.
     import importlib
@@ -99,21 +100,16 @@ app.add_exception_handler(RateLimitExceeded, spanish_rate_limit_exceeded_handler
 # Exception handler para debug
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"ERROR GLOBAL: {exc}")
-    print(traceback.format_exc())
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": str(exc),
-            "type": type(exc).__name__,
-            "traceback": traceback.format_exc()
-        }
-    )
+    log_event("serverless_unhandled_exception", "error", method=request.method, path=request.url.path, error=str(exc), type=type(exc).__name__)
+    if os.getenv("ENV") == "development":
+        return JSONResponse(status_code=500, content={"error": str(exc), "type": type(exc).__name__, "traceback": traceback.format_exc()})
+    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
 
 # Configurar CORS
+allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https?://.*", # Permitir cualquier origen de forma segura para desarrollo/producción
+    allow_origins=allowed_origins or ["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -137,6 +133,7 @@ routers_to_load = [
     ("push", f"{API_PREFIX}/push", ["Push Notifications"]),
     ("payments", f"{API_PREFIX}/payments", ["Payments"]),
     ("banners", f"{API_PREFIX}/banners", ["Banners"]),
+    ("support", f"{API_PREFIX}/support", ["Support"]),
     ("couriers", f"{API_PREFIX}/couriers", ["Couriers Panel"]),
 ]
 

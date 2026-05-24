@@ -9,8 +9,8 @@ from typing import Dict
 # Añadir el directorio actual al path para importar los módulos locales
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push
-from utils import limiter
+from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push, support
+from utils import limiter, log_event
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
@@ -39,10 +39,26 @@ except OSError:
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        log_event("http_request", method=request.method, path=request.url.path, status_code=response.status_code)
+        return response
+    except Exception as exc:
+        log_event("http_request_failed", "error", method=request.method, path=request.url.path, error=str(exc))
+        raise
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    log_event("unhandled_exception", "error", method=request.method, path=request.url.path, error=str(exc), type=type(exc).__name__)
+    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+
 # CORS
+allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https?://.*",
+    allow_origins=allowed_origins or ["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,6 +78,7 @@ app.include_router(couriers.router, prefix="/couriers", tags=["Couriers Panel"])
 app.include_router(payments.router, prefix="/payments", tags=["Payments"])
 app.include_router(banners.router, prefix="/banners", tags=["Banners"])
 app.include_router(push.router, prefix="/push", tags=["Push Notifications"])
+app.include_router(support.router, prefix="/support", tags=["Support"])
 
 
 @app.get("/api/maintenance")
@@ -90,6 +107,20 @@ def get_theme_color_public():
 @app.get("/")
 def read_root():
     return {"status": "Rapidito API is running modularly"}
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    from database import get_db
+    db = get_db()
+    database_ok = bool(db)
+    if db:
+        db.close()
+    return {
+        "status": "ok" if database_ok else "degraded",
+        "database": database_ok,
+        "environment": os.getenv("ENV", "development")
+    }
 
 # WebSocket Manager
 class ConnectionManager:
