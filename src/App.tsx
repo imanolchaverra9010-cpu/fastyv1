@@ -76,7 +76,7 @@ const AppContent = () => {
   const { user, isLoading: authLoading } = useAuth();
   
   // MODO MANTENIMIENTO: Cambia a 'true' para bloquear el acceso a clientes
-  const [isMaintenance, setIsMaintenance] = useState(true);
+  const [isMaintenance, setIsMaintenance] = useState(false);
   const [checkingMaint, setCheckingMaint] = useState(false);
 
   // Cargar y aplicar el color de tema personalizado desde el backend al iniciar la app
