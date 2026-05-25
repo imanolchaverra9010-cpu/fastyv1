@@ -858,7 +858,7 @@ const CourierPanel = () => {
                               className="rounded-xl h-12 px-4 font-bold"
                               onClick={() => handleAction('cancel', order.id)}
                             >
-                              <X className="h-5 w-5" />
+                              <CloseIcon className="h-5 w-5" />
                             </Button>
                             <Button 
                               variant="outline" 
@@ -916,7 +916,7 @@ const CourierPanel = () => {
                               className="rounded-xl h-12 px-4 font-bold"
                               onClick={() => handleAction('cancel', order.id)}
                             >
-                              <X className="h-5 w-5" />
+                              <CloseIcon className="h-5 w-5" />
                             </Button>
                             <Button 
                               variant="outline" 
