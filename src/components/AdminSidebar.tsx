@@ -1,5 +1,5 @@
 import {
-  Bike,
+  Car,
   ChevronUp,
   Image,
   LayoutDashboard,
@@ -42,6 +42,7 @@ const adminNav = [
   { icon: Package, label: "Pedidos", to: "/admin/pedidos" },
   { icon: Store, label: "Negocios", to: "/admin/negocios" },
   { icon: Users, label: "Domiciliarios", to: "/admin/domiciliarios" },
+  { icon: Car, label: "Viajes", to: "/admin/viajes" },
   { icon: Palette, label: "Personalización", to: "/admin/colores" },
   { icon: Image, label: "Banners", to: "/admin/banners" },
   { icon: Send, label: "Notificaciones", to: "/admin/notificaciones" },

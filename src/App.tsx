@@ -50,6 +50,8 @@ import AdminCouriers from "@/pages/AdminCouriers";
 import Rides from "./pages/Rides.tsx";
 import RideDetail from "./pages/RideDetail.tsx";
 import ConductorRides from "./pages/ConductorRides.tsx";
+import RideTrack from "./pages/RideTrack.tsx";
+import AdminRides from "./pages/AdminRides.tsx";
 import { InstallPWA } from "./components/InstallPWA";
 import { NotificationPrompt } from "./components/NotificationPrompt";
 
@@ -147,6 +149,7 @@ const AppContent = () => {
 
         {/* Viajes — módulo separado */}
         <Route path="/viajes" element={<CustomerOrGuestRoute><Rides /></CustomerOrGuestRoute>} />
+        <Route path="/viajes/seguir/:token" element={<RideTrack />} />
         <Route path="/viajes/:rideId" element={<ProtectedRoute allowedRoles={['customer', 'admin', 'courier']}><RideDetail /></ProtectedRoute>} />
         <Route
           path="/conductor/viajes"
@@ -251,6 +254,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminOperations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/viajes"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminRides />
             </ProtectedRoute>
           }
         />

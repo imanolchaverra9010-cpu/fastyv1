@@ -876,3 +876,274 @@ def get_broadcasts_history(current_user: dict = Depends(get_current_user)):
     finally:
         cursor.close()
         db.close()
+
+
+class RideReportReview(BaseModel):
+    status: str
+    admin_notes: Optional[str] = None
+
+
+@router.get("/rides")
+def admin_list_rides(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema, _serialize_ride
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        query = """
+            SELECT r.*, c.name AS driver_name, c.vehicle AS driver_vehicle,
+                   c.vehicle_plate AS driver_vehicle_plate, c.ride_verified AS driver_verified
+            FROM ride_requests r
+            LEFT JOIN couriers c ON c.id = r.driver_id
+        """
+        params = []
+        if status:
+            query += " WHERE r.status = %s"
+            params.append(status)
+        query += " ORDER BY r.created_at DESC LIMIT 300"
+        cursor.execute(query, params)
+        return [_serialize_ride(row) for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/rides/reports")
+def admin_list_ride_reports(status: Optional[str] = "pending", current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        query = """
+            SELECT rep.*, u.username AS reporter_name, r.pickup_address, r.dropoff_address, r.status AS ride_status
+            FROM ride_reports rep
+            JOIN users u ON u.id = rep.reporter_user_id
+            JOIN ride_requests r ON r.id = rep.ride_id
+        """
+        params = []
+        if status:
+            query += " WHERE rep.status = %s"
+            params.append(status)
+        query += " ORDER BY rep.created_at DESC LIMIT 200"
+        cursor.execute(query, params)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.patch("/rides/reports/{report_id}")
+def admin_review_ride_report(report_id: int, data: RideReportReview, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    if data.status not in {"pending", "reviewed", "resolved"}:
+        raise HTTPException(status_code=400, detail="Estado inválido")
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema, apply_driver_penalty, PENALTY_POINTS
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM ride_reports WHERE id = %s", (report_id,))
+        report = cursor.fetchone()
+        if not report:
+            raise HTTPException(status_code=404, detail="Reporte no encontrado")
+        cursor.execute(
+            "UPDATE ride_reports SET status = %s, admin_notes = COALESCE(%s, admin_notes) WHERE id = %s",
+            (data.status, data.admin_notes, report_id),
+        )
+        if data.status == "resolved" and report.get("target") == "driver":
+            cursor.execute("SELECT driver_id FROM ride_requests WHERE id = %s", (report["ride_id"],))
+            ride = cursor.fetchone()
+            if ride and ride.get("driver_id"):
+                reason_key = f"report_{report['category']}"
+                points = PENALTY_POINTS.get(reason_key, PENALTY_POINTS.get("report_other", 5))
+                apply_driver_penalty(
+                    cursor, ride["driver_id"], reason_key, points,
+                    report["ride_id"], source="report",
+                    notes=data.admin_notes or report.get("description"),
+                )
+        db.commit()
+        return {"message": "Reporte actualizado"}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/rides/sos")
+def admin_list_sos_events(active_only: bool = True, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        query = """
+            SELECT s.*, u.username, r.pickup_address, r.dropoff_address, r.status AS ride_status
+            FROM ride_sos_events s
+            JOIN users u ON u.id = s.user_id
+            JOIN ride_requests r ON r.id = s.ride_id
+        """
+        if active_only:
+            query += " WHERE s.status = 'active'"
+        query += " ORDER BY s.created_at DESC LIMIT 100"
+        cursor.execute(query)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.patch("/rides/sos/{sos_id}/resolve")
+def admin_resolve_sos(sos_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "UPDATE ride_sos_events SET status = 'resolved', resolved_at = CURRENT_TIMESTAMP WHERE id = %s AND status = 'active'",
+            (sos_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Alerta SOS no encontrada o ya resuelta")
+        db.commit()
+        return {"message": "Alerta SOS marcada como resuelta"}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.patch("/couriers/{courier_id}/ride-verify")
+def admin_verify_ride_driver(courier_id: int, data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    verified = bool(data.get("verified", True))
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor()
+    try:
+        if verified:
+            cursor.execute(
+                "UPDATE couriers SET ride_verified = TRUE, ride_verified_at = CURRENT_TIMESTAMP WHERE id = %s",
+                (courier_id,),
+            )
+        else:
+            cursor.execute(
+                "UPDATE couriers SET ride_verified = FALSE, ride_verified_at = NULL WHERE id = %s",
+                (courier_id,),
+            )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Conductor no encontrado")
+        db.commit()
+        return {"message": "Verificación de conductor actualizada", "ride_verified": verified}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/rides/penalties")
+def admin_list_penalties(driver_id: Optional[int] = None, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        query = """
+            SELECT p.*, c.name AS driver_name
+            FROM ride_penalties p
+            JOIN couriers c ON c.id = p.driver_id
+        """
+        params = []
+        if driver_id:
+            query += " WHERE p.driver_id = %s"
+            params.append(driver_id)
+        query += " ORDER BY p.created_at DESC LIMIT 200"
+        cursor.execute(query, params)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post("/rides/penalties")
+def admin_add_penalty(data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema, apply_driver_penalty
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        driver_id = data.get("driver_id")
+        points = int(data.get("points") or 0)
+        reason = data.get("reason") or "admin_manual"
+        if not driver_id or points <= 0:
+            raise HTTPException(status_code=400, detail="driver_id y points son obligatorios")
+        total = apply_driver_penalty(
+            cursor, driver_id, reason, points,
+            data.get("ride_id"), source="admin", notes=data.get("notes"),
+        )
+        db.commit()
+        return {"message": "Penalización registrada", "total_penalty_points": total}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.patch("/rides/penalties/{penalty_id}/waive")
+def admin_waive_penalty(penalty_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema, sync_driver_penalty_points
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT driver_id FROM ride_penalties WHERE id = %s", (penalty_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Penalización no encontrada")
+        cursor.execute("UPDATE ride_penalties SET waived = TRUE WHERE id = %s", (penalty_id,))
+        total = sync_driver_penalty_points(cursor, row["driver_id"])
+        db.commit()
+        return {"message": "Penalización condonada", "total_penalty_points": total}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.patch("/couriers/{courier_id}/ride-publish-block")
+def admin_block_ride_publish(courier_id: int, data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    blocked = bool(data.get("blocked", False))
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor()
+    try:
+        cursor.execute("UPDATE couriers SET ride_publish_blocked = %s WHERE id = %s", (blocked, courier_id))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Conductor no encontrado")
+        db.commit()
+        return {"message": "Estado de publicación actualizado", "ride_publish_blocked": blocked}
+    finally:
+        cursor.close()
+        db.close()

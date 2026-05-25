@@ -1,4 +1,4 @@
-import { Plus, Search, Users, Trash2, Edit, Bike, Phone, Star, DollarSign, X, User, Lock, Mail } from "lucide-react";
+import { Plus, Search, Users, Trash2, Edit, Bike, Phone, Star, DollarSign, X, User, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,20 @@ const AdminCouriers = () => {
     } catch (error) {
       toast({ title: "Error", description: "No se pudo eliminar.", variant: "destructive" });
     }
+  };
+
+  const toggleRideVerify = async (courierId: number, verified: boolean) => {
+    const response = await fetch(`/api/admin/couriers/${courierId}/ride-verify`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ verified }),
+    });
+    if (!response.ok) {
+      toast({ title: "Error", description: "No se pudo actualizar verificación.", variant: "destructive" });
+      return;
+    }
+    toast({ title: verified ? "Conductor verificado para viajes" : "Verificación removida" });
+    fetchCouriers();
   };
 
   const filteredCouriers = (couriers || []).filter(c =>
@@ -122,6 +136,7 @@ const AdminCouriers = () => {
                         <td className="px-5 py-4">
                           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             <Bike className="h-3.5 w-3.5" /> {c.vehicle}
+                            {c.ride_verified ? <ShieldCheck className="h-3.5 w-3.5 text-success" title="Verificado para viajes" /> : null}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -155,6 +170,15 @@ const AdminCouriers = () => {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-8 w-8 ${c.ride_verified ? "text-success" : "text-muted-foreground"}`}
+                              title={c.ride_verified ? "Quitar verificación viajes" : "Verificar para viajes"}
+                              onClick={() => toggleRideVerify(c.id, !c.ride_verified)}
+                            >
+                              <ShieldCheck className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"

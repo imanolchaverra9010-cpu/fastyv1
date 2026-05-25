@@ -131,7 +131,10 @@ def get_courier_profile(user_id: int, response: Response, current_user: dict = D
     
     cursor = db.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT name, phone, vehicle, image_url, rating, deliveries, earnings, status FROM couriers WHERE user_id = %s", (user_id,))
+        cursor.execute(
+            "SELECT name, phone, vehicle, vehicle_plate, vehicle_color, vehicle_model, ride_verified, image_url, rating, deliveries, earnings, status FROM couriers WHERE user_id = %s",
+            (user_id,),
+        )
         profile = cursor.fetchone()
         if not profile:
             raise HTTPException(status_code=404, detail="Courier profile not found")
@@ -168,6 +171,10 @@ def update_courier_profile(user_id: int, profile_data: dict, current_user: dict 
         if "vehicle" in profile_data:
             fields.append("vehicle = %s")
             values.append(profile_data["vehicle"])
+        for field in ("vehicle_plate", "vehicle_color", "vehicle_model"):
+            if field in profile_data:
+                fields.append(f"{field} = %s")
+                values.append(profile_data[field])
         
         if not fields:
             return {"message": "No changes provided"}

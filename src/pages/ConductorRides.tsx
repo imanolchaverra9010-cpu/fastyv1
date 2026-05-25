@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Car, Clock, MapPin, Users, AlertTriangle, Plus } from "lucide-react";
+import { ArrowLeft, Car, Clock, MapPin, Users, AlertTriangle, Plus, ShieldCheck, ExternalLink, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { getPreciseCurrentPosition, isUsablePosition } from "@/utils/geolocation";
-import { RIDE_STATUS_LABELS, RIDE_PAYMENT_LABELS, formatDeparture } from "@/constants/rides";
+import { RIDE_STATUS_LABELS, RIDE_PAYMENT_LABELS, PENALTY_LABELS, formatDeparture } from "@/constants/rides";
 
 const emptyForm = {
   pickup_address: "",
@@ -27,16 +27,32 @@ const ConductorRides = () => {
   const [form, setForm] = useState(emptyForm);
   const [publishing, setPublishing] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [eligibility, setEligibility] = useState<{ eligible: boolean; vehicle?: string; message?: string } | null>(null);
+  const [eligibility, setEligibility] = useState<any>(null);
+  const [driverStats, setDriverStats] = useState<any>(null);
+  const [vehicleForm, setVehicleForm] = useState({ vehicle_plate: "", vehicle_color: "", vehicle_model: "" });
+  const [savingVehicle, setSavingVehicle] = useState(false);
 
   const load = () => {
     fetch("/api/rides/driver-eligibility")
       .then((res) => (res.ok ? res.json() : null))
-      .then(setEligibility)
+      .then((data) => {
+        setEligibility(data);
+        if (data) {
+          setVehicleForm({
+            vehicle_plate: data.vehicle_plate || "",
+            vehicle_color: data.vehicle_color || "",
+            vehicle_model: data.vehicle_model || "",
+          });
+        }
+      })
       .catch(() => undefined);
     fetch("/api/rides/me")
       .then((res) => (res.ok ? res.json() : []))
       .then(setMyRides)
+      .catch(() => undefined);
+    fetch("/api/rides/drivers/me/stats")
+      .then((res) => (res.ok ? res.json() : null))
+      .then(setDriverStats)
       .catch(() => undefined);
   };
 
@@ -69,6 +85,25 @@ const ConductorRides = () => {
     const timer = setInterval(pushLocation, 15000);
     return () => clearInterval(timer);
   }, [user?.id, myRides]);
+
+  const saveVehicleData = async () => {
+    if (!user?.id) return;
+    setSavingVehicle(true);
+    try {
+      const response = await fetch(`/api/couriers/${user.id}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vehicleForm),
+      });
+      if (!response.ok) throw new Error("No se pudo guardar");
+      toast({ title: "Datos del vehículo guardados" });
+      load();
+    } catch {
+      toast({ title: "Error", description: "No se pudieron guardar los datos.", variant: "destructive" });
+    } finally {
+      setSavingVehicle(false);
+    }
+  };
 
   const publishRide = async () => {
     if (!form.pickup_address.trim() || !form.dropoff_address.trim() || !form.price_per_seat) {
@@ -143,11 +178,41 @@ const ConductorRides = () => {
             <Car className="h-8 w-8 text-primary" /> Publicar viajes
           </h1>
           {eligibility?.eligible && (
-            <Button onClick={() => setShowForm((v) => !v)} className="rounded-xl">
+            <Button onClick={() => setShowForm((v) => !v)} className="rounded-xl" disabled={!eligibility?.can_publish}>
               <Plus className="h-4 w-4 mr-2" /> {showForm ? "Ocultar formulario" : "Nuevo viaje"}
             </Button>
           )}
         </div>
+
+        {driverStats && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="rounded-2xl"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Tu ranking</p><p className="text-2xl font-bold flex items-center gap-2"><Trophy className="h-5 w-5 text-warning" /> #{driverStats.rank_position || "—"}</p></CardContent></Card>
+            <Card className="rounded-2xl"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Viajes completados</p><p className="text-2xl font-bold">{driverStats.completed_rides}</p></CardContent></Card>
+            <Card className="rounded-2xl"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Puntuación</p><p className="text-2xl font-bold text-primary">{driverStats.rank_score}</p></CardContent></Card>
+            <Card className={`rounded-2xl ${driverStats.penalty_warning ? "border-warning/40" : ""}`}><CardContent className="p-4"><p className="text-xs text-muted-foreground">Penalizaciones (90 d)</p><p className={`text-2xl font-bold ${driverStats.penalty_points >= (eligibility?.penalty_block_threshold || 50) ? "text-destructive" : ""}`}>{driverStats.penalty_points} pts</p></CardContent></Card>
+          </div>
+        )}
+
+        {eligibility?.penalty_warning && (
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+            <p className="text-sm">Tienes {eligibility.penalty_points} puntos de penalización. Al llegar a {eligibility.penalty_block_threshold} no podrás publicar viajes.</p>
+          </div>
+        )}
+
+        {driverStats?.recent_penalties?.length > 0 && (
+          <Card className="rounded-2xl">
+            <CardHeader><CardTitle className="text-base">Penalizaciones recientes</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {driverStats.recent_penalties.filter((p: any) => !p.waived).slice(0, 5).map((p: any) => (
+                <div key={p.id} className="text-sm flex justify-between gap-2 border-b pb-2">
+                  <span>{PENALTY_LABELS[p.reason] || p.reason}</span>
+                  <span className="font-bold text-destructive">+{p.points} pts</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {eligibility && !eligibility.eligible && (
           <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 flex gap-3">
@@ -161,7 +226,29 @@ const ConductorRides = () => {
           </div>
         )}
 
-        {showForm && eligibility?.eligible && (
+        {eligibility && !eligibility.ride_verified && eligibility.eligible && (
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Cuenta pendiente de verificación</p>
+              <p className="text-sm text-muted-foreground">Un administrador debe verificar tu perfil antes de que puedas publicar viajes.</p>
+            </div>
+          </div>
+        )}
+
+        {eligibility?.eligible && (
+          <Card className="rounded-3xl shadow-card">
+            <CardHeader><CardTitle className="flex items-center gap-2">Datos del vehículo {eligibility.ride_verified && <ShieldCheck className="h-5 w-5 text-success" />}</CardTitle></CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-4">
+              <Input placeholder="Placa (ej: ABC123)" value={vehicleForm.vehicle_plate} onChange={(e) => setVehicleForm((f) => ({ ...f, vehicle_plate: e.target.value.toUpperCase() }))} className="rounded-xl" />
+              <Input placeholder="Color (ej: Blanco)" value={vehicleForm.vehicle_color} onChange={(e) => setVehicleForm((f) => ({ ...f, vehicle_color: e.target.value }))} className="rounded-xl" />
+              <Input placeholder="Modelo (ej: Chevrolet Spark)" value={vehicleForm.vehicle_model} onChange={(e) => setVehicleForm((f) => ({ ...f, vehicle_model: e.target.value }))} className="rounded-xl" />
+              <Button onClick={saveVehicleData} disabled={savingVehicle} className="rounded-xl md:col-span-3 w-fit">{savingVehicle ? "Guardando..." : "Guardar datos del vehículo"}</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {showForm && eligibility?.can_publish && (
           <Card className="rounded-3xl shadow-glow">
             <CardHeader><CardTitle>Publicar un viaje</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -274,7 +361,9 @@ const ConductorRides = () => {
                       </Button>
                     )}
                     {ride.status === "driver_arriving" && (
-                      <Button size="sm" onClick={() => updateStatus(ride.id, "in_progress")} className="rounded-xl">Iniciar viaje</Button>
+                      <Link to={`/viajes/${ride.id}`} className="inline-flex">
+                        <Button size="sm" className="rounded-xl"><ExternalLink className="h-4 w-4 mr-1" /> Ingresar PIN e iniciar</Button>
+                      </Link>
                     )}
                     {ride.status === "in_progress" && (
                       <Button size="sm" onClick={() => updateStatus(ride.id, "completed")} className="rounded-xl">Finalizar viaje</Button>
