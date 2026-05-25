@@ -1,5 +1,6 @@
 import {
   Bike,
+  Car,
   ChevronUp,
   History,
   LayoutDashboard,
@@ -113,6 +114,14 @@ export function CourierSidebar({ activeTab = "dashboard", setActiveTab, profileI
                 >
                   <History className="h-4 w-4" />
                   <span className="font-medium">Historial Entregas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Viajes en carro">
+                  <Link to="/conductor/viajes" className="hover:bg-muted/50">
+                    <Car className="h-4 w-4" />
+                    <span className="font-medium">Viajes (carro)</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

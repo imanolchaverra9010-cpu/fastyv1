@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Bike, ShieldCheck, Store, Utensils, User as UserIcon, LogOut, Menu, Search, ShoppingBag } from "lucide-react";
+import { Bike, ShieldCheck, Store, Utensils, User as UserIcon, LogOut, Menu, Search, ShoppingBag, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CartButton from "@/components/CartButton";
 import SearchInput from "@/components/SearchInput";
@@ -24,6 +24,7 @@ import logo from "@/assets/logo.png"; // Importar el logo
 
 const nav = [
   { to: "/negocios", label: "Negocios", icon: Store },
+  { to: "/viajes", label: "Viajes", icon: Car },
   { to: "/pedido-abierto", label: "Pedido Abierto", icon: ShoppingBag },
   { to: "/rastreo", label: "Rastrear", icon: Bike },
 ];

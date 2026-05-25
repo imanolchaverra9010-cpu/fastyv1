@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Bike, Clock, MapPin, Search, ShieldCheck, Sparkles, Star, Store, Loader2, ChevronLeft, ChevronRight, Percent, Tag, Gift, TrendingUp, Plus, ShoppingCart } from "lucide-react";
+import { ArrowRight, Bike, Clock, MapPin, Search, ShieldCheck, Sparkles, Star, Store, Loader2, ChevronLeft, ChevronRight, Percent, Tag, Gift, TrendingUp, Plus, ShoppingCart, Car } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
@@ -252,6 +252,24 @@ const Index = () => {
                         onClick={() => navigate('/negocios')}
                     >
                         Ver todos los negocios
+                    </Button>
+                </div>
+            </section>
+
+            {/* Viajes CTA */}
+            <section className="container py-8">
+                <div className="rounded-[2rem] border border-border/60 bg-card p-8 md:p-10 shadow-card grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+                    <div>
+                        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+                            <Car className="h-4 w-4" /> Fasty Viajes
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-display font-bold mb-3">¿Necesitas un viaje?</h2>
+                        <p className="text-muted-foreground max-w-xl">
+                            Solicita un carro compartido, recibe ofertas de conductores y elige la mejor. Paga en efectivo o transferencia.
+                        </p>
+                    </div>
+                    <Button size="lg" className="rounded-2xl h-14 px-8 font-bold shadow-glow" onClick={() => navigate('/viajes')}>
+                        Pedir viaje <ArrowRight className="h-5 w-5 ml-2" />
                     </Button>
                 </div>
             </section>

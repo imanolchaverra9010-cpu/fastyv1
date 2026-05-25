@@ -47,6 +47,9 @@ import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
 import SiteHeader from "@/components/SiteHeader";
 
 import AdminCouriers from "@/pages/AdminCouriers";
+import Rides from "./pages/Rides.tsx";
+import RideDetail from "./pages/RideDetail.tsx";
+import ConductorRides from "./pages/ConductorRides.tsx";
 import { InstallPWA } from "./components/InstallPWA";
 import { NotificationPrompt } from "./components/NotificationPrompt";
 
@@ -116,7 +119,8 @@ const AppContent = () => {
 
   const hideHeader = ["/login", "/register"].includes(pathname) ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/domiciliario");
+    pathname.startsWith("/domiciliario") ||
+    pathname.startsWith("/conductor");
 
   return (
     <>
@@ -140,6 +144,18 @@ const AppContent = () => {
         <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
         <Route path="/terminos-y-condiciones" element={<Terms />} />
         <Route path="/soporte" element={<Support />} />
+
+        {/* Viajes — módulo separado */}
+        <Route path="/viajes" element={<CustomerOrGuestRoute><Rides /></CustomerOrGuestRoute>} />
+        <Route path="/viajes/:rideId" element={<ProtectedRoute allowedRoles={['customer', 'admin', 'courier']}><RideDetail /></ProtectedRoute>} />
+        <Route
+          path="/conductor/viajes"
+          element={
+            <ProtectedRoute allowedRoles={['courier', 'admin']}>
+              <ConductorRides />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route
