@@ -265,11 +265,11 @@ const Index = () => {
                         </div>
                         <h2 className="text-3xl md:text-4xl font-display font-bold mb-3">¿Necesitas un viaje?</h2>
                         <p className="text-muted-foreground max-w-xl">
-                            Solicita un carro compartido, recibe ofertas de conductores y elige la mejor. Paga en efectivo o transferencia.
+                            Explora viajes publicados por conductores y reserva el cupo que más te sirva. Paga en efectivo o transferencia.
                         </p>
                     </div>
                     <Button size="lg" className="rounded-2xl h-14 px-8 font-bold shadow-glow" onClick={() => navigate('/viajes')}>
-                        Pedir viaje <ArrowRight className="h-5 w-5 ml-2" />
+                        Ver viajes disponibles <ArrowRight className="h-5 w-5 ml-2" />
                     </Button>
                 </div>
             </section>

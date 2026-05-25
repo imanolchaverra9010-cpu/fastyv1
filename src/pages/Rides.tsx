@@ -1,97 +1,46 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Car, MapPin, Users, Wallet, LocateFixed } from "lucide-react";
+import { ArrowLeft, Car, MapPin, Search, Users, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
 import { formatCOP } from "@/data/mock";
 import { useAuth } from "@/context/AuthContext";
-import LocationPicker from "@/components/LocationPicker";
-import { getPreciseCurrentPosition, getPositionErrorMessage } from "@/utils/geolocation";
-import { RIDE_STATUS_LABELS, RIDE_PAYMENT_LABELS } from "@/constants/rides";
-
-type CoordField = "pickup" | "dropoff" | null;
+import { RIDE_STATUS_LABELS, RIDE_PAYMENT_LABELS, formatDeparture } from "@/constants/rides";
 
 const Rides = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [rides, setRides] = useState<any[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [pickerField, setPickerField] = useState<CoordField>(null);
-  const [pickup, setPickup] = useState({ address: "", lat: null as number | null, lng: null as number | null });
-  const [dropoff, setDropoff] = useState({ address: "", lat: null as number | null, lng: null as number | null });
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    fetch("/api/rides/me")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setRides)
-      .catch(() => undefined);
-  }, [user]);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const useMyLocation = async (target: "pickup" | "dropoff") => {
-    try {
-      const pos = await getPreciseCurrentPosition();
-      const setter = target === "pickup" ? setPickup : setDropoff;
-      setter((prev) => ({ ...prev, lat: pos.latitude, lng: pos.longitude }));
-      toast({ title: "Ubicación obtenida", description: "Coordenadas listas para el viaje." });
-    } catch (error) {
-      toast({
-        title: "No se pudo obtener ubicación",
-        description: getPositionErrorMessage(error as GeolocationPositionError),
-        variant: "destructive",
-      });
-    }
-  };
-
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!user) {
-      navigate("/login", { state: { from: { pathname: "/viajes" } } });
-      return;
-    }
+  const load = () => {
     setLoading(true);
-    const formData = new FormData(event.currentTarget);
-    const payload = {
-      pickup_address: pickup.address || String(formData.get("pickup_address") || ""),
-      pickup_lat: pickup.lat,
-      pickup_lng: pickup.lng,
-      dropoff_address: dropoff.address || String(formData.get("dropoff_address") || ""),
-      dropoff_lat: dropoff.lat,
-      dropoff_lng: dropoff.lng,
-      passengers: Number(formData.get("passengers") || 1),
-      requested_price: Number(formData.get("requested_price") || 0) || null,
-      payment_method: paymentMethod,
-      notes: String(formData.get("notes") || ""),
-    };
-    try {
-      const response = await fetch("/api/rides", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || "No se pudo solicitar el viaje");
-      }
-      const data = await response.json();
-      toast({ title: "Viaje solicitado", description: "Los conductores en carro podrán enviarte ofertas." });
-      navigate(`/viajes/${data.id}`);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo solicitar el viaje",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    const query = debouncedSearch ? `?q=${encodeURIComponent(debouncedSearch)}` : "";
+    Promise.all([
+      fetch(`/api/rides${query}`).then((res) => (res.ok ? res.json() : [])),
+      user ? fetch("/api/rides/my-bookings").then((res) => (res.ok ? res.json() : [])) : Promise.resolve([]),
+    ])
+      .then(([published, myBookings]) => {
+        setRides(published);
+        setBookings(myBookings);
+      })
+      .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 20000);
+    return () => clearInterval(timer);
+  }, [user, debouncedSearch]);
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-20">
@@ -102,127 +51,95 @@ const Rides = () => {
 
         <div className="rounded-3xl bg-primary/10 border border-primary/20 p-6">
           <h1 className="text-3xl font-display font-bold flex items-center gap-2">
-            <Car className="h-8 w-8 text-primary" /> Fasty Viajes
+            <Car className="h-8 w-8 text-primary" /> Viajes compartidos
           </h1>
           <p className="text-muted-foreground mt-2">
-            Solicita un viaje, recibe ofertas de conductores verificados y elige la que prefieras. Pago en efectivo o transferencia.
+            Elige un viaje publicado por un conductor. Tú no propones la ruta: reservas el cupo que más te sirva.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_380px] gap-6">
-          <Card className="rounded-3xl shadow-glow">
-            <CardHeader>
-              <CardTitle className="text-xl">Nuevo viaje</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Punto de recogida</Label>
-                  <Input
-                    name="pickup_address"
-                    required
-                    placeholder="Ej: Parque principal"
-                    className="rounded-xl"
-                    value={pickup.address}
-                    onChange={(e) => setPickup((p) => ({ ...p, address: e.target.value }))}
-                  />
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => useMyLocation("pickup")}>
-                      <LocateFixed className="h-4 w-4 mr-1" /> Mi ubicación
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => setPickerField("pickup")}>
-                      Elegir en mapa
-                    </Button>
-                  </div>
-                  {pickup.lat != null && <p className="text-xs text-muted-foreground">GPS: {pickup.lat.toFixed(5)}, {pickup.lng?.toFixed(5)}</p>}
-                </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por origen o destino (ej: parque, universidad...)"
+            className="pl-10 rounded-2xl h-12"
+          />
+        </div>
 
-                <div className="space-y-2">
-                  <Label>Destino</Label>
-                  <Input
-                    name="dropoff_address"
-                    required
-                    placeholder="Ej: Centro comercial"
-                    className="rounded-xl"
-                    value={dropoff.address}
-                    onChange={(e) => setDropoff((p) => ({ ...p, address: e.target.value }))}
-                  />
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => useMyLocation("dropoff")}>
-                      <LocateFixed className="h-4 w-4 mr-1" /> Mi ubicación
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => setPickerField("dropoff")}>
-                      Elegir en mapa
-                    </Button>
+        <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold">Viajes disponibles</h2>
+            {loading && <p className="text-sm text-muted-foreground">Cargando viajes...</p>}
+            {!loading && rides.length === 0 && (
+              <Card className="rounded-3xl"><CardContent className="p-8 text-center text-muted-foreground">No hay viajes publicados ahora. Vuelve pronto.</CardContent></Card>
+            )}
+            {rides.map((ride) => (
+              <Card key={ride.id} className="rounded-3xl shadow-card hover:shadow-glow transition-shadow">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-lg flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        {ride.pickup_address} → {ride.dropoff_address}
+                      </p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                        <Clock className="h-4 w-4" /> {formatDeparture(ride.departure_at)}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold uppercase px-2 py-1 rounded-full bg-primary/10 text-primary">
+                      {RIDE_STATUS_LABELS[ride.status] || ride.status}
+                    </span>
                   </div>
-                  {dropoff.lat != null && <p className="text-xs text-muted-foreground">GPS: {dropoff.lat.toFixed(5)}, {dropoff.lng?.toFixed(5)}</p>}
-                </div>
-
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><Users className="h-4 w-4" /> Pasajeros</Label>
-                    <Input name="passengers" type="number" min="1" max="6" defaultValue="1" className="rounded-xl" />
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {ride.seats_available} cupo(s)</span>
+                    <span className="font-bold text-primary">{formatCOP(Number(ride.price_per_seat))} / cupo</span>
+                    <span>{RIDE_PAYMENT_LABELS[ride.payment_method] || ride.payment_method}</span>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><Wallet className="h-4 w-4" /> Precio sugerido</Label>
-                    <Input name="requested_price" type="number" min="0" placeholder="12000" className="rounded-xl" />
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                    <div className="text-sm">
+                      <p className="font-semibold">{ride.driver_name || "Conductor"}</p>
+                      <p className="text-muted-foreground flex items-center gap-1">
+                        {ride.driver_vehicle || "Carro"} · <Star className="h-3 w-3 fill-warning text-warning" /> {Number(ride.driver_rating || 5).toFixed(1)}
+                      </p>
+                    </div>
+                    {ride.user_has_booking ? (
+                      <Button variant="outline" className="rounded-xl" onClick={() => navigate(`/viajes/${ride.id}`)}>Ver reserva</Button>
+                    ) : (
+                      <Button className="rounded-xl" onClick={() => {
+                        if (!user) {
+                          navigate("/login", { state: { from: { pathname: `/viajes/${ride.id}` } } });
+                          return;
+                        }
+                        navigate(`/viajes/${ride.id}`);
+                      }}>
+                        Reservar cupo
+                      </Button>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label>Forma de pago</Label>
-                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Efectivo</SelectItem>
-                        <SelectItem value="transfer">Transferencia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-                <div className="space-y-2">
-                  <Label>Notas</Label>
-                  <Textarea name="notes" placeholder="Equipaje, punto exacto, referencias..." className="rounded-xl" />
-                </div>
-
-                <Button disabled={loading} className="w-full rounded-xl">
-                  {loading ? "Solicitando..." : user ? "Pedir viaje" : "Inicia sesión para pedir viaje"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl shadow-card">
-            <CardHeader><CardTitle>Mis viajes recientes</CardTitle></CardHeader>
-            <CardContent className="space-y-3 max-h-[520px] overflow-auto">
-              {!user && <p className="text-sm text-muted-foreground">Inicia sesión para ver tu historial.</p>}
-              {user && rides.length === 0 && <p className="text-sm text-muted-foreground">Aún no tienes viajes.</p>}
-              {rides.map((ride) => (
-                <Link key={ride.id} to={`/viajes/${ride.id}`} className="block rounded-2xl border p-3 hover:bg-muted/40">
-                  <div className="flex justify-between"><b>{ride.id}</b><span className="text-primary">{RIDE_STATUS_LABELS[ride.status] || ride.status}</span></div>
-                  <p className="text-sm text-muted-foreground">{ride.pickup_address} → {ride.dropoff_address}</p>
-                  <p className="font-bold">{formatCOP(Number(ride.accepted_price || ride.requested_price || 0))}</p>
-                  <p className="text-xs text-muted-foreground">{RIDE_PAYMENT_LABELS[ride.payment_method] || ride.payment_method}</p>
+          <Card className="rounded-3xl shadow-card h-fit">
+            <CardHeader><CardTitle>Mis reservas</CardTitle></CardHeader>
+            <CardContent className="space-y-3 max-h-[600px] overflow-auto">
+              {!user && <p className="text-sm text-muted-foreground">Inicia sesión para reservar cupos.</p>}
+              {user && bookings.length === 0 && <p className="text-sm text-muted-foreground">Aún no tienes reservas.</p>}
+              {bookings.map((booking) => (
+                <Link key={booking.id} to={`/viajes/${booking.ride_id}`} className="block rounded-2xl border p-3 hover:bg-muted/40">
+                  <p className="font-semibold text-sm">{booking.pickup_address} → {booking.dropoff_address}</p>
+                  <p className="text-xs text-muted-foreground">{formatDeparture(booking.departure_at)}</p>
+                  <p className="text-sm font-bold mt-1">{formatCOP(Number(booking.price_per_seat) * Number(booking.seats))}</p>
+                  <p className="text-xs capitalize text-primary">{RIDE_STATUS_LABELS[booking.ride_status] || booking.ride_status}</p>
                 </Link>
               ))}
             </CardContent>
           </Card>
         </div>
       </main>
-
-      {pickerField && (
-        <LocationPicker
-          initialPos={{
-            lat: (pickerField === "pickup" ? pickup.lat : dropoff.lat) ?? 5.691,
-            lng: (pickerField === "pickup" ? pickup.lng : dropoff.lng) ?? -76.658,
-          }}
-          onCancel={() => setPickerField(null)}
-          onConfirm={(pos) => {
-            if (pickerField === "pickup") setPickup((p) => ({ ...p, lat: pos.lat, lng: pos.lng }));
-            else setDropoff((p) => ({ ...p, lat: pos.lat, lng: pos.lng }));
-            setPickerField(null);
-          }}
-        />
-      )}
     </div>
   );
 };
