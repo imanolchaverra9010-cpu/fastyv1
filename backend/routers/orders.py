@@ -5,7 +5,8 @@ import uuid
 from database import get_db
 from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate, FeeCalculationRequest, FeeCalculationResponse
 from utils import get_bogota_time, calculate_distance
-from security import get_current_user
+from security import get_current_user, get_optional_user, assert_order_access
+from order_validation import compute_order_pricing
 import json
 import math
 from .push import send_push_notification
@@ -16,11 +17,12 @@ COURIER_TO_PICKUP_SPEED_KMH = 25
 DELIVERY_SPEED_KMH = 22
 PICKUP_HANDOFF_MINUTES = 4
 PREPARING_BUFFER_MINUTES = 12
-VALID_ORDER_STATUSES = {"pending_payment", "pending", "preparing", "shipped", "in_transit", "delivered", "cancelled"}
+VALID_ORDER_STATUSES = {"pending_payment", "pending", "confirmed", "preparing", "shipped", "in_transit", "delivered", "cancelled"}
 FINAL_ORDER_STATUSES = {"delivered", "cancelled"}
 ORDER_STATUS_TRANSITIONS = {
-    "pending_payment": {"pending", "cancelled"},
+    "pending_payment": {"pending", "confirmed", "cancelled"},
     "pending": {"preparing", "shipped", "cancelled"},
+    "confirmed": {"preparing", "cancelled"},
     "preparing": {"shipped", "cancelled"},
     "shipped": {"in_transit", "cancelled"},
     "in_transit": {"delivered", "cancelled"},
@@ -193,7 +195,7 @@ def _estimate_order_eta(order: dict) -> dict:
         return {"estimated_delivery_minutes": None, "eta_text": None}
 
     minutes = 0
-    if status_value in ["pending", "preparing"]:
+    if status_value in ["pending", "confirmed", "preparing"]:
         minutes += PREPARING_BUFFER_MINUTES
 
     if status_value == "in_transit":
@@ -244,7 +246,7 @@ def _rank_couriers_for_order(cursor, order: dict) -> list[dict]:
         FROM couriers c
         LEFT JOIN orders o
             ON o.courier_id = c.id
-            AND o.status IN ('pending', 'preparing', 'shipped', 'in_transit')
+            AND o.status IN ('pending', 'confirmed', 'preparing', 'shipped', 'in_transit')
         WHERE c.user_id IS NOT NULL
           AND c.lat IS NOT NULL
           AND c.lng IS NOT NULL
@@ -310,24 +312,48 @@ def ensure_order_type_support(cursor, db, order_type: str):
     db.commit()
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
+async def create_order(
+    order: OrderCreate,
+    background_tasks: BackgroundTasks,
+    current_user: dict | None = Depends(get_optional_user),
+):
+    if order.user_id:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Debes iniciar sesión para crear este pedido")
+        if current_user["id"] != order.user_id and current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="No puedes crear pedidos para otro usuario")
+
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
     order_id = str(uuid.uuid4())[:8]
-    payment_method = normalize_payment_method(order.payment_method)
-    raw_method = (order.payment_method or "").strip().lower()
-    is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
-
-    # Set initial status based on payment method
-    initial_status = 'pending_payment' if is_digital_payment else 'pending'
-    should_notify_couriers = not is_digital_payment
 
     try:
         ensure_open_order_support_schema(db)
         ensure_order_type_support(cursor, db, order.order_type)
+
+        pricing = compute_order_pricing(cursor, order)
+        if abs(pricing["total"] - int(order.total)) > 100:
+            raise HTTPException(
+                status_code=400,
+                detail="El total del pedido no coincide. Recarga la página e intenta de nuevo.",
+            )
+
+        validated_total = pricing["total"]
+        delivery_fee = pricing["delivery_fee"]
+        night_fee = pricing["night_fee"]
+        validated_items = pricing["validated_items"]
+        promo_code = pricing["promo_code"]
+
+        payment_method = normalize_payment_method(order.payment_method)
+        raw_method = (order.payment_method or "").strip().lower()
+        is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
+
+        # Set initial status based on payment method
+        initial_status = 'pending_payment' if is_digital_payment else 'pending'
+        should_notify_couriers = not is_digital_payment
 
         # Insertar pedido
         cursor.execute(
@@ -337,10 +363,10 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
                delivery_fee, night_fee) 
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
-             order.delivery_address, payment_method, order.notes, order.total, 
+             order.delivery_address, payment_method, order.notes, validated_total, 
              order.latitude, order.longitude, initial_status,
              order.order_type, order.origin_name, order.origin_address, order.origin_latitude, order.origin_longitude, order.open_order_description,
-             order.batch_id, order.delivery_fee, order.night_fee)
+             order.batch_id, delivery_fee, night_fee)
         )
         
         # Log inicial
@@ -350,17 +376,17 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         )
         
         # Insertar items
-        for item in order.items:
+        for item in validated_items:
             cursor.execute(
                 "INSERT INTO order_items (order_id, name, price, quantity, emoji) VALUES (%s, %s, %s, %s, %s)",
-                (order_id, item.name, item.price, item.quantity, item.emoji)
+                (order_id, item["name"], item["price"], item["quantity"], item["emoji"])
             )
             
         # Registrar uso del cupón
-        if order.promo_code and order.user_id:
+        if promo_code and order.user_id:
             cursor.execute(
-                "INSERT IGNORE INTO used_coupons (user_id, code) VALUES (%s, %s)",
-                (order.user_id, order.promo_code)
+                "INSERT INTO used_coupons (user_id, code) VALUES (%s, %s)",
+                (order.user_id, promo_code)
             )
         db.commit()
 
@@ -397,8 +423,8 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
             "business_emoji": business_info['emoji'] if business_info else ("🛍️" if order.order_type == "open" else "🏪"),
             "customer_name": order.customer_name,
             "delivery_address": order.delivery_address,
-            "total": order.total,
-            "items": [item.dict() for item in order.items],
+            "total": validated_total,
+            "items": validated_items,
             "description": order.open_order_description
         }
 
@@ -430,7 +456,7 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
             subscribed_couriers = cursor.fetchall()
             for courier in subscribed_couriers:
                 push_title = f"Nuevo encargo: {notification_data['business_name']}" if order.order_type == "open" else f"Nuevo pedido: {notification_data['business_name']}"
-                push_body = f"Destino: {order.delivery_address}" if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${order.total}"
+                push_body = f"Destino: {order.delivery_address}" if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${validated_total}"
                 push_url = "/domiciliario"
                 background_tasks.add_task(send_push_notification, courier['user_id'], {
                     "title": push_title,
@@ -754,7 +780,10 @@ def delete_order(order_id: str, current_user: dict = Depends(get_current_user)):
         db.close()
 
 @router.get("/{order_id}", response_model=OrderDetailResponse)
-def get_order_detail(order_id: str):
+def get_order_detail(
+    order_id: str,
+    current_user: dict | None = Depends(get_optional_user),
+):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -766,7 +795,7 @@ def get_order_detail(order_id: str):
                    c.lat as courier_lat, c.lng as courier_lng, 
                    c.name as courier_name, c.image_url as courier_image, 
                    c.vehicle as courier_vehicle, c.phone as courier_phone,
-                   c.rating as courier_rating,
+                   c.rating as courier_rating, c.user_id as courier_user_id,
                    b.latitude as business_lat, b.longitude as business_lng,
                    b.name as business_name, b.emoji as business_emoji,
                    b.owner_id as business_owner_id
@@ -777,8 +806,10 @@ def get_order_detail(order_id: str):
         """, (order_id,))
         order = cursor.fetchone()
         if not order:
-            db.close()
             raise HTTPException(status_code=404, detail="Order not found")
+
+        if current_user:
+            assert_order_access(cursor, order, current_user)
         
         # Items
         cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
@@ -804,15 +835,23 @@ def get_order_detail(order_id: str):
             order['offers'] = cursor.fetchall()
         _attach_eta(order)
         
-        db.close()
         return order
+    except HTTPException:
+        raise
     except Exception as e:
-        db.close()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 
 @router.post("/{order_id}/offers/{offer_id}/accept")
-def accept_open_order_offer(order_id: str, offer_id: int, background_tasks: BackgroundTasks):
+def accept_open_order_offer(
+    order_id: str,
+    offer_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -835,9 +874,11 @@ def accept_open_order_offer(order_id: str, offer_id: int, background_tasks: Back
             raise HTTPException(status_code=404, detail="Offer not found")
         if row["order_type"] != "open":
             raise HTTPException(status_code=400, detail="Only open orders can accept offers")
+        if current_user["role"] != "admin" and row.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Solo el cliente del pedido puede aceptar ofertas")
         if row.get("courier_id"):
             raise HTTPException(status_code=400, detail="Order already has a courier assigned")
-        if row["status"] not in ["pending", "preparing"]:
+        if row["status"] not in ["pending", "confirmed", "preparing"]:
             raise HTTPException(status_code=400, detail="Order is not accepting offers")
 
         cursor.execute("""
@@ -1306,7 +1347,7 @@ def assign_courier(order_id: str, data: dict, current_user: dict = Depends(get_c
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{order_id}/rate")
-def rate_order(order_id: str, rating: OrderRatingCreate):
+def rate_order(order_id: str, rating: OrderRatingCreate, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -1314,19 +1355,24 @@ def rate_order(order_id: str, rating: OrderRatingCreate):
     cursor = db.cursor(dictionary=True)
     try:
         # 1. Verificar el pedido
-        cursor.execute("SELECT business_id, courier_id, status, is_rated FROM orders WHERE id = %s", (order_id,))
+        cursor.execute("SELECT business_id, courier_id, status, is_rated, user_id FROM orders WHERE id = %s", (order_id,))
         order = cursor.fetchone()
         
         if not order:
-            db.close()
             raise HTTPException(status_code=404, detail="Order not found")
+
+        if current_user["role"] != "admin" and order.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Solo el cliente puede calificar este pedido")
+
+        if rating.business_rating < 1 or rating.business_rating > 5:
+            raise HTTPException(status_code=400, detail="La calificación del negocio debe estar entre 1 y 5")
+        if rating.courier_rating is not None and (rating.courier_rating < 1 or rating.courier_rating > 5):
+            raise HTTPException(status_code=400, detail="La calificación del domiciliario debe estar entre 1 y 5")
         
         if order['status'] != 'delivered':
-            db.close()
             raise HTTPException(status_code=400, detail="Only delivered orders can be rated")
             
         if order['is_rated']:
-            db.close()
             raise HTTPException(status_code=400, detail="Order already rated")
 
         # 2. Insertar calificación
@@ -1356,9 +1402,13 @@ def rate_order(order_id: str, rating: OrderRatingCreate):
             """, (order['courier_id'], order['courier_id']))
             
         db.commit()
-        db.close()
         return {"message": "Rating submitted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
-        db.close()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()

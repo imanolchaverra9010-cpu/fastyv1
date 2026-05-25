@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Depends
 from pydantic import BaseModel
 from database import get_db
 import json
 import os
 from urllib.parse import urlparse
+from security import get_current_user
 try:
     from pywebpush import webpush, WebPushException
     PUSH_SUPPORTED = True
@@ -44,7 +45,9 @@ def _require_debug_token(x_push_debug_token: str | None):
         raise HTTPException(status_code=403, detail="Push diagnostics are not enabled")
 
 @router.post("/subscribe")
-def subscribe(data: PushSubscription):
+def subscribe(data: PushSubscription, current_user: dict = Depends(get_current_user)):
+    if current_user["id"] != data.user_id and current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="No puedes suscribir notificaciones para otro usuario")
     endpoint = _subscription_endpoint(data.subscription)
     if not endpoint:
         raise HTTPException(status_code=400, detail="Invalid push subscription endpoint")

@@ -4,16 +4,18 @@ from database import get_db
 from schemas import MenuItemCreate, MenuItemUpdate, MenuItemResponse
 import mysql.connector
 from cache import get_cache, set_cache, delete_cache
+from security import get_current_user, assert_business_owner
 
 router = APIRouter()
 
 @router.post("/{business_id}/menu", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
-def create_menu_item(business_id: str, menu_item: MenuItemCreate):
+def create_menu_item(business_id: str, menu_item: MenuItemCreate, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
     try:
         # Verificar que el business_id existe
         cursor.execute("SELECT id FROM businesses WHERE id = %s", (business_id,))
@@ -100,12 +102,18 @@ def get_menu_item(business_id: str, item_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{business_id}/menu/{item_id}", response_model=MenuItemResponse)
-def update_menu_item(business_id: str, item_id: int, menu_item_update: MenuItemUpdate):
+def update_menu_item(
+    business_id: str,
+    item_id: int,
+    menu_item_update: MenuItemUpdate,
+    current_user: dict = Depends(get_current_user),
+):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
     try:
         update_data = menu_item_update.dict(exclude_unset=True)
         if not update_data:
@@ -140,12 +148,13 @@ def update_menu_item(business_id: str, item_id: int, menu_item_update: MenuItemU
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{business_id}/menu/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_menu_item(business_id: str, item_id: int):
+def delete_menu_item(business_id: str, item_id: int, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
     try:
         cursor.execute("DELETE FROM menu_items WHERE business_id = %s AND id = %s", (business_id, item_id))
         db.commit()
@@ -162,7 +171,19 @@ def delete_menu_item(business_id: str, item_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{business_id}/menu/{item_id}/image")
-async def upload_menu_item_image(business_id: str, item_id: int, file: UploadFile = File(...)):
+async def upload_menu_item_image(
+    business_id: str,
+    item_id: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
+    cursor.close()
+    db.close()
     try:
         from lib.storage import upload_file
     except ImportError:

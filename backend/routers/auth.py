@@ -28,10 +28,9 @@ def register(request: Request, user: UserCreate):
         # Hashear password
         hashed_password = hash_password(user.password)
         
-        # Insertar
         cursor.execute(
             "INSERT INTO users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)",
-            (user.username, user.email, hashed_password, user.role)
+            (user.username, user.email, hashed_password, "customer")
         )
         db.commit()
         return {"message": "Usuario creado exitosamente"}
@@ -216,7 +215,7 @@ def social_login(request: Request, social_user: SocialAuth):
                 cursor.execute(
                     """INSERT INTO users (username, email, provider, provider_id, avatar_url, role) 
                        VALUES (%s, %s, %s, %s, %s, %s)""",
-                    (username, email, provider, provider_id, avatar_url, social_user.role)
+                    (username, email, provider, provider_id, avatar_url, "customer")
                 )
                 # Obtener el ID del usuario recién creado
                 user_id = cursor.lastrowid

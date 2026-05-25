@@ -9,6 +9,7 @@ import { RequestDeliveryModal } from "./RequestDeliveryModal";
 
 const STATUS_CONFIG = {
   pending: { label: "Pendiente", color: "border-destructive/30 bg-destructive/5", badge: "bg-destructive/10 text-destructive" },
+  confirmed: { label: "Pagado", color: "border-blue-500/30 bg-blue-500/5", badge: "bg-blue-500/10 text-blue-600" },
   preparing: { label: "Preparando", color: "border-primary/30 bg-primary/5", badge: "bg-primary/10 text-primary" },
   shipped:   { label: "En camino",   color: "border-warning/30 bg-warning/5",          badge: "bg-warning/10 text-warning" },
   in_transit: { label: "En viaje",    color: "border-warning/40 bg-warning/10",         badge: "bg-warning/20 text-warning" },
@@ -18,6 +19,7 @@ const STATUS_CONFIG = {
 
 const STATUS_FLOW: Record<string, string[]> = {
   pending:   ["preparing", "cancelled"],
+  confirmed: ["preparing", "cancelled"],
   preparing: ["shipped",   "cancelled"],
   shipped:   ["delivered", "cancelled"],
   in_transit: ["delivered", "cancelled"],
@@ -54,6 +56,7 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onStatusChange, business
         {/* Status dot */}
         <div className={`h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 ${
           order.status === "pending"   ? "bg-destructive animate-pulse" :
+          order.status === "confirmed" ? "bg-blue-500 animate-pulse" :
           order.status === "preparing" ? "bg-primary animate-pulse" :
           order.status === "shipped" || order.status === "in_transit" ? "bg-warning animate-pulse" :
           order.status === "delivered" ? "bg-success" : "bg-muted-foreground"
@@ -211,7 +214,7 @@ export const OrdersTab = () => {
       }
     : undefined;
 
-  const pendingOrders   = orders.filter(o => o.status === "pending");
+  const pendingOrders   = orders.filter(o => o.status === "pending" || o.status === "confirmed");
   const preparingOrders = orders.filter(o => o.status === "preparing");
   const shippedOrders   = orders.filter(o => o.status === "shipped" || o.status === "in_transit");
   const deliveredOrders = orders.filter(o => o.status === "delivered");
@@ -271,7 +274,7 @@ export const OrdersTab = () => {
         </Button>
       </div>
 
-      <Section title="Pendientes" icon={<AlertCircle className="h-4 w-4 text-destructive" />} orders={pendingOrders} />
+      <Section title="Pendientes / Pagados" icon={<AlertCircle className="h-4 w-4 text-destructive" />} orders={pendingOrders} />
       <Section title="En Preparación" icon={<ChefHat className="h-4 w-4 text-primary" />} orders={preparingOrders} />
       <Section title="En Camino" icon={<Package className="h-4 w-4 text-warning" />} orders={shippedOrders} />
       <Section title="Entregados" icon={<Check className="h-4 w-4 text-success" />} orders={deliveredOrders.slice(0, 5)} collapsed />

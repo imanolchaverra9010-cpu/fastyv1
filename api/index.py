@@ -223,9 +223,11 @@ def get_theme_color_public():
     except Exception:
         return {"theme_color": "#f97316"}
 
-# Diagnóstico de base de datos
+# Diagnóstico de base de datos (solo admin)
 @app.get(f"{API_PREFIX}/debug-db")
 def debug_db():
+    if os.getenv("ENV") == "production":
+        raise HTTPException(status_code=404, detail="Not found")
     try:
         from database import db_config, get_db
         # Ocultar password por seguridad

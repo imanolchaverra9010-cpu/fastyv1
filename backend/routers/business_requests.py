@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends
+from typing import List
 from database import get_db
 from schemas import BusinessRequestCreate, BusinessRequestResponse
-from utils import pwd_context, hash_password
+from utils import hash_password
+from security import get_current_user, require_admin
 import json
 import uuid
 
@@ -89,7 +90,8 @@ def create_business_request(request: BusinessRequestCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/admin/requests", response_model=List[BusinessRequestResponse])
-def get_all_requests():
+def get_all_requests(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -111,7 +113,8 @@ def get_all_requests():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/admin/requests/{request_id}/approve")
-def approve_business_request(request_id: int):
+def approve_business_request(request_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -188,7 +191,8 @@ def approve_business_request(request_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/admin/requests/{request_id}/reject")
-def reject_business_request(request_id: int):
+def reject_business_request(request_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

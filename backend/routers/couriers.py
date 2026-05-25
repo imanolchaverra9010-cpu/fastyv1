@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from database import get_db
 from utils import get_bogota_time
 from typing import List, Optional
-from security import get_current_user
+from security import get_current_user, require_roles
 from datetime import datetime, timedelta
 import os
 import shutil
@@ -237,7 +237,8 @@ def get_courier_stats(user_id: int, response: Response, current_user: dict = Dep
         db.close()
 
 @router.get("/available-orders")
-def get_available_orders(response: Response):
+def get_available_orders(response: Response, current_user: dict = Depends(get_current_user)):
+    require_roles(current_user, "courier", "admin")
     # Enable Edge Caching for 5 seconds to shield DB from aggressive polling
     # public means Vercel Edge can cache it, s-maxage tells Edge to keep for 5s, 
     # stale-while-revalidate allows serving stale content while fetching fresh
@@ -252,7 +253,7 @@ def get_available_orders(response: Response):
             SELECT o.*, b.name as business_name, b.address as business_address, b.emoji as business_emoji
             FROM orders o
             LEFT JOIN businesses b ON o.business_id = b.id
-            WHERE o.status IN ('pending', 'preparing') AND o.courier_id IS NULL
+            WHERE o.status IN ('pending', 'confirmed', 'preparing') AND o.courier_id IS NULL
             ORDER BY o.created_at ASC
         """)
         orders = cursor.fetchall()
@@ -589,7 +590,7 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
             raise HTTPException(status_code=400, detail="Offers are only available for open orders")
         if order.get("courier_id"):
             raise HTTPException(status_code=400, detail="Order already has an accepted courier")
-        if order["status"] not in ["pending", "preparing"]:
+        if order["status"] not in ["pending", "confirmed", "preparing"]:
             raise HTTPException(status_code=400, detail="Order is not accepting offers")
 
         cursor.execute("""

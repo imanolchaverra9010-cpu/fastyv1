@@ -1,9 +1,10 @@
 import os
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 import google.generativeai as genai
 import json
 from PIL import Image
 import io
+from security import get_current_user, require_roles
 
 router = APIRouter()
 
@@ -13,7 +14,8 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 @router.post("/scan-menu")
-async def scan_menu(file: UploadFile = File(...)):
+async def scan_menu(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    require_roles(current_user, "business", "admin")
     if not GEMINI_API_KEY:
         raise HTTPException(
             status_code=400, 

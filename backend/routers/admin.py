@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from utils import pwd_context, hash_password, get_bogota_time, log_event
 from pydantic import BaseModel
-from security import get_current_user
+from security import get_current_user, require_admin
 from .push import broadcast_push_notification
 
 router = APIRouter()
@@ -62,7 +62,8 @@ class CourierCreateRequest(BaseModel):
     password: str
 
 @router.get("/stats")
-def get_admin_stats():
+def get_admin_stats(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -138,7 +139,8 @@ def get_admin_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/revenue-chart")
-def get_revenue_chart_data():
+def get_revenue_chart_data(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -190,7 +192,8 @@ def get_revenue_chart_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/hours-chart")
-def get_hours_chart_data():
+def get_hours_chart_data(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -223,7 +226,8 @@ def get_hours_chart_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/top-businesses")
-def get_top_businesses_chart():
+def get_top_businesses_chart(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -267,7 +271,8 @@ def get_top_businesses_chart():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/couriers")
-def get_couriers(status_filter: Optional[str] = None):
+def get_couriers(status_filter: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -289,7 +294,8 @@ def get_couriers(status_filter: Optional[str] = None):
     return couriers
 
 @router.post("/couriers")
-def create_courier(courier_data: CourierCreateRequest):
+def create_courier(courier_data: CourierCreateRequest, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     """
     Crea un nuevo domiciliario y su cuenta de usuario asociada.
     """
@@ -356,7 +362,8 @@ def create_courier(courier_data: CourierCreateRequest):
         raise HTTPException(status_code=500, detail=f"Error al crear el domiciliario: {str(e)}")
 
 @router.patch("/couriers/{courier_id}")
-def update_courier(courier_id: int, courier_data: dict):
+def update_courier(courier_id: int, courier_data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -427,7 +434,8 @@ def update_courier(courier_id: int, courier_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/maintenance")
-def get_maintenance_mode():
+def get_maintenance_mode(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     cursor = db.cursor(dictionary=True)
     try:
@@ -438,7 +446,8 @@ def get_maintenance_mode():
         db.close()
 
 @router.post("/maintenance")
-def toggle_maintenance_mode(data: dict):
+def toggle_maintenance_mode(data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     enabled = data.get("enabled", False)
     db = get_db()
     cursor = db.cursor()
@@ -453,7 +462,8 @@ def toggle_maintenance_mode(data: dict):
         db.close()
 
 @router.get("/theme-color")
-def get_theme_color_admin():
+def get_theme_color_admin(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -466,7 +476,8 @@ def get_theme_color_admin():
         db.close()
 
 @router.post("/theme-color")
-def save_theme_color(data: dict):
+def save_theme_color(data: dict, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     theme_color = data.get("theme_color", "#f97316").strip()
     if not theme_color.startswith("#") or len(theme_color) not in [4, 7]:
         raise HTTPException(status_code=400, detail="Formato de color hexadecimal inválido")
@@ -491,7 +502,8 @@ def save_theme_color(data: dict):
         db.close()
 
 @router.delete("/theme-color")
-def reset_theme_color():
+def reset_theme_color(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -507,7 +519,8 @@ def reset_theme_color():
         db.close()
 
 @router.delete("/couriers/{courier_id}")
-def delete_courier(courier_id: int):
+def delete_courier(courier_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     cursor = db.cursor(dictionary=True)
     try:
@@ -521,7 +534,8 @@ def delete_courier(courier_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/daily-report")
-def get_daily_report():
+def get_daily_report(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

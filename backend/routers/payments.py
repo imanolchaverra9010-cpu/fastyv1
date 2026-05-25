@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, status, Request, Depends
 from typing import Optional
 import os
 import requests
@@ -8,6 +8,7 @@ import hashlib
 from database import get_db
 from schemas import PaymentCreate, PaymentResponse, WompiWebhook
 from utils import get_bogota_time, log_event
+from security import get_current_user
 import uuid
 
 router = APIRouter()
@@ -68,7 +69,7 @@ def parse_wompi_amount_cents(transaction_data: dict) -> int | None:
 
 
 @router.post("/create", response_model=dict)
-def create_payment(payment: PaymentCreate, request: Request):
+def create_payment(payment: PaymentCreate, request: Request, current_user: dict = Depends(get_current_user)):
     """Create a payment intent and return Wompi checkout info"""
     if not WOMPI_PUBLIC_KEY:
         alert_wompi_failure("wompi_missing_public_key", order_id=payment.order_id)
@@ -99,6 +100,9 @@ def create_payment(payment: PaymentCreate, request: Request):
         order = cursor.fetchone()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+
+        if current_user["role"] != "admin" and order.get("user_id") not in (None, current_user["id"]):
+            raise HTTPException(status_code=403, detail="No tienes permiso para pagar este pedido")
 
         if order['status'] not in ['pending', 'pending_payment']:
             if order['status'] == 'confirmed':

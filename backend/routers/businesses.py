@@ -8,7 +8,7 @@ import os
 import shutil
 import uuid
 from cache import get_cache, set_cache, delete_cache
-from security import get_current_user
+from security import get_current_user, require_admin, assert_business_owner
 
 from datetime import datetime, timedelta, date
 
@@ -62,7 +62,8 @@ def format_business_data(data):
     return formatted
 
 @router.post("", response_model=BusinessResponse, status_code=status.HTTP_201_CREATED)
-def create_business(business: BusinessCreate):
+def create_business(business: BusinessCreate, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -361,11 +362,12 @@ def get_business_orders(business_id: str, status_filter: Optional[str] = None, c
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{business_id}", response_model=BusinessResponse)
-def update_business(business_id: str, business_update: BusinessUpdate):
+def update_business(business_id: str, business_update: BusinessUpdate, current_user: dict = Depends(get_current_user)):
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
     
     update_data = business_update.dict(exclude_unset=True)
     if not update_data:
@@ -395,7 +397,18 @@ def update_business(business_id: str, business_update: BusinessUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{business_id}/image")
-async def upload_business_image(business_id: str, file: UploadFile = File(...)):
+async def upload_business_image(
+    business_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    assert_business_owner(cursor, business_id, current_user)
+    cursor.close()
+    db.close()
     try:
         from lib.storage import upload_file
     except ImportError:
@@ -427,7 +440,8 @@ async def upload_business_image(business_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{business_id}")
-def delete_business(business_id: str):
+def delete_business(business_id: str, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")

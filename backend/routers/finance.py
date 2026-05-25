@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from database import get_db
-from security import get_current_user
+from security import get_current_user, require_admin
 from utils import get_bogota_time, log_event
 
 router = APIRouter()
@@ -17,11 +17,6 @@ class SettlementGenerateRequest(BaseModel):
 class SettlementMarkPaidRequest(BaseModel):
     payment_reference: Optional[str] = None
     notes: Optional[str] = None
-
-
-def require_admin(current_user: dict):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
 
 
 def ensure_finance_schema(db):
