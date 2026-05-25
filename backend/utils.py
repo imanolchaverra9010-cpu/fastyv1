@@ -22,17 +22,21 @@ from slowapi.util import get_remote_address
 import math
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-LOG_FILE = os.getenv("LOG_FILE", "logs/fasty.log")
-log_dir = os.path.dirname(LOG_FILE)
-if log_dir:
-    os.makedirs(log_dir, exist_ok=True)
+log_handlers = [logging.StreamHandler()]
+try:
+    log_file = os.getenv("LOG_FILE")
+    if not log_file:
+        log_file = "/tmp/fasty.log" if os.getenv("VERCEL") else "logs/fasty.log"
+    log_dir = os.path.dirname(log_file)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    log_handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+except OSError:
+    pass
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_FILE, encoding="utf-8")
-    ]
+    handlers=log_handlers,
 )
 logger = logging.getLogger("fasty")
 
