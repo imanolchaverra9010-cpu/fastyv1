@@ -50,6 +50,7 @@ import AdminCouriers from "@/pages/AdminCouriers";
 import Rides from "./pages/Rides.tsx";
 import RideDetail from "./pages/RideDetail.tsx";
 import ConductorRides from "./pages/ConductorRides.tsx";
+import DriverRegister from "./pages/DriverRegister.tsx";
 import RideTrack from "./pages/RideTrack.tsx";
 import AdminRides from "./pages/AdminRides.tsx";
 import { InstallPWA } from "./components/InstallPWA";
@@ -122,7 +123,7 @@ const AppContent = () => {
   const hideHeader = ["/login", "/register"].includes(pathname) ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/domiciliario") ||
-    pathname.startsWith("/conductor");
+    pathname.startsWith("/conductor/viajes");
 
   return (
     <>
@@ -150,6 +151,7 @@ const AppContent = () => {
         {/* Viajes — módulo separado */}
         <Route path="/viajes" element={<CustomerOrGuestRoute><Rides /></CustomerOrGuestRoute>} />
         <Route path="/viajes/seguir/:token" element={<RideTrack />} />
+        <Route path="/conductor/registro" element={<DriverRegister />} />
         <Route path="/viajes/:rideId" element={<ProtectedRoute allowedRoles={['customer', 'admin', 'courier']}><RideDetail /></ProtectedRoute>} />
         <Route
           path="/conductor/viajes"

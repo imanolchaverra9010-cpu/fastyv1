@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
+import uuid
 from utils import pwd_context, hash_password, get_bogota_time, log_event
 from pydantic import BaseModel
 from security import get_current_user, require_admin
@@ -1144,6 +1145,110 @@ def admin_block_ride_publish(courier_id: int, data: dict, current_user: dict = D
             raise HTTPException(status_code=404, detail="Conductor no encontrado")
         db.commit()
         return {"message": "Estado de publicación actualizado", "ride_publish_blocked": blocked}
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/rides/driver-requests")
+def admin_list_driver_requests(status: Optional[str] = "pending", current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        query = "SELECT * FROM driver_requests"
+        params = []
+        if status:
+            query += " WHERE status = %s"
+            params.append(status)
+        query += " ORDER BY created_at DESC LIMIT 200"
+        cursor.execute(query, params)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post("/rides/driver-requests/{request_id}/approve")
+def admin_approve_driver_request(request_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema, is_ride_eligible_driver
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM driver_requests WHERE id = %s", (request_id,))
+        req = cursor.fetchone()
+        if not req:
+            raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+        if req["status"] != "pending":
+            raise HTTPException(status_code=400, detail="La solicitud ya fue procesada")
+        if not is_ride_eligible_driver({"vehicle": req["vehicle"]}):
+            raise HTTPException(status_code=400, detail="El vehículo no es elegible para viajes en carro")
+
+        cursor.execute("SELECT id FROM users WHERE email = %s", (req["email"],))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+        username = req["name"].lower().replace(" ", "")[:16] + str(uuid.uuid4())[:4]
+        password = req["password"]
+        hashed_password = hash_password(password)
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, visible_password, role) VALUES (%s, %s, %s, %s, %s)",
+            (username, req["email"], hashed_password, password, "courier"),
+        )
+        user_id = cursor.lastrowid
+        cursor.execute("""
+            INSERT INTO couriers (
+                user_id, name, phone, vehicle, vehicle_plate, vehicle_color, vehicle_model,
+                status, rating, earnings, deliveries, ride_verified
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'offline', 5.0, 0, 0, FALSE)
+        """, (
+            user_id, req["name"], req["phone"], req["vehicle"],
+            req["vehicle_plate"], req["vehicle_color"], req["vehicle_model"],
+        ))
+        cursor.execute("UPDATE driver_requests SET status = 'approved' WHERE id = %s", (request_id,))
+        db.commit()
+        return {
+            "message": "Conductor aprobado",
+            "username": username,
+            "temp_password": password,
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post("/rides/driver-requests/{request_id}/reject")
+def admin_reject_driver_request(request_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    from .rides import ensure_rides_schema
+    ensure_rides_schema(db)
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "UPDATE driver_requests SET status = 'rejected' WHERE id = %s AND status = 'pending'",
+            (request_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Solicitud no encontrada o ya procesada")
+        db.commit()
+        return {"message": "Solicitud rechazada"}
     finally:
         cursor.close()
         db.close()

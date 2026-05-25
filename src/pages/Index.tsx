@@ -268,9 +268,14 @@ const Index = () => {
                             Explora viajes publicados por conductores y reserva el cupo que más te sirva. Paga en efectivo o transferencia.
                         </p>
                     </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
                     <Button size="lg" className="rounded-2xl h-14 px-8 font-bold shadow-glow" onClick={() => navigate('/viajes')}>
                         Ver viajes disponibles <ArrowRight className="h-5 w-5 ml-2" />
                     </Button>
+                    <Button size="lg" variant="outline" className="rounded-2xl h-14 px-8 font-bold" onClick={() => navigate('/conductor/registro')}>
+                        Quiero ser conductor
+                    </Button>
+                    </div>
                 </div>
             </section>
 

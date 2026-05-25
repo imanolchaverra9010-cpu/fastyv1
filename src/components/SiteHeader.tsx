@@ -124,9 +124,14 @@ const SiteHeader = () => {
             )}
 
             {!isInternalRole && (
-              <Button asChild variant="hero" size="sm" className="hidden sm:inline-flex rounded-xl font-bold shadow-soft px-5">
-                <Link to="/negocios/registro">Registra tu negocio</Link>
-              </Button>
+              <>
+                <Button asChild variant="outline" size="sm" className="hidden md:inline-flex rounded-xl font-bold px-5">
+                  <Link to="/conductor/registro">Ser conductor</Link>
+                </Button>
+                <Button asChild variant="hero" size="sm" className="hidden sm:inline-flex rounded-xl font-bold shadow-soft px-5">
+                  <Link to="/negocios/registro">Registra tu negocio</Link>
+                </Button>
+              </>
             )}
           </div>
 
@@ -210,9 +215,14 @@ const SiteHeader = () => {
                     ) : (
                       <>
                         {!isInternalRole && (
-                          <Button asChild className="w-full rounded-xl font-bold py-6" variant="hero">
-                            <Link to="/negocios/registro" onClick={closeMenu}>Registra tu negocio</Link>
-                          </Button>
+                          <>
+                            <Button asChild className="w-full rounded-xl font-bold py-6" variant="hero">
+                              <Link to="/negocios/registro" onClick={closeMenu}>Registra tu negocio</Link>
+                            </Button>
+                            <Button asChild className="w-full rounded-xl font-bold py-6" variant="outline">
+                              <Link to="/conductor/registro" onClick={closeMenu}>Ser conductor de viajes</Link>
+                            </Button>
+                          </>
                         )}
                         <Button asChild variant="soft" className="w-full rounded-xl font-semibold py-6">
                           <Link to="/login" onClick={closeMenu}>Iniciar sesión</Link>

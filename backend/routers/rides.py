@@ -105,6 +105,20 @@ class RidePenaltyCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class DriverRegisterCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    email: str
+    phone: str = Field(min_length=7, max_length=20)
+    password: str = Field(min_length=6, max_length=128)
+    vehicle: str
+    vehicle_plate: str = Field(min_length=5, max_length=20)
+    vehicle_color: str = Field(min_length=2, max_length=40)
+    vehicle_model: str = Field(min_length=2, max_length=80)
+    id_number: Optional[str] = None
+    license_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
 def normalize_ride_payment_method(method: str | None) -> str:
     normalized = (method or "cash").strip().lower()
     if normalized in {"transfer", "transferencia"}:
@@ -295,6 +309,27 @@ def ensure_rides_schema(db):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_ride_penalties_driver (driver_id),
                 INDEX idx_ride_penalties_ride (ride_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS driver_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                phone VARCHAR(20) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                vehicle VARCHAR(50) NOT NULL,
+                vehicle_plate VARCHAR(20) NOT NULL,
+                vehicle_color VARCHAR(40) NOT NULL,
+                vehicle_model VARCHAR(80) NOT NULL,
+                id_number VARCHAR(30) NULL,
+                license_number VARCHAR(40) NULL,
+                notes TEXT NULL,
+                status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_driver_requests_email (email),
+                INDEX idx_driver_requests_status (status)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
         """)
         for column_name, column_def in [
@@ -715,6 +750,69 @@ def my_rides(current_user: dict = Depends(get_current_user)):
             cursor.execute("SELECT * FROM ride_requests ORDER BY created_at DESC LIMIT 200")
             return [_serialize_ride(r) for r in cursor.fetchall()]
         raise HTTPException(status_code=403, detail="Usa /rides/my-bookings para ver tus reservas")
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.post("/driver-register", status_code=201)
+def register_driver(data: DriverRegisterCreate):
+    if not is_ride_eligible_driver({"vehicle": data.vehicle}):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se aceptan conductores con vehículo tipo carro (auto, carro o camioneta).",
+        )
+    email = data.email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Email inválido")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_rides_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        errors = {}
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            errors["email"] = "Este email ya está registrado en la plataforma."
+        cursor.execute(
+            "SELECT id FROM driver_requests WHERE email = %s AND status = 'pending'",
+            (email,),
+        )
+        if cursor.fetchone():
+            errors["email"] = "Ya tienes una solicitud pendiente con este email."
+        cursor.execute(
+            "SELECT id FROM couriers c JOIN users u ON u.id = c.user_id WHERE u.email = %s",
+            (email,),
+        )
+        if cursor.fetchone():
+            errors["email"] = "Ya existe un conductor registrado con este email."
+
+        if errors:
+            raise HTTPException(status_code=400, detail={"message": "Revisa los datos.", "fields": errors})
+
+        cursor.execute("""
+            INSERT INTO driver_requests (
+                name, email, phone, password, vehicle,
+                vehicle_plate, vehicle_color, vehicle_model,
+                id_number, license_number, notes
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data.name.strip(), email, data.phone.strip(), data.password,
+            data.vehicle.strip(), data.vehicle_plate.strip().upper(),
+            data.vehicle_color.strip(), data.vehicle_model.strip(),
+            data.id_number, data.license_number, data.notes,
+        ))
+        db.commit()
+        log_event("driver_register_request", email=email)
+        return {"message": "Solicitud enviada. Te contactaremos cuando sea aprobada."}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         db.close()

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Car, ShieldCheck, CheckCircle, Gavel } from "lucide-react";
+import { AlertTriangle, Car, ShieldCheck, CheckCircle, Gavel, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
@@ -13,13 +13,15 @@ const AdminRides = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [sosEvents, setSosEvents] = useState<any[]>([]);
   const [penalties, setPenalties] = useState<any[]>([]);
-  const [tab, setTab] = useState<"rides" | "reports" | "sos" | "penalties">("rides");
+  const [driverRequests, setDriverRequests] = useState<any[]>([]);
+  const [tab, setTab] = useState<"rides" | "reports" | "sos" | "penalties" | "registrations">("rides");
 
   const load = () => {
     fetch("/api/admin/rides").then((r) => r.ok ? r.json() : []).then(setRides).catch(() => undefined);
     fetch("/api/admin/rides/reports?status=pending").then((r) => r.ok ? r.json() : []).then(setReports).catch(() => undefined);
     fetch("/api/admin/rides/sos?active_only=true").then((r) => r.ok ? r.json() : []).then(setSosEvents).catch(() => undefined);
     fetch("/api/admin/rides/penalties").then((r) => r.ok ? r.json() : []).then(setPenalties).catch(() => undefined);
+    fetch("/api/admin/rides/driver-requests?status=pending").then((r) => r.ok ? r.json() : []).then(setDriverRequests).catch(() => undefined);
   };
 
   useEffect(() => { load(); }, []);
@@ -58,6 +60,27 @@ const AdminRides = () => {
     load();
   };
 
+  const approveDriver = async (id: number) => {
+    const response = await fetch(`/api/admin/rides/driver-requests/${id}/approve`, { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      toast({ title: "Error", description: data.detail || "No se pudo aprobar", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Conductor aprobado", description: `Usuario: ${data.username} · Clave: ${data.temp_password}` });
+    load();
+  };
+
+  const rejectDriver = async (id: number) => {
+    const response = await fetch(`/api/admin/rides/driver-requests/${id}/reject`, { method: "POST" });
+    if (!response.ok) {
+      toast({ title: "Error", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Solicitud rechazada" });
+    load();
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-warm">
@@ -87,6 +110,9 @@ const AdminRides = () => {
               </Button>
               <Button variant={tab === "penalties" ? "default" : "outline"} className="rounded-xl" onClick={() => setTab("penalties")}>
                 <Gavel className="h-4 w-4 mr-2" /> Penalizaciones ({penalties.filter((p) => !p.waived).length})
+              </Button>
+              <Button variant={tab === "registrations" ? "default" : "outline"} className="rounded-xl" onClick={() => setTab("registrations")}>
+                <UserPlus className="h-4 w-4 mr-2" /> Registros ({driverRequests.length})
               </Button>
             </div>
 
@@ -162,6 +188,32 @@ const AdminRides = () => {
                       {!p.waived && (
                         <Button size="sm" variant="outline" className="rounded-xl" onClick={() => waivePenalty(p.id)}>Condonar</Button>
                       )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {tab === "registrations" && (
+              <div className="space-y-3">
+                {driverRequests.length === 0 && <p className="text-muted-foreground">Sin solicitudes de registro pendientes.</p>}
+                {driverRequests.map((req) => (
+                  <Card key={req.id} className="rounded-2xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {req.name}
+                        <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm">{req.email} · {req.phone}</p>
+                      <p className="text-sm">{req.vehicle_model} · {req.vehicle_color} · Placa {req.vehicle_plate}</p>
+                      {req.id_number && <p className="text-xs text-muted-foreground">Cédula: {req.id_number}</p>}
+                      {req.notes && <p className="text-sm text-muted-foreground">{req.notes}</p>}
+                      <div className="flex gap-2">
+                        <Button size="sm" className="rounded-xl" onClick={() => approveDriver(req.id)}>Aprobar</Button>
+                        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => rejectDriver(req.id)}>Rechazar</Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
