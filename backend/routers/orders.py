@@ -136,6 +136,35 @@ def ensure_open_order_support_schema(db):
                 INDEX idx_order_courier_offers_user (user_id)
             )
         """)
+
+        _safe_create_table(cursor, db, """
+            CREATE TABLE IF NOT EXISTS order_delivery_proofs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                courier_id INT NOT NULL,
+                proof_type ENUM('photo', 'code', 'note') NOT NULL DEFAULT 'note',
+                proof_value TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_order_delivery_proofs_order (order_id),
+                INDEX idx_order_delivery_proofs_courier (courier_id)
+            )
+        """)
+
+        _safe_create_table(cursor, db, """
+            CREATE TABLE IF NOT EXISTS order_incidents (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id VARCHAR(50) NOT NULL,
+                reporter_role VARCHAR(30) NOT NULL,
+                reporter_id INT NOT NULL,
+                incident_type VARCHAR(80) NOT NULL,
+                description TEXT,
+                status ENUM('open', 'reviewed', 'resolved') NOT NULL DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_order_incidents_order (order_id),
+                INDEX idx_order_incidents_status (status)
+            )
+        """)
     finally:
         cursor.close()
 
@@ -1017,6 +1046,120 @@ async def update_order_status(order_id: str, status_data: dict, background_tasks
         db.rollback()
         db.close()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/{order_id}/business-controls")
+def update_business_order_controls(order_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in {"business", "admin"}:
+        raise HTTPException(status_code=403, detail="Solo negocio o admin puede gestionar este pedido")
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT o.id, o.status, b.owner_id
+            FROM orders o
+            LEFT JOIN businesses b ON b.id = o.business_id
+            WHERE o.id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        if current_user["role"] != "admin" and order.get("owner_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="No puedes gestionar pedidos de otro negocio")
+
+        updates = []
+        params = []
+        if data.get("estimated_preparation_minutes") is not None:
+            minutes = max(1, min(int(data["estimated_preparation_minutes"]), 180))
+            updates.append("estimated_delivery_time = %s")
+            params.append((get_bogota_time() + timedelta(minutes=minutes)).replace(tzinfo=None))
+        if data.get("notes") is not None:
+            updates.append("notes = %s")
+            params.append(str(data["notes"]))
+        if data.get("reject_reason"):
+            validate_order_status_transition(order.get("status"), "cancelled", order.get("courier_id"))
+            updates.append("status = 'cancelled'")
+            updates.append("cancellation_reason = %s")
+            params.append(str(data["reject_reason"]))
+        if not updates:
+            raise HTTPException(status_code=400, detail="No hay cambios para aplicar")
+        params.append(order_id)
+        cursor.execute(f"UPDATE orders SET {', '.join(updates)} WHERE id = %s", params)
+        if data.get("reject_reason"):
+            cursor.execute("INSERT INTO order_status_logs (order_id, status) VALUES (%s, 'cancelled')", (order_id,))
+        db.commit()
+        return {"message": "Pedido actualizado por negocio"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/{order_id}/delivery-proof")
+def add_delivery_proof(order_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in {"courier", "admin"}:
+        raise HTTPException(status_code=403, detail="Solo domiciliario o admin puede agregar prueba de entrega")
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_open_order_support_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT o.id, o.courier_id, c.user_id AS courier_user_id
+            FROM orders o
+            LEFT JOIN couriers c ON c.id = o.courier_id
+            WHERE o.id = %s
+        """, (order_id,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        if current_user["role"] != "admin" and order.get("courier_user_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="No puedes agregar prueba a un pedido que no tienes asignado")
+        cursor.execute("""
+            INSERT INTO order_delivery_proofs (order_id, courier_id, proof_type, proof_value, notes)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (order_id, order.get("courier_id"), data.get("proof_type", "note"), data.get("proof_value"), data.get("notes")))
+        db.commit()
+        return {"message": "Prueba de entrega registrada"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/{order_id}/incident")
+def report_order_incident(order_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in {"courier", "business", "admin"}:
+        raise HTTPException(status_code=403, detail="No tienes permiso para reportar incidencias")
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_open_order_support_schema(db)
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO order_incidents (order_id, reporter_role, reporter_id, incident_type, description)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (order_id, current_user["role"], current_user["id"], data.get("incident_type", "general"), data.get("description")))
+        db.commit()
+        log_event("order_incident_reported", order_id=order_id, reporter_role=current_user["role"], reporter_id=current_user["id"])
+        return {"message": "Incidencia reportada"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        db.close()
 
 @router.post("/{order_id}/smart-assign")
 def smart_assign_courier(order_id: str, background_tasks: BackgroundTasks):

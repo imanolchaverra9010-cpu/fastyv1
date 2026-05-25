@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesa
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 
 interface Business {
   id: string;
@@ -43,6 +44,7 @@ interface MenuItem {
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { add } = useCart();
+  const { user } = useAuth();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,6 +98,20 @@ const BusinessDetail = () => {
     enabled: !!id,
   });
 
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/businesses/favorites/me")
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const ids = data.map((business: any) => String(business.id));
+          setFavorites(ids);
+          localStorage.setItem("fasty_favorite_businesses", JSON.stringify(ids));
+        }
+      })
+      .catch(() => undefined);
+  }, [user]);
+
   const handleAdd = (item: MenuItem) => {
     if (!business) return;
     if (!isBusinessOpen()) {
@@ -136,11 +152,16 @@ const BusinessDetail = () => {
   const isOpen = isBusinessOpen();
   const isFavorite = !!id && favorites.includes(id);
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (!id) return;
     const next = isFavorite ? favorites.filter((fav) => fav !== id) : [...favorites, id];
     setFavorites(next);
     localStorage.setItem("fasty_favorite_businesses", JSON.stringify(next));
+    if (user) {
+      await fetch(`/api/businesses/${id}/favorite`, {
+        method: isFavorite ? "DELETE" : "POST",
+      }).catch(() => undefined);
+    }
     toast({ title: isFavorite ? "Quitado de favoritos" : "Agregado a favoritos", description: business?.name });
   };
 

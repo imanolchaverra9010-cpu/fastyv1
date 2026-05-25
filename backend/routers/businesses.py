@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Response, Depends
 from typing import List, Optional, Dict
 from database import get_db
-from utils import get_bogota_time
+from utils import get_bogota_time, log_event
 from schemas import BusinessCreate, BusinessResponse, BusinessUpdate
 from datetime import datetime, timedelta
 import os
@@ -13,6 +13,24 @@ from security import get_current_user
 from datetime import datetime, timedelta, date
 
 router = APIRouter()
+
+def ensure_business_favorites_schema(db):
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS favorite_businesses (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                business_id VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_business_favorite (user_id, business_id),
+                INDEX idx_favorite_businesses_user (user_id),
+                INDEX idx_favorite_businesses_business (business_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        """)
+        db.commit()
+    finally:
+        cursor.close()
 
 # Variable global para el manager de conexiones WebSocket (se setea desde main.py)
 websocket_manager = None
@@ -112,6 +130,58 @@ def get_businesses(response: Response, status_filter: Optional[str] = None, cate
         formatted = format_business_data(businesses)
         set_cache(cache_key, formatted, ttl_seconds=300) # 5 minutes
         return formatted
+    finally:
+        cursor.close()
+        db.close()
+
+@router.get("/favorites/me")
+def get_my_favorite_businesses(current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_business_favorites_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT b.*
+            FROM favorite_businesses fb
+            JOIN businesses b ON b.id = fb.business_id
+            WHERE fb.user_id = %s
+            ORDER BY fb.created_at DESC
+        """, (current_user["id"],))
+        return format_business_data(cursor.fetchall())
+    finally:
+        cursor.close()
+        db.close()
+
+@router.post("/{business_id}/favorite")
+def add_favorite_business(business_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_business_favorites_schema(db)
+    cursor = db.cursor()
+    try:
+        cursor.execute("INSERT IGNORE INTO favorite_businesses (user_id, business_id) VALUES (%s, %s)", (current_user["id"], business_id))
+        db.commit()
+        log_event("business_favorite_added", user_id=current_user["id"], business_id=business_id)
+        return {"favorite": True}
+    finally:
+        cursor.close()
+        db.close()
+
+@router.delete("/{business_id}/favorite")
+def remove_favorite_business(business_id: str, current_user: dict = Depends(get_current_user)):
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_business_favorites_schema(db)
+    cursor = db.cursor()
+    try:
+        cursor.execute("DELETE FROM favorite_businesses WHERE user_id = %s AND business_id = %s", (current_user["id"], business_id))
+        db.commit()
+        log_event("business_favorite_removed", user_id=current_user["id"], business_id=business_id)
+        return {"favorite": False}
     finally:
         cursor.close()
         db.close()

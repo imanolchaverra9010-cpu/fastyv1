@@ -9,7 +9,7 @@ from typing import Dict
 # Añadir el directorio actual al path para importar los módulos locales
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push, support
+from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push, support, finance, rides
 from utils import limiter, log_event
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
@@ -79,6 +79,8 @@ app.include_router(payments.router, prefix="/payments", tags=["Payments"])
 app.include_router(banners.router, prefix="/banners", tags=["Banners"])
 app.include_router(push.router, prefix="/push", tags=["Push Notifications"])
 app.include_router(support.router, prefix="/support", tags=["Support"])
+app.include_router(finance.router, prefix="/finance", tags=["Finance"])
+app.include_router(rides.router, prefix="/rides", tags=["Rides"])
 
 
 @app.get("/api/maintenance")

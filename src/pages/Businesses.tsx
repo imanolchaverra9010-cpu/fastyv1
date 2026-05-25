@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
 import { CATEGORIES } from "@/constants/categories";
+import { useAuth } from "@/context/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Businesses = () => {
+  const { user } = useAuth();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +63,20 @@ const Businesses = () => {
   }, [categoryFilter, queryFilter]);
 
   useEffect(() => {
+    if (!user) return;
+    fetch("/api/businesses/favorites/me")
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const ids = data.map((business: any) => String(business.id));
+          setFavorites(ids);
+          localStorage.setItem("fasty_favorite_businesses", JSON.stringify(ids));
+        }
+      })
+      .catch(() => undefined);
+  }, [user]);
+
+  useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (position) => setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
@@ -90,10 +106,15 @@ const Businesses = () => {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
     const next = favorites.includes(id) ? favorites.filter((fav) => fav !== id) : [...favorites, id];
     setFavorites(next);
     localStorage.setItem("fasty_favorite_businesses", JSON.stringify(next));
+    if (user) {
+      await fetch(`/api/businesses/${id}/favorite`, {
+        method: favorites.includes(id) ? "DELETE" : "POST",
+      }).catch(() => undefined);
+    }
   };
 
   const visibleBusinesses = (businesses || [])

@@ -40,6 +40,8 @@ class ApiPathFixMiddleware(BaseHTTPMiddleware):
                 "/push",
                 "/payments",
                 "/support",
+                "/finance",
+                "/rides",
                 "/maintenance",
                 "/debug-db",
                 "/static",
@@ -65,7 +67,7 @@ try:
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
     import routers
-    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners", "support"]
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners", "support", "finance", "rides"]
     
     # Importar routers dinámicamente y continuar si alguno falla.
     import importlib
@@ -134,6 +136,8 @@ routers_to_load = [
     ("payments", f"{API_PREFIX}/payments", ["Payments"]),
     ("banners", f"{API_PREFIX}/banners", ["Banners"]),
     ("support", f"{API_PREFIX}/support", ["Support"]),
+    ("finance", f"{API_PREFIX}/finance", ["Finance"]),
+    ("rides", f"{API_PREFIX}/rides", ["Rides"]),
     ("couriers", f"{API_PREFIX}/couriers", ["Couriers Panel"]),
 ]
 

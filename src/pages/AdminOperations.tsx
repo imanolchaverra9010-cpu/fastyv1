@@ -14,6 +14,8 @@ const toNumber = (value: unknown) => Number(value || 0);
 const AdminOperations = () => {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
+  const [reconciliation, setReconciliation] = useState<any>(null);
+  const [settlements, setSettlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -22,11 +24,20 @@ const AdminOperations = () => {
       setLoading(true);
       setError(false);
       try {
+        const headers = user?.token ? { Authorization: `Bearer ${user.token}` } : undefined;
         const response = await fetch("/api/admin/operations", {
+          headers,
+        });
+        const reconciliationResponse = await fetch("/api/finance/payment-reconciliation", {
+          headers,
+        });
+        const settlementsResponse = await fetch("/api/finance/settlements", {
           headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
         });
         if (!response.ok) throw new Error("No se pudo cargar la operación admin");
         setData(await response.json());
+        if (reconciliationResponse.ok) setReconciliation(await reconciliationResponse.json());
+        if (settlementsResponse.ok) setSettlements(await settlementsResponse.json());
       } catch (err) {
         console.error("Error fetching admin operations:", err);
         setError(true);
@@ -143,6 +154,37 @@ const AdminOperations = () => {
                       ))}
                     </TableBody>
                   </Table>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid xl:grid-cols-2 gap-6">
+              <Card className="rounded-3xl shadow-card">
+                <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Conciliación de pagos</CardTitle><CardDescription>Detecta pagos faltantes, montos diferentes o estados inconsistentes.</CardDescription></CardHeader>
+                <CardContent className="space-y-2 max-h-96 overflow-auto">
+                  <div className="rounded-2xl border p-3 flex justify-between"><span>Registros revisados</span><b>{toNumber(reconciliation?.summary?.total)}</b></div>
+                  <div className="rounded-2xl border p-3 flex justify-between"><span>Alertas</span><b className={toNumber(reconciliation?.summary?.issues) > 0 ? "text-destructive" : "text-success"}>{toNumber(reconciliation?.summary?.issues)}</b></div>
+                  {(reconciliation?.items || []).filter((row: any) => row.reconciliation_status !== "ok").slice(0, 12).map((row: any) => (
+                    <div key={`${row.order_id}-${row.payment_id || "none"}`} className="rounded-2xl border p-3 text-sm">
+                      <div className="flex justify-between gap-3"><b>#{row.order_id}</b><span className="text-destructive font-semibold">{row.reconciliation_status}</span></div>
+                      <p className="text-muted-foreground">Pedido: {row.order_status} · Pago: {row.payment_status || "sin pago"}</p>
+                      <p>{formatCOP(toNumber(row.order_total))} / {formatCOP(toNumber(row.payment_amount))}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-3xl shadow-card">
+                <CardHeader><CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5 text-primary" /> Liquidaciones generadas</CardTitle><CardDescription>Pagos pendientes o completados a negocios y domiciliarios.</CardDescription></CardHeader>
+                <CardContent className="space-y-2 max-h-96 overflow-auto">
+                  {settlements.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay liquidaciones generadas desde el módulo financiero.</p>}
+                  {settlements.map((row: any) => (
+                    <div key={row.id} className="rounded-2xl border p-3 text-sm">
+                      <div className="flex justify-between gap-3"><b>{row.target_type} #{row.target_id}</b><span className="capitalize">{row.status}</span></div>
+                      <p className="font-bold">{formatCOP(toNumber(row.net_amount))}</p>
+                      <p className="text-muted-foreground">Bruto {formatCOP(toNumber(row.gross_amount))} · Comisión {formatCOP(toNumber(row.commission_amount))}</p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>

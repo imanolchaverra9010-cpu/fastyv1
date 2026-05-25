@@ -10,24 +10,50 @@ import { toast } from "@/hooks/use-toast";
 const Support = () => {
   const [loading, setLoading] = useState(false);
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    const formData = new FormData(event.currentTarget);
-    const tickets = JSON.parse(localStorage.getItem("fasty_support_tickets") || "[]");
-    const ticket = {
-      id: `SUP-${Date.now().toString(36).toUpperCase()}`,
-      name: formData.get("name"),
-      phone: formData.get("phone"),
-      orderId: formData.get("orderId"),
-      message: formData.get("message"),
-      status: "open",
-      createdAt: new Date().toISOString(),
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const payload = {
+      name: String(formData.get("name") || ""),
+      phone: String(formData.get("phone") || ""),
+      order_id: String(formData.get("orderId") || "") || null,
+      message: String(formData.get("message") || ""),
     };
-    localStorage.setItem("fasty_support_tickets", JSON.stringify([ticket, ...tickets].slice(0, 20)));
-    setLoading(false);
-    event.currentTarget.reset();
-    toast({ title: "Solicitud recibida", description: `Tu caso ${ticket.id} quedó registrado localmente.` });
+
+    try {
+      const response = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "No se pudo enviar la solicitud" }));
+        throw new Error(error.detail || "No se pudo enviar la solicitud");
+      }
+
+      const ticket = await response.json();
+      form.reset();
+      toast({ title: "Solicitud recibida", description: `Tu caso ${ticket.id} quedó registrado.` });
+    } catch (error) {
+      const tickets = JSON.parse(localStorage.getItem("fasty_support_tickets") || "[]");
+      const offlineTicket = {
+        id: `SUP-LOCAL-${Date.now().toString(36).toUpperCase()}`,
+        ...payload,
+        status: "pending_sync",
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem("fasty_support_tickets", JSON.stringify([offlineTicket, ...tickets].slice(0, 20)));
+      toast({
+        title: "Guardado temporalmente",
+        description: error instanceof Error ? error.message : "Tu solicitud quedó guardada localmente para reintentar.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,7 +66,7 @@ const Support = () => {
             <div className="grid md:grid-cols-2 gap-4"><div className="space-y-2"><Label>Nombre</Label><Input name="name" required className="rounded-xl" /></div><div className="space-y-2"><Label>Teléfono</Label><Input name="phone" required className="rounded-xl" /></div></div>
             <div className="space-y-2"><Label>ID del pedido</Label><Input name="orderId" placeholder="Opcional" className="rounded-xl" /></div>
             <div className="space-y-2"><Label>Mensaje</Label><Textarea name="message" required placeholder="Describe tu problema, reclamo o solicitud..." className="rounded-xl min-h-36" /></div>
-            <Button type="submit" disabled={loading} className="w-full rounded-xl">Enviar solicitud</Button>
+            <Button type="submit" disabled={loading} className="w-full rounded-xl">{loading ? "Enviando..." : "Enviar solicitud"}</Button>
           </form>
           <aside className="space-y-4">
             <div className="bg-card border rounded-3xl p-6 shadow-card"><h2 className="font-bold text-lg mb-3">Canales rápidos</h2><div className="space-y-3 text-sm"><a href="tel:+573000000000" className="flex items-center gap-3 text-muted-foreground hover:text-primary"><Phone className="h-4 w-4" /> Llamar soporte</a><a href="mailto:soporte@fasty.app" className="flex items-center gap-3 text-muted-foreground hover:text-primary"><Mail className="h-4 w-4" /> soporte@fasty.app</a><a href="https://wa.me/573000000000" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-muted-foreground hover:text-primary"><MessageCircle className="h-4 w-4" /> WhatsApp</a></div></div>
