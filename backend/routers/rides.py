@@ -783,7 +783,7 @@ def register_driver(data: DriverRegisterCreate):
         if cursor.fetchone():
             errors["email"] = "Ya tienes una solicitud pendiente con este email."
         cursor.execute(
-            "SELECT id FROM couriers c JOIN users u ON u.id = c.user_id WHERE u.email = %s",
+            "SELECT c.id FROM couriers c JOIN users u ON u.id = c.user_id WHERE u.email = %s",
             (email,),
         )
         if cursor.fetchone():

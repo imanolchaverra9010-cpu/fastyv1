@@ -32,7 +32,6 @@ const BusinessPanel = () => {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   const fetchBusinessId = async () => {
@@ -60,10 +59,12 @@ const BusinessPanel = () => {
   };
 
   const playNotificationSound = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
-    }
-    audioRef.current.play().catch(e => console.log("Audio play blocked by browser policy"));
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+    audio.play().catch((e) => {
+      if (e?.name !== "AbortError" && e?.name !== "NotAllowedError") {
+        console.debug("Notification sound skipped:", e?.name || e);
+      }
+    });
   };
 
   const fetchData = async () => {

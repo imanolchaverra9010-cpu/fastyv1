@@ -136,7 +136,11 @@ const Businesses = () => {
   const playClickSound = () => {
     const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
     audio.volume = 0.3;
-    audio.play().catch(e => console.log("Error playing sound:", e));
+    audio.play().catch((e) => {
+      if (e?.name !== "AbortError" && e?.name !== "NotAllowedError") {
+        console.debug("Notification sound skipped:", e?.name || e);
+      }
+    });
   };
 
   return (
