@@ -9,6 +9,7 @@ interface MultiReceiptProps {
   paymentMethod: string;
   orders: {
     orderId: string;
+    trackingToken?: string;
     businessName: string;
     items: {
       name: string;
@@ -177,27 +178,31 @@ const MultiReceipt = ({
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
               variant="hero" 
               className="w-full shadow-lg shadow-primary/20 text-xs sm:text-sm"
               onClick={() => {
-                // If only one order, go directly. If multiple, go to /perfil or a general tracking page
                 if (orders.length === 1) {
-                  navigate(`/rastreo/${orders[0].orderId}`);
+                  const o = orders[0];
+                  if (o.trackingToken) {
+                    navigate(`/rastreo/seguir/${o.trackingToken}`);
+                  } else {
+                    navigate(`/rastreo/${o.orderId}`);
+                  }
                 } else {
-                  navigate("/perfil"); // Or wherever they can see all their active orders
+                  navigate("/perfil");
                 }
               }}
             >
-              Mis Pedidos
+              Rastrear en vivo
             </Button>
             <Button 
               variant="soft" 
               className="w-full"
               onClick={() => navigate("/negocios")}
             >
-              Cerrar
+              Seguir comprando
             </Button>
           </div>
         </div>

@@ -441,20 +441,32 @@ async def update_courier_location(user_id: int, location_data: dict, current_use
         courier_id = courier["id"]
         
         # 3. Find active orders for this courier to notify relevant parties
-        cursor.execute(
-            "SELECT id, business_id, user_id FROM orders WHERE courier_id = %s AND status IN ('shipped', 'in_transit')",
-            (courier_id,)
-        )
+        cursor.execute("""
+            SELECT o.id, o.business_id, o.user_id, o.status, o.latitude, o.longitude,
+                   b.latitude as business_lat, b.longitude as business_lng
+            FROM orders o
+            LEFT JOIN businesses b ON o.business_id = b.id
+            WHERE o.courier_id = %s AND o.status IN ('shipped', 'in_transit')
+        """, (courier_id,))
         active_orders = cursor.fetchall()
         
         if websocket_manager:
+            from .orders import _attach_eta
             for order in active_orders:
+                order_payload = {
+                    **order,
+                    "courier_lat": float(lat),
+                    "courier_lng": float(lng),
+                }
+                _attach_eta(order_payload)
                 update_msg = {
                     "type": "courier_location_update",
                     "order_id": order["id"],
                     "courier_id": courier_id,
                     "lat": float(lat),
-                    "lng": float(lng)
+                    "lng": float(lng),
+                    "eta_text": order_payload.get("eta_text"),
+                    "estimated_delivery_minutes": order_payload.get("estimated_delivery_minutes"),
                 }
                 # Notify business
                 if order["business_id"]:

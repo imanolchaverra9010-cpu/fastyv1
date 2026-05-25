@@ -157,7 +157,7 @@ const CourierPanel = () => {
             variant: "destructive"
           });
         },
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 }
       );
     }
   };

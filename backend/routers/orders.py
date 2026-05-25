@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends
 from typing import List, Optional
 from datetime import timedelta
 import uuid
+import secrets
 from database import get_db
 from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRatingCreate, FeeCalculationRequest, FeeCalculationResponse
 from utils import get_bogota_time, calculate_distance
@@ -68,6 +69,30 @@ def _safe_create_table(cursor, db, create_sql):
         db.rollback()
         if "already exists" not in str(e).lower() and "1050" not in str(e):
             raise
+
+
+def _generate_tracking_token() -> str:
+    return secrets.token_urlsafe(24)
+
+
+def ensure_order_tracking_schema(db):
+    cursor = db.cursor()
+    try:
+        _safe_alter_table_column(cursor, db, "orders", "tracking_token", "VARCHAR(64) NULL")
+    finally:
+        cursor.close()
+
+
+def _ensure_order_tracking_token(cursor, db, order_id: str) -> str:
+    cursor.execute("SELECT tracking_token FROM orders WHERE id = %s", (order_id,))
+    row = cursor.fetchone()
+    token = (row or {}).get("tracking_token") if row else None
+    if token:
+        return token
+    token = _generate_tracking_token()
+    cursor.execute("UPDATE orders SET tracking_token = %s WHERE id = %s", (token, order_id))
+    db.commit()
+    return token
 
 
 def ensure_open_order_support_schema(db):
@@ -332,7 +357,9 @@ async def create_order(
 
     try:
         ensure_open_order_support_schema(db)
+        ensure_order_tracking_schema(db)
         ensure_order_type_support(cursor, db, order.order_type)
+        tracking_token = _generate_tracking_token()
 
         pricing = compute_order_pricing(cursor, order)
         if abs(pricing["total"] - int(order.total)) > 100:
@@ -360,13 +387,13 @@ async def create_order(
             """INSERT INTO orders (id, business_id, user_id, customer_name, customer_phone, 
                delivery_address, payment_method, notes, total, latitude, longitude, status,
                order_type, origin_name, origin_address, origin_latitude, origin_longitude, open_order_description, batch_id,
-               delivery_fee, night_fee) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               delivery_fee, night_fee, tracking_token) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, order.business_id, order.user_id, order.customer_name, order.customer_phone,
              order.delivery_address, payment_method, order.notes, validated_total, 
              order.latitude, order.longitude, initial_status,
              order.order_type, order.origin_name, order.origin_address, order.origin_latitude, order.origin_longitude, order.open_order_description,
-             order.batch_id, delivery_fee, night_fee)
+             order.batch_id, delivery_fee, night_fee, tracking_token)
         )
         
         # Log inicial
@@ -464,7 +491,7 @@ async def create_order(
                     "url": push_url
                 })
 
-        return {"id": order_id, "message": "Order created successfully"}
+        return {"id": order_id, "tracking_token": tracking_token, "message": "Order created successfully"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -779,6 +806,74 @@ def delete_order(order_id: str, current_user: dict = Depends(get_current_user)):
         cursor.close()
         db.close()
 
+
+@router.get("/track/{tracking_token}")
+def track_order_public(tracking_token: str):
+    """Public tracking endpoint — minimal data for shared links."""
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    ensure_order_tracking_schema(db)
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT o.id, o.status, o.order_type, o.delivery_address, o.latitude, o.longitude,
+                   o.created_at, o.courier_id,
+                   c.lat as courier_lat, c.lng as courier_lng,
+                   c.name as courier_name, c.vehicle as courier_vehicle,
+                   c.rating as courier_rating,
+                   b.latitude as business_lat, b.longitude as business_lng,
+                   b.name as business_name, b.emoji as business_emoji,
+                   o.origin_latitude, o.origin_longitude, o.origin_name
+            FROM orders o
+            LEFT JOIN couriers c ON o.courier_id = c.id
+            LEFT JOIN businesses b ON o.business_id = b.id
+            WHERE o.tracking_token = %s AND o.status != 'cancelled'
+        """, (tracking_token,))
+        order = cursor.fetchone()
+        if not order:
+            raise HTTPException(status_code=404, detail="Enlace de rastreo no válido")
+
+        _attach_eta(order)
+        driver_first = (order.get("courier_name") or "Domiciliario").split()[0]
+        biz_lat = order.get("business_lat") or order.get("origin_latitude")
+        biz_lng = order.get("business_lng") or order.get("origin_longitude")
+        biz_name = order.get("business_name") or order.get("origin_name") or "Origen"
+
+        cursor.execute(
+            "SELECT status, changed_at FROM order_status_logs WHERE order_id = %s ORDER BY changed_at ASC",
+            (order["id"],),
+        )
+        logs = cursor.fetchall()
+
+        return {
+            "id": order["id"],
+            "tracking_token": tracking_token,
+            "status": order["status"],
+            "order_type": order.get("order_type") or "regular",
+            "delivery_address": order.get("delivery_address"),
+            "latitude": float(order["latitude"]) if order.get("latitude") is not None else None,
+            "longitude": float(order["longitude"]) if order.get("longitude") is not None else None,
+            "business_lat": float(biz_lat) if biz_lat is not None else None,
+            "business_lng": float(biz_lng) if biz_lng is not None else None,
+            "business_name": biz_name,
+            "business_emoji": order.get("business_emoji"),
+            "courier_lat": float(order["courier_lat"]) if order.get("courier_lat") is not None else None,
+            "courier_lng": float(order["courier_lng"]) if order.get("courier_lng") is not None else None,
+            "courier_id": order.get("courier_id"),
+            "courier_name": driver_first,
+            "courier_vehicle": order.get("courier_vehicle"),
+            "courier_rating": float(order["courier_rating"]) if order.get("courier_rating") is not None else None,
+            "estimated_delivery_minutes": order.get("estimated_delivery_minutes"),
+            "eta_text": order.get("eta_text"),
+            "logs": logs,
+            "created_at": order.get("created_at").isoformat() if hasattr(order.get("created_at"), "isoformat") else order.get("created_at"),
+        }
+    finally:
+        cursor.close()
+        db.close()
+
+
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 def get_order_detail(
     order_id: str,
@@ -807,6 +902,10 @@ def get_order_detail(
         order = cursor.fetchone()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+
+        ensure_order_tracking_schema(db)
+        if not order.get("tracking_token"):
+            order["tracking_token"] = _ensure_order_tracking_token(cursor, db, order_id)
 
         if current_user:
             assert_order_access(cursor, order, current_user)

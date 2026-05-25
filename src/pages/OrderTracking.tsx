@@ -15,7 +15,9 @@ import {
   Send,
   MessageCircle,
   Store,
-  X
+  X,
+  Share2,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,7 @@ import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/MapboxDeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
 import { getWebSocketUrl } from "@/lib/utils";
+import { estimateOrderEta, getPollingIntervalMs, shouldShowLiveMap } from "@/utils/orderTracking";
 
 interface OrderLog {
   status: string;
@@ -65,6 +68,7 @@ interface OrderDetail {
   courier_rating?: number;
   estimated_delivery_minutes?: number | null;
   eta_text?: string | null;
+  tracking_token?: string | null;
   offers?: Array<{
     id: number;
     courier_name?: string;
@@ -76,11 +80,11 @@ interface OrderDetail {
 }
 
 const OrderTracking = () => {
-  const { orderId: urlOrderId } = useParams();
+  const { orderId: urlOrderId, trackToken: urlTrackToken } = useParams<{ orderId?: string; trackToken?: string }>();
   const { toast } = useToast();
   const [searchId, setSearchId] = useState(urlOrderId || "");
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(!!urlOrderId);
+  const [loading, setLoading] = useState(!!urlOrderId || !!urlTrackToken);
   const [error, setError] = useState<string | null>(null);
   const [bizRating, setBizRating] = useState(5);
   const [courierRating, setCourierRating] = useState(5);
@@ -89,22 +93,25 @@ const OrderTracking = () => {
   const [ratedLocally, setRatedLocally] = useState(false);
   const orderRef = useRef<OrderDetail | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const isPublicTrack = Boolean(urlTrackToken);
 
-  const fetchOrder = async (id: string, silent = false) => {
-    if (!silent) {
-      setLoading(true);
-    }
+  const fetchOrder = async (opts?: { id?: string; token?: string; silent?: boolean }) => {
+    const id = opts?.id ?? urlOrderId;
+    const token = opts?.token ?? urlTrackToken;
+    if (!id && !token) return;
+
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/orders/${id}`);
-      if (!response.ok) {
-        throw new Error("Pedido no encontrado. Verifica el ID.");
-      }
+      const url = token ? `/api/orders/track/${token}` : `/api/orders/${id}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Pedido no encontrado. Verifica el ID o enlace.");
       const data = await response.json();
       setOrder(data);
       orderRef.current = data;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al cargar el pedido");
       setOrder(null);
     } finally {
       setLoading(false);
@@ -112,32 +119,44 @@ const OrderTracking = () => {
   };
 
   useEffect(() => {
-    if (urlOrderId) {
-      fetchOrder(urlOrderId);
-      const interval = setInterval(() => {
-        fetchOrder(urlOrderId, true);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [urlOrderId]);
+    if (!urlOrderId && !urlTrackToken) return;
+    fetchOrder({ id: urlOrderId, token: urlTrackToken });
+  }, [urlOrderId, urlTrackToken]);
 
-  // WebSocket for real-time notifications
   useEffect(() => {
-    // Usamos urlOrderId o el id del pedido actual
+    if (!order?.id && !urlTrackToken) return;
+    const intervalMs = getPollingIntervalMs(order?.status || "pending");
+    const interval = setInterval(() => {
+      fetchOrder({ id: order?.id || urlOrderId, token: urlTrackToken, silent: true });
+    }, intervalMs);
+    return () => clearInterval(interval);
+  }, [order?.id, order?.status, urlOrderId, urlTrackToken]);
+
+  // WebSocket for real-time location (logged-in customer orders only)
+  useEffect(() => {
     const targetUserId = orderRef.current?.user_id;
-    if (!targetUserId) return;
+    if (!targetUserId || isPublicTrack) {
+      setWsConnected(false);
+      return;
+    }
 
     let ws: WebSocket | null = null;
-    let reconnectTimeout: any = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     let isMounted = true;
 
     const connect = () => {
       if (!isMounted) return;
-      
       const url = getWebSocketUrl(`/ws/user/${targetUserId}`);
-      if (!url) return;
+      if (!url) {
+        setWsConnected(false);
+        return;
+      }
 
       ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        if (isMounted) setWsConnected(true);
+      };
 
       ws.onmessage = (event) => {
         if (!isMounted) return;
@@ -145,24 +164,24 @@ const OrderTracking = () => {
         const currentOrder = orderRef.current;
 
         if (message.type === "courier_location_update" && currentOrder && message.order_id === currentOrder.id) {
-          setOrder(prev => prev ? {
-            ...prev,
+          const next = {
+            ...currentOrder,
             courier_lat: message.lat,
-            courier_lng: message.lng
-          } : null);
-          if (orderRef.current) {
-            orderRef.current.courier_lat = message.lat;
-            orderRef.current.courier_lng = message.lng;
+            courier_lng: message.lng,
+            eta_text: message.eta_text ?? currentOrder.eta_text,
+            estimated_delivery_minutes: message.estimated_delivery_minutes ?? currentOrder.estimated_delivery_minutes,
+          };
+          if (message.eta_text == null) {
+            const eta = estimateOrderEta(next);
+            next.eta_text = eta.eta_text;
+            next.estimated_delivery_minutes = eta.estimated_delivery_minutes;
           }
+          setOrder(next);
+          orderRef.current = next;
         } else if (message.type === "order_status_update" && currentOrder && message.order_id === currentOrder.id) {
-          setOrder(prev => prev ? {
-            ...prev,
-            status: message.status as any
-          } : null);
-          if (orderRef.current) {
-            orderRef.current.status = message.status as any;
-          }
-
+          const next = { ...currentOrder, status: message.status as OrderDetail["status"] };
+          setOrder(next);
+          orderRef.current = next;
           toast({
             title: "Pedido actualizado",
             description: `Tu pedido ahora está en estado: ${message.status}`,
@@ -173,14 +192,14 @@ const OrderTracking = () => {
             description: message.message || `Un domiciliario ofreció ${message.amount}`,
           });
 
-          setOrder(prev => {
+          setOrder((prev) => {
             if (!prev) return prev;
             const existingOffers = prev.offers || [];
             const newOfferId = message.offer_id || Date.now();
-            const alreadyExists = existingOffers.some((offer) => offer.id === newOfferId || (offer.courier_id === message.courier_id && offer.amount === message.amount));
-            if (alreadyExists) {
-              return prev;
-            }
+            const alreadyExists = existingOffers.some(
+              (offer) => offer.id === newOfferId || (offer.courier_id === message.courier_id && offer.amount === message.amount),
+            );
+            if (alreadyExists) return prev;
             return {
               ...prev,
               offers: [
@@ -190,9 +209,9 @@ const OrderTracking = () => {
                   courier_id: message.courier_id,
                   courier_name: message.courier_name,
                   amount: message.amount,
-                  status: 'pending'
-                }
-              ]
+                  status: "pending",
+                },
+              ],
             };
           });
         }
@@ -200,8 +219,13 @@ const OrderTracking = () => {
 
       ws.onclose = () => {
         if (isMounted) {
-          reconnectTimeout = setTimeout(connect, 5000);
+          setWsConnected(false);
+          reconnectTimeout = setTimeout(connect, 4000);
         }
+      };
+
+      ws.onerror = () => {
+        if (isMounted) setWsConnected(false);
       };
     };
 
@@ -209,15 +233,29 @@ const OrderTracking = () => {
 
     return () => {
       isMounted = false;
+      setWsConnected(false);
       if (ws) ws.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, [order?.user_id]);
+  }, [order?.user_id, isPublicTrack, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchId) {
-      fetchOrder(searchId);
+    if (searchId) fetchOrder({ id: searchId });
+  };
+
+  const shareTracking = async () => {
+    const token = order?.tracking_token;
+    if (!token) {
+      toast({ title: "Sin enlace", description: "El enlace de rastreo aún no está disponible.", variant: "destructive" });
+      return;
+    }
+    const url = `${window.location.origin}/rastreo/seguir/${token}`;
+    try {
+      await navigator.share?.({ title: "Rastreo de pedido Fasty", text: "Sigue mi domicilio en tiempo real", url });
+    } catch {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Enlace copiado", description: "Compártelo con alguien de confianza." });
     }
   };
 
@@ -258,7 +296,7 @@ const OrderTracking = () => {
           title: "Pedido cancelado",
           description: "Tu pedido ha sido cancelado exitosamente."
         });
-        fetchOrder(order.id, true);
+        fetchOrder({ id: order.id, silent: true });
       } else {
         throw new Error("No se pudo cancelar el pedido");
       }
@@ -307,6 +345,10 @@ const OrderTracking = () => {
   ];
 
   const currentStepIndex = order ? statusSteps.findIndex(s => s.id === order.status) : -1;
+  const showMap = order ? shouldShowLiveMap(order.status) || order.status === "delivered" : false;
+  const hasDropoff = order?.latitude != null && order?.longitude != null;
+  const hasPickup = order?.business_lat != null && order?.business_lng != null;
+  const showCourierOnMap = order && ["shipped", "in_transit"].includes(order.status) && order.courier_lat != null && order.courier_lng != null;
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-20">
@@ -357,12 +399,27 @@ const OrderTracking = () => {
 
         {order && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isPublicTrack && (
+              <p className="text-sm text-muted-foreground text-center bg-card/50 border border-border/60 rounded-2xl py-3 px-4">
+                Seguimiento compartido contigo por un cliente de Fasty.
+              </p>
+            )}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                     Rastreo en vivo
                   </span>
+                  {order.status !== "delivered" && order.status !== "cancelled" && (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                      wsConnected
+                        ? "bg-success/10 text-success border-success/20"
+                        : "bg-muted text-muted-foreground border-border/60"
+                    }`}>
+                      <Radio className={`h-3 w-3 ${wsConnected ? "animate-pulse" : ""}`} />
+                      {wsConnected ? "Tiempo real" : "Actualizando"}
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">Estado del Pedido</h1>
                 <p className="text-muted-foreground text-lg">Referencia: <span className="font-mono text-primary font-black uppercase">{order.id}</span></p>
@@ -375,8 +432,13 @@ const OrderTracking = () => {
                     Llega en {order.eta_text}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <Button variant="outline" size="lg" onClick={() => fetchOrder(order.id)} className="rounded-2xl h-12 border-2 border-border/60 hover:bg-muted font-bold px-6">
+                <div className="flex gap-2 flex-wrap">
+                  {order.tracking_token && order.status !== "delivered" && order.status !== "cancelled" && (
+                    <Button variant="outline" size="lg" onClick={shareTracking} className="rounded-2xl h-12 border-2 border-border/60 font-bold px-6">
+                      <Share2 className="h-4 w-4 mr-2" /> Compartir
+                    </Button>
+                  )}
+                  <Button variant="outline" size="lg" onClick={() => fetchOrder({ id: order.id })} className="rounded-2xl h-12 border-2 border-border/60 hover:bg-muted font-bold px-6">
                     Actualizar
                   </Button>
                   {!urlOrderId && (
@@ -389,7 +451,7 @@ const OrderTracking = () => {
             </header>
 
             {/* Acciones del Pedido */}
-            {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            {!isPublicTrack && order.status !== 'delivered' && order.status !== 'cancelled' && (
               <div className="bg-card/50 backdrop-blur-md border border-border/60 rounded-[2rem] p-6 shadow-card animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex items-center justify-between">
                   <div>
@@ -455,24 +517,25 @@ const OrderTracking = () => {
               {/* Columna Izquierda: Mapa o Estado Visual */}
               <div className="space-y-8">
                 <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl h-[450px] md:h-[550px] relative group p-1">
-                  {order.status === 'shipped' || order.status === 'in_transit' ? (
+                  {showMap && hasDropoff ? (
                     <DeliveryMap
-                      pickup={order.order_type === 'open' ? undefined : {
-                        lat: order.business_lat || 4.67,
-                        lng: order.business_lng || -74.05,
+                      pickup={order.order_type === "open" || !hasPickup ? undefined : {
+                        lat: order.business_lat!,
+                        lng: order.business_lng!,
                         label: order.business_name || "Restaurante",
-                        emoji: order.business_emoji
+                        emoji: order.business_emoji,
                       }}
                       dropoff={{
-                        lat: order.latitude || 4.68,
-                        lng: order.longitude || -74.06,
-                        label: order.order_type === 'open' ? "Cliente" : "Tu destino"
+                        lat: order.latitude!,
+                        lng: order.longitude!,
+                        label: order.order_type === "open" ? "Cliente" : "Tu destino",
                       }}
-                      courier={order.courier_lat && order.courier_lng ? {
-                        lat: order.courier_lat,
-                        lng: order.courier_lng,
-                        label: "Tu domiciliario"
+                      courier={showCourierOnMap ? {
+                        lat: order.courier_lat!,
+                        lng: order.courier_lng!,
+                        label: "Tu domiciliario",
                       } : undefined}
+                      animateCourier
                     />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-muted/10 relative overflow-hidden">
@@ -532,7 +595,7 @@ const OrderTracking = () => {
               {/* Columna Derecha: Información y Resumen */}
               <aside className="space-y-8 lg:sticky lg:top-24 h-fit">
                 {/* Ofertas de Domiciliarios (Solo para Pedidos Abiertos) */}
-                {order.order_type === 'open' && !order.courier_id && (
+                {order.order_type === 'open' && !order.courier_id && !isPublicTrack && (
                   <div className="bg-card border-2 border-primary/20 rounded-[2rem] p-8 shadow-glow animate-in slide-in-from-right-4">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-display font-bold">Ofertas activas</h3>
@@ -580,6 +643,7 @@ const OrderTracking = () => {
                 )}
 
                 {/* Resumen Estilo Recibo */}
+                {!isPublicTrack && order.items && order.items.length > 0 && (
                 <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-8 opacity-5">
                     <Store className="h-20 w-20" />
@@ -624,6 +688,7 @@ const OrderTracking = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Detalles de Entrega */}
                 <div className="bg-card/50 backdrop-blur-sm border border-border/60 rounded-[2rem] p-8 shadow-card space-y-6">
@@ -650,7 +715,7 @@ const OrderTracking = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Cliente</p>
-                      <p className="text-sm font-bold truncate">{order.customer_name}</p>
+                      <p className="text-sm font-bold truncate">{order.customer_name || "Cliente Fasty"}</p>
                     </div>
                   </div>
                 </div>
@@ -682,15 +747,19 @@ const OrderTracking = () => {
                           <span className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
                             <Bike className="h-3.5 w-3.5" /> {order.courier_vehicle || "Transporte"}
                           </span>
-                          <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-                          <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-400/10 px-2 py-0.5 rounded-lg border border-yellow-400/20">
-                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" /> {Number(order.courier_rating || 5.0).toFixed(1)}
-                          </span>
+                          {order.courier_rating != null && (
+                            <>
+                              <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                              <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-400/10 px-2 py-0.5 rounded-lg border border-yellow-400/20">
+                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" /> {Number(order.courier_rating || 5.0).toFixed(1)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {order.courier_phone && (
+                    {!isPublicTrack && order.courier_phone && (
                       <div className="grid grid-cols-1 gap-3">
                         <Button variant="hero" size="xl" className="h-14 rounded-2xl gap-3 font-display font-bold shadow-glow-primary group" asChild>
                           <a href={`tel:${order.courier_phone}`}>
@@ -716,7 +785,7 @@ const OrderTracking = () => {
             </div>
 
             {/* Sección de Calificación (Solo cuando se entrega) */}
-            {order.status === 'delivered' && !order.is_rated && !ratedLocally && (
+            {order.status === 'delivered' && !order.is_rated && !ratedLocally && !isPublicTrack && (
               <div className="bg-card/50 backdrop-blur-md border-2 border-primary/20 rounded-[3rem] p-10 md:p-16 shadow-glow animate-in zoom-in-95 relative overflow-hidden text-center max-w-3xl mx-auto mt-12">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-primary to-yellow-400" />
                 

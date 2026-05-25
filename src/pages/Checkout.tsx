@@ -420,6 +420,7 @@ const Checkout = () => {
 
         summaries.push({
           orderId: data.id,
+          trackingToken: data.tracking_token,
           businessName: bLines[0].businessName,
           customerName: customerName,
           customerPhone: customerPhone,

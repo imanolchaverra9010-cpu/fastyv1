@@ -143,6 +143,7 @@ const AppContent = () => {
         <Route path="/pedido-abierto" element={<CustomerOrGuestRoute><OpenOrder /></CustomerOrGuestRoute>} />
         <Route path="/perfil" element={<ProtectedRoute allowedRoles={['customer']}><UserProfile /></ProtectedRoute>} />
         <Route path="/rastreo" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
+        <Route path="/rastreo/seguir/:trackToken" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/rastreo/:orderId" element={<CustomerOrGuestRoute><OrderTracking /></CustomerOrGuestRoute>} />
         <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
         <Route path="/terminos-y-condiciones" element={<Terms />} />
