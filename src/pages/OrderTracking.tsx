@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Package,
   MapPin,
@@ -22,9 +22,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/MapboxDeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { getWebSocketUrl } from "@/lib/utils";
 import { estimateOrderEta, getPollingIntervalMs, shouldShowLiveMap } from "@/utils/orderTracking";
 
@@ -42,7 +53,7 @@ interface OrderItem {
 
 interface OrderDetail {
   id: string;
-  user_id: number;
+  user_id: number | null;
   order_type?: "standard" | "open";
   status: "pending" | "preparing" | "shipped" | "in_transit" | "delivered" | "cancelled";
   customer_name: string;
@@ -82,6 +93,10 @@ interface OrderDetail {
 const OrderTracking = () => {
   const { orderId: urlOrderId, trackToken: urlTrackToken } = useParams<{ orderId?: string; trackToken?: string }>();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const [pendingOfferId, setPendingOfferId] = useState<number | null>(null);
   const [searchId, setSearchId] = useState(urlOrderId || "");
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(!!urlOrderId || !!urlTrackToken);
@@ -311,30 +326,75 @@ const OrderTracking = () => {
     }
   };
 
+  useEffect(() => {
+    if (user && pendingOfferId) {
+      toast({
+        title: "Sesión iniciada",
+        description: "Ya puedes aceptar la oferta del domiciliario.",
+      });
+      setPendingOfferId(null);
+    }
+  }, [user, pendingOfferId, toast]);
+
+  const trackingReturnPath = order?.id ? `/rastreo/${order.id}` : urlOrderId ? `/rastreo/${urlOrderId}` : "/rastreo";
+
+  const goToLoginForOffer = () => {
+    setShowLoginAlert(false);
+    navigate("/login", { state: { from: { pathname: trackingReturnPath } } });
+  };
+
   const handleAcceptOffer = async (offerId: number) => {
     if (!order) return;
+    if (!user) {
+      setPendingOfferId(offerId);
+      setShowLoginAlert(true);
+      return;
+    }
+    if (user.role !== "customer" && user.role !== "admin") {
+      toast({
+        title: "No permitido",
+        description: "Solo el cliente del pedido puede aceptar ofertas.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (order.user_id != null && order.user_id !== user.id && user.role !== "admin") {
+      toast({
+        title: "No permitido",
+        description: "Este pedido pertenece a otra cuenta.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const response = await fetch(`/api/orders/${order.id}/offers/${offerId}/accept`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.detail || "No se pudo aceptar la oferta");
+        const detail = typeof data.detail === "string" ? data.detail : "No se pudo aceptar la oferta";
+        throw new Error(detail);
       }
       toast({
         title: "Oferta aceptada",
-        description: "El domiciliario fue notificado."
+        description: "El domiciliario fue notificado.",
       });
-      fetchOrder(order.id, true);
-    } catch (error: any) {
+      fetchOrder({ id: order.id, silent: true });
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "No se pudo aceptar la oferta",
+        variant: "destructive",
       });
     }
   };
+
+  const canAcceptOffers = Boolean(
+    user &&
+    (user.role === "customer" || user.role === "admin") &&
+    (order?.user_id == null || order.user_id === user.id || user.role === "admin"),
+  );
 
   const statusSteps = [
     { id: "pending", label: "Confirmado", icon: CheckCircle2 },
@@ -603,7 +663,25 @@ const OrderTracking = () => {
                         <div className="h-2 w-2 rounded-full bg-primary" />
                       </div>
                     </div>
-                    
+
+                    {!user && (
+                      <div className="rounded-2xl bg-muted/40 p-4 mb-4 text-sm text-muted-foreground">
+                        Debes{" "}
+                        <button
+                          type="button"
+                          className="text-primary font-bold hover:underline"
+                          onClick={() => navigate("/login", { state: { from: { pathname: trackingReturnPath } } })}
+                        >
+                          iniciar sesión
+                        </button>{" "}
+                        para aceptar una oferta de domicilio.
+                      </div>
+                    )}
+                    {user && !canAcceptOffers && (
+                      <div className="rounded-2xl bg-destructive/10 border border-destructive/20 p-4 mb-4 text-sm text-destructive">
+                        Solo el cliente que creó este pedido puede aceptar ofertas.
+                      </div>
+                    )}
                     {(order.offers || []).filter(offer => offer.status === 'pending').length === 0 ? (
                       <div className="rounded-2xl bg-primary/5 p-6 text-center border border-dashed border-primary/20">
                         <Loader2 className="h-8 w-8 text-primary/40 mx-auto mb-3 animate-spin" />
@@ -631,7 +709,7 @@ const OrderTracking = () => {
                             </div>
                             <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
                               <span className="font-display font-black text-xl text-primary">{formatCOP(offer.amount)}</span>
-                              <Button size="sm" variant="hero" className="rounded-xl px-4 h-9 shadow-glow-primary group-hover:scale-105 transition-transform" onClick={() => handleAcceptOffer(offer.id)}>
+                              <Button size="sm" variant="hero" className="rounded-xl px-4 h-9 shadow-glow-primary group-hover:scale-105 transition-transform" onClick={() => handleAcceptOffer(offer.id)} disabled={!canAcceptOffers}>
                                 Aceptar
                               </Button>
                             </div>
@@ -861,6 +939,23 @@ const OrderTracking = () => {
           </div>
         )}
       </main>
+
+      <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inicia sesión para continuar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Debes tener una cuenta de cliente para aceptar la oferta del domiciliario. Te llevaremos de vuelta a tu pedido después de iniciar sesión.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl" onClick={goToLoginForOffer}>
+              Ir a iniciar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

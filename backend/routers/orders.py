@@ -374,13 +374,13 @@ async def create_order(
         validated_items = pricing["validated_items"]
         promo_code = pricing["promo_code"]
 
-        payment_method = normalize_payment_method(order.payment_method)
-        raw_method = (order.payment_method or "").strip().lower()
-        is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
+    payment_method = normalize_payment_method(order.payment_method)
+    raw_method = (order.payment_method or "").strip().lower()
+    is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
 
-        # Set initial status based on payment method
-        initial_status = 'pending_payment' if is_digital_payment else 'pending'
-        should_notify_couriers = not is_digital_payment
+    # Set initial status based on payment method
+    initial_status = 'pending_payment' if is_digital_payment else 'pending'
+    should_notify_couriers = not is_digital_payment
 
         # Insertar pedido
         cursor.execute(
@@ -973,18 +973,34 @@ def accept_open_order_offer(
             raise HTTPException(status_code=404, detail="Offer not found")
         if row["order_type"] != "open":
             raise HTTPException(status_code=400, detail="Only open orders can accept offers")
-        if current_user["role"] != "admin" and row.get("user_id") != current_user["id"]:
+        if current_user["role"] not in {"customer", "admin"}:
             raise HTTPException(status_code=403, detail="Solo el cliente del pedido puede aceptar ofertas")
+
+        order_user_id = row.get("user_id")
+        if current_user["role"] != "admin":
+            if order_user_id is not None and int(order_user_id) != int(current_user["id"]):
+                raise HTTPException(status_code=403, detail="Solo el cliente del pedido puede aceptar ofertas")
         if row.get("courier_id"):
             raise HTTPException(status_code=400, detail="Order already has a courier assigned")
         if row["status"] not in ["pending", "confirmed", "preparing"]:
             raise HTTPException(status_code=400, detail="Order is not accepting offers")
 
-        cursor.execute("""
-            UPDATE orders
-            SET courier_id = %s, status = 'shipped', total = %s, delivery_fee = %s
-            WHERE id = %s
-        """, (row["offer_courier_id"], row["amount"], row["amount"], order_id))
+        bind_user_id = None
+        if order_user_id is None and current_user["role"] == "customer":
+            bind_user_id = int(current_user["id"])
+
+        if bind_user_id is not None:
+            cursor.execute("""
+                UPDATE orders
+                SET courier_id = %s, status = 'shipped', total = %s, delivery_fee = %s, user_id = %s
+                WHERE id = %s
+            """, (row["offer_courier_id"], row["amount"], row["amount"], bind_user_id, order_id))
+        else:
+            cursor.execute("""
+                UPDATE orders
+                SET courier_id = %s, status = 'shipped', total = %s, delivery_fee = %s
+                WHERE id = %s
+            """, (row["offer_courier_id"], row["amount"], row["amount"], order_id))
         cursor.execute("UPDATE order_courier_offers SET status = 'accepted' WHERE id = %s", (offer_id,))
         cursor.execute("""
             UPDATE order_courier_offers

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Utensils, ArrowRight, Loader2, Mail, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectAfterLogin =
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +38,16 @@ const Login = () => {
       }
 
       const data = await response.json();
-      login({
-        id: data.id,
-        username: data.username,
-        role: data.role,
-        token: data.access_token,
-        avatar_url: data.avatar_url,
-      });
+      login(
+        {
+          id: data.id,
+          username: data.username,
+          role: data.role,
+          token: data.access_token,
+          avatar_url: data.avatar_url,
+        },
+        redirectAfterLogin,
+      );
 
       toast({
         title: "¡Bienvenido de nuevo!",
@@ -72,13 +78,16 @@ const Login = () => {
       }
 
       const data = await response.json();
-      login({
-        id: data.id,
-        username: data.username,
-        role: data.role,
-        token: data.access_token,
-        avatar_url: data.avatar_url,
-      });
+      login(
+        {
+          id: data.id,
+          username: data.username,
+          role: data.role,
+          token: data.access_token,
+          avatar_url: data.avatar_url,
+        },
+        redirectAfterLogin,
+      );
 
       toast({
         title: `¡Bienvenido con ${provider}!`,
@@ -113,7 +122,9 @@ const Login = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-display font-bold">Iniciar sesión</CardTitle>
           <CardDescription>
-            Ingresa tus credenciales para acceder a tu panel.
+            {redirectAfterLogin
+              ? "Inicia sesión para continuar con tu pedido y aceptar la oferta del domiciliario."
+              : "Ingresa tus credenciales para acceder a tu panel."}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

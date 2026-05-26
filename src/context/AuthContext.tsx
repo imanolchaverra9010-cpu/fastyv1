@@ -12,7 +12,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (userData: User) => void;
+  login: (userData: User, redirectTo?: string) => void;
   updateUser: (userData: Partial<User>) => void;
   logout: () => void;
   isLoading: boolean;
@@ -38,10 +38,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = (userData: User) => {
+  const login = (userData: User, redirectTo?: string) => {
     setUser(userData);
     localStorage.setItem("rapidito_user", JSON.stringify(userData));
-    
+
+    if (redirectTo) {
+      navigate(redirectTo);
+      return;
+    }
+
     // Redirect based on role
     switch (userData.role) {
       case "admin":
