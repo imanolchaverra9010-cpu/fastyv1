@@ -362,13 +362,16 @@ async def create_order(
         tracking_token = _generate_tracking_token()
 
         pricing = compute_order_pricing(cursor, order)
-        if abs(pricing["total"] - int(order.total)) > 100:
-            raise HTTPException(
-                status_code=400,
-                detail="El total del pedido no coincide. Recarga la página e intenta de nuevo.",
-            )
-
-        validated_total = pricing["total"]
+        if order.order_type in ("open", "business_requested"):
+            # El total del encargo lo define la oferta del domiciliario
+            validated_total = 0
+        else:
+            if abs(pricing["total"] - int(order.total)) > 100:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El total del pedido no coincide. Recarga la página e intenta de nuevo.",
+                )
+            validated_total = pricing["total"]
         delivery_fee = pricing["delivery_fee"]
         night_fee = pricing["night_fee"]
         validated_items = pricing["validated_items"]
@@ -492,6 +495,9 @@ async def create_order(
                 })
 
         return {"id": order_id, "tracking_token": tracking_token, "message": "Order created successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
