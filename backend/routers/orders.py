@@ -374,13 +374,13 @@ async def create_order(
         validated_items = pricing["validated_items"]
         promo_code = pricing["promo_code"]
 
-    payment_method = normalize_payment_method(order.payment_method)
-    raw_method = (order.payment_method or "").strip().lower()
-    is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
+        payment_method = normalize_payment_method(order.payment_method)
+        raw_method = (order.payment_method or "").strip().lower()
+        is_digital_payment = payment_method in ["card", "wallet", "Transferencia"] or raw_method in ["transfer", "transferencia"]
 
-    # Set initial status based on payment method
-    initial_status = 'pending_payment' if is_digital_payment else 'pending'
-    should_notify_couriers = not is_digital_payment
+        # Set initial status based on payment method
+        initial_status = 'pending_payment' if is_digital_payment else 'pending'
+        should_notify_couriers = not is_digital_payment
 
         # Insertar pedido
         cursor.execute(
@@ -908,7 +908,12 @@ def get_order_detail(
             order["tracking_token"] = _ensure_order_tracking_token(cursor, db, order_id)
 
         if current_user:
-            assert_order_access(cursor, order, current_user)
+            order_uid = order.get("user_id")
+            if order_uid is None:
+                if current_user["role"] not in ("customer", "admin"):
+                    raise HTTPException(status_code=403, detail="No tienes permiso para ver este pedido")
+            else:
+                assert_order_access(cursor, order, current_user)
         
         # Items
         cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
