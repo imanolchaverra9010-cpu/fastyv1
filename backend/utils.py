@@ -125,3 +125,27 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def get_public_maintenance_mode() -> bool:
+    """Read maintenance flag from system_config. Defaults to False if unavailable."""
+    try:
+        from database import get_db
+        db = get_db()
+        if not db:
+            return False
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT config_value FROM system_config WHERE config_key = 'maintenance_mode'"
+            )
+            result = cursor.fetchone()
+            if not result:
+                return False
+            return str(result.get("config_value", "")).lower() == "true"
+        finally:
+            cursor.close()
+            db.close()
+    except Exception:
+        return False
+

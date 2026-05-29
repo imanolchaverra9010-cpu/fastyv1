@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Request, Depends
+from fastapi import APIRouter, HTTPException, status, Request, Depends, BackgroundTasks
 from typing import Optional
 import os
 import requests
@@ -9,6 +9,7 @@ from database import get_db
 from schemas import PaymentCreate, PaymentResponse, WompiWebhook
 from utils import get_bogota_time, log_event
 from security import get_current_user
+from admin_push import notify_wompi_issue
 import uuid
 
 router = APIRouter()
@@ -182,7 +183,7 @@ def create_payment(payment: PaymentCreate, request: Request, current_user: dict 
         db.close()
 
 @router.post("/webhook")
-async def wompi_webhook(request: Request):
+async def wompi_webhook(request: Request, background_tasks: BackgroundTasks):
     """Handle Wompi webhook events"""
     try:
         body = await request.body()
@@ -230,6 +231,12 @@ async def wompi_webhook(request: Request):
             amount_cents = parse_wompi_amount_cents(transaction_data)
             if amount_cents is not None and amount_cents != int(payment['amount'] * 100):
                 alert_wompi_failure("wompi_webhook_amount_mismatch", payment_id=payment['id'], order_id=payment['order_id'])
+                background_tasks.add_task(
+                    notify_wompi_issue,
+                    payment['order_id'],
+                    "amount_mismatch",
+                    f"Esperado ${payment['amount']} vs webhook",
+                )
                 raise HTTPException(status_code=400, detail="Webhook amount does not match payment amount")
 
             wompi_payment_method = transaction_data.get('payment_method_type') or transaction_data.get('payment_method') or payment.get('payment_method')
@@ -265,6 +272,14 @@ async def wompi_webhook(request: Request):
 
             db.commit()
             log_event("wompi_webhook_processed", payment_id=payment['id'], order_id=payment['order_id'], status=transaction_status)
+
+            if transaction_status in ('DECLINED', 'VOIDED', 'ERROR'):
+                background_tasks.add_task(
+                    notify_wompi_issue,
+                    payment['order_id'],
+                    f"payment_{transaction_status.lower()}",
+                )
+
             return {"status": "processed"}
 
         finally:

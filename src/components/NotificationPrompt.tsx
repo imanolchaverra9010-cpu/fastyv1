@@ -61,7 +61,7 @@ export const NotificationPrompt = () => {
         </div>
         <div className="space-y-1">
           <p className="font-bold text-sm">¿Quieres recibir avisos?</p>
-          <p className="text-xs text-muted-foreground">Te notificaremos cuando el estado de tu pedido cambie o haya novedades.</p>
+          <p className="text-xs text-muted-foreground">Te avisaremos cuando lleguen ofertas de domiciliarios o cambie el estado de tu pedido.</p>
           <div className="pt-2 flex gap-2">
             <Button size="sm" className="h-8 rounded-lg text-xs" onClick={handleEnable}>
               Activar

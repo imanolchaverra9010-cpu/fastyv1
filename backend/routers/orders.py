@@ -8,6 +8,7 @@ from schemas import OrderCreate, OrderResponse, OrderDetailResponse, OrderRating
 from utils import get_bogota_time, calculate_distance
 from security import get_current_user, get_optional_user, assert_order_access
 from order_validation import compute_order_pricing
+from offer_utils import ensure_offer_expires_column, expire_stale_offers
 import json
 import math
 from .push import send_push_notification
@@ -192,6 +193,7 @@ def ensure_open_order_support_schema(db):
                 INDEX idx_order_incidents_status (status)
             )
         """)
+        ensure_offer_expires_column(db)
     finally:
         cursor.close()
 
@@ -610,10 +612,18 @@ def get_user_orders(user_id: int, current_user: dict = Depends(get_current_user)
     
     cursor = db.cursor(dictionary=True)
     try:
+        ensure_offer_expires_column(db)
         cursor.execute("""
             SELECT o.*, b.name as business_name, b.emoji as business_emoji,
                    b.latitude as business_lat, b.longitude as business_lng,
-                   c.lat as courier_lat, c.lng as courier_lng
+                   c.lat as courier_lat, c.lng as courier_lng,
+                   (
+                     SELECT COUNT(*)
+                     FROM order_courier_offers oco
+                     WHERE oco.order_id = o.id
+                       AND oco.status = 'pending'
+                       AND (oco.expires_at IS NULL OR oco.expires_at > NOW())
+                   ) AS pending_offers_count
             FROM orders o 
             LEFT JOIN businesses b ON o.business_id = b.id 
             LEFT JOIN couriers c ON o.courier_id = c.id
@@ -622,6 +632,14 @@ def get_user_orders(user_id: int, current_user: dict = Depends(get_current_user)
         """, (user_id,))
         orders = cursor.fetchall()
         for order in orders:
+            cursor.execute(
+                "SELECT name, price, quantity, emoji FROM order_items WHERE order_id = %s",
+                (order["id"],),
+            )
+            order["items"] = cursor.fetchall()
+            if order.get("order_type") == "open":
+                order["business_name"] = order.get("origin_name") or "Encargo abierto"
+                order["business_emoji"] = "🛍️"
             _attach_eta(order)
         return orders
     except Exception as e:
@@ -930,19 +948,34 @@ def get_order_detail(
         order['logs'] = cursor.fetchall()
         if order.get("order_type") == "open":
             ensure_open_order_support_schema(db)
+            expire_stale_offers(cursor, db, order_id)
             cursor.execute("""
                 SELECT oco.id, oco.order_id, oco.courier_id, oco.user_id, oco.amount, oco.status,
-                       oco.created_at, c.name as courier_name, c.vehicle as courier_vehicle,
+                       oco.created_at, oco.expires_at,
+                       c.name as courier_name, c.vehicle as courier_vehicle,
                        c.rating as courier_rating
                 FROM order_courier_offers oco
                 LEFT JOIN couriers c ON c.id = oco.courier_id
                 WHERE oco.order_id = %s
-                ORDER BY
-                    CASE oco.status WHEN 'accepted' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END,
-                    oco.amount ASC,
-                    oco.created_at ASC
+                  AND oco.status = 'pending'
+                  AND (oco.expires_at IS NULL OR oco.expires_at > NOW())
+                ORDER BY oco.amount ASC, oco.created_at ASC
             """, (order_id,))
             order['offers'] = cursor.fetchall()
+            cursor.execute("""
+                SELECT oco.id, oco.order_id, oco.courier_id, oco.user_id, oco.amount, oco.status,
+                       oco.created_at, oco.expires_at,
+                       c.name as courier_name, c.vehicle as courier_vehicle,
+                       c.rating as courier_rating
+                FROM order_courier_offers oco
+                LEFT JOIN couriers c ON c.id = oco.courier_id
+                WHERE oco.order_id = %s AND oco.status = 'accepted'
+                ORDER BY oco.created_at DESC
+                LIMIT 1
+            """, (order_id,))
+            accepted = cursor.fetchone()
+            if accepted:
+                order['offers'] = [accepted] + order['offers']
         _attach_eta(order)
         
         return order
@@ -995,6 +1028,28 @@ def accept_open_order_offer(
             raise HTTPException(status_code=400, detail="Order already has a courier assigned")
         if row["status"] not in ["pending", "confirmed", "preparing"]:
             raise HTTPException(status_code=400, detail="Order is not accepting offers")
+
+        expire_stale_offers(cursor, db, order_id)
+        cursor.execute("""
+            SELECT id, status, expires_at FROM order_courier_offers
+            WHERE id = %s AND order_id = %s
+        """, (offer_id, order_id))
+        offer_row = cursor.fetchone()
+        if not offer_row or offer_row["status"] != "pending":
+            raise HTTPException(status_code=400, detail="Esta oferta ya no está disponible")
+        if offer_row.get("expires_at"):
+            cursor.execute(
+                "SELECT CASE WHEN expires_at > NOW() THEN 1 ELSE 0 END AS valid FROM order_courier_offers WHERE id = %s",
+                (offer_id,),
+            )
+            validity = cursor.fetchone()
+            if not validity or not validity.get("valid"):
+                cursor.execute(
+                    "UPDATE order_courier_offers SET status = 'rejected' WHERE id = %s",
+                    (offer_id,),
+                )
+                db.commit()
+                raise HTTPException(status_code=400, detail="Esta oferta expiró. Espera nuevas propuestas de domiciliarios.")
 
         bind_user_id = None
         if order_user_id is None and current_user["role"] == "customer":

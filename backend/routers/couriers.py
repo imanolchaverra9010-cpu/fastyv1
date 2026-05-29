@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import os
 import shutil
 from .push import send_push_notification
+from admin_push import notify_courier_offline_with_orders
+from offer_utils import OFFER_TTL_MINUTES, ensure_offer_expires_column, expire_stale_offers, resolve_order_recipient_user_ids
 
 router = APIRouter()
 
@@ -41,6 +43,7 @@ def ensure_offer_schema(db):
                 INDEX idx_order_courier_offers_user (user_id)
             )
         """)
+        ensure_offer_expires_column(db)
         db.commit()
     finally:
         cursor.close()
@@ -390,7 +393,7 @@ def get_my_orders(user_id: int, response: Response, current_user: dict = Depends
         db.close()
 
 @router.patch("/{user_id}/status")
-def update_courier_status(user_id: int, status_data: dict, current_user: dict = Depends(get_current_user)):
+def update_courier_status(user_id: int, status_data: dict, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     if current_user["role"] != "admin" and current_user["id"] != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este domiciliario")
     new_status = status_data.get("status")
@@ -400,19 +403,38 @@ def update_courier_status(user_id: int, status_data: dict, current_user: dict = 
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
     try:
-        # Localizar el ID del domiciliario asociado al usuario
-        cursor.execute("SELECT id FROM couriers WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT id, name FROM couriers WHERE user_id = %s", (user_id,))
         courier_data = cursor.fetchone()
         if not courier_data:
-            db.close()
             raise HTTPException(status_code=404, detail="Courier profile not found")
         
-        real_courier_id = courier_data[0]
+        real_courier_id = courier_data["id"]
+        courier_name = courier_data["name"]
         
         cursor.execute("UPDATE couriers SET status = %s WHERE id = %s", (new_status, real_courier_id))
         db.commit()
+
+        if new_status in ("offline", "busy"):
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS cnt FROM orders
+                WHERE courier_id = %s AND status IN ('confirmed', 'preparing', 'shipped', 'in_transit')
+                """,
+                (real_courier_id,),
+            )
+            active_row = cursor.fetchone()
+            active_count = int((active_row or {}).get("cnt") or 0)
+            if active_count > 0:
+                background_tasks.add_task(
+                    notify_courier_offline_with_orders,
+                    real_courier_id,
+                    courier_name,
+                    new_status,
+                    active_count,
+                )
+
         return {"message": "Status updated"}
     finally:
         cursor.close()
@@ -604,7 +626,7 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
             raise HTTPException(status_code=404, detail="Courier profile not found")
 
         cursor.execute("""
-            SELECT id, user_id, order_type, status, courier_id, origin_name
+            SELECT id, user_id, customer_phone, order_type, status, courier_id, origin_name
             FROM orders
             WHERE id = %s
         """, (order_id,))
@@ -618,37 +640,51 @@ def create_open_order_offer(user_id: int, order_id: str, offer: CourierOfferCrea
         if order["status"] not in ["pending", "confirmed", "preparing"]:
             raise HTTPException(status_code=400, detail="Order is not accepting offers")
 
+        expire_stale_offers(cursor, db, order_id)
+
         cursor.execute("""
-            INSERT INTO order_courier_offers (order_id, courier_id, user_id, amount, status)
-            VALUES (%s, %s, %s, %s, 'pending')
-            ON DUPLICATE KEY UPDATE amount = VALUES(amount), status = 'pending', updated_at = CURRENT_TIMESTAMP
-        """, (order_id, courier["id"], user_id, offer.amount))
+            INSERT INTO order_courier_offers (order_id, courier_id, user_id, amount, status, expires_at)
+            VALUES (%s, %s, %s, %s, 'pending', DATE_ADD(NOW(), INTERVAL %s MINUTE))
+            ON DUPLICATE KEY UPDATE
+                amount = VALUES(amount),
+                status = 'pending',
+                expires_at = DATE_ADD(NOW(), INTERVAL %s MINUTE),
+                updated_at = CURRENT_TIMESTAMP
+        """, (order_id, courier["id"], user_id, offer.amount, OFFER_TTL_MINUTES, OFFER_TTL_MINUTES))
         db.commit()
 
         cursor.execute(
-            "SELECT id FROM order_courier_offers WHERE order_id = %s AND courier_id = %s",
-            (order_id, courier["id"])
+            """
+            SELECT id, expires_at FROM order_courier_offers
+            WHERE order_id = %s AND courier_id = %s
+            """,
+            (order_id, courier["id"]),
         )
         offer_row = cursor.fetchone()
         offer_id = offer_row["id"] if offer_row else None
+        expires_at = offer_row.get("expires_at") if offer_row else None
 
-        if order.get("user_id"):
-            background_tasks.add_task(send_push_notification, order["user_id"], {
-                "title": "Nueva oferta de domiciliario",
-                "body": f"{courier['name']} ofrece hacer tu encargo por ${offer.amount:,}.",
-                "url": f"/rastreo/{order_id}"
-            })
+        recipient_ids = resolve_order_recipient_user_ids(cursor, order)
+        push_payload = {
+            "title": "Nueva oferta de domiciliario",
+            "body": f"{courier['name']} ofrece hacer tu encargo por ${offer.amount:,}. Tienes {OFFER_TTL_MINUTES} min para aceptar.",
+            "url": f"/rastreo/{order_id}",
+        }
+        for recipient_id in recipient_ids:
+            background_tasks.add_task(send_push_notification, recipient_id, push_payload)
 
-        if websocket_manager and order.get("user_id"):
-            background_tasks.add_task(websocket_manager.notify_user, order["user_id"], {
-                "type": "order_offer",
-                "order_id": order_id,
-                "offer_id": offer_id,
-                "courier_name": courier["name"],
-                "courier_id": courier["id"],
-                "amount": offer.amount,
-                "message": f"{courier['name']} ofrece ${offer.amount:,} por tu encargo."
-            })
+        if websocket_manager:
+            for recipient_id in recipient_ids:
+                background_tasks.add_task(websocket_manager.notify_user, recipient_id, {
+                    "type": "order_offer",
+                    "order_id": order_id,
+                    "offer_id": offer_id,
+                    "courier_name": courier["name"],
+                    "courier_id": courier["id"],
+                    "amount": offer.amount,
+                    "expires_at": expires_at.isoformat() if hasattr(expires_at, "isoformat") else (str(expires_at) if expires_at else None),
+                    "message": f"{courier['name']} ofrece ${offer.amount:,} por tu encargo.",
+                })
 
         return {
             "message": "Offer submitted",

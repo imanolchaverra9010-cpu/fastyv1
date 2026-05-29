@@ -81,9 +81,36 @@ const AppContent = () => {
   const { pathname } = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   
-  // MODO MANTENIMIENTO: Cambia a 'true' para bloquear el acceso a clientes
-  const [isMaintenance, setIsMaintenance] = useState(true);
-  const [checkingMaint, setCheckingMaint] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [checkingMaint, setCheckingMaint] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchMaintenance = async () => {
+      try {
+        const res = await fetch("/api/maintenance");
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setIsMaintenance(Boolean(data.maintenance_mode));
+        } else if (!cancelled) {
+          setIsMaintenance(false);
+        }
+      } catch {
+        if (!cancelled) setIsMaintenance(false);
+      } finally {
+        if (!cancelled) setCheckingMaint(false);
+      }
+    };
+
+    fetchMaintenance();
+    const interval = setInterval(fetchMaintenance, 60_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Cargar y aplicar el color de tema personalizado desde el backend al iniciar la app
   useEffect(() => {

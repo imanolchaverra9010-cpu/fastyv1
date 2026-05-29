@@ -36,8 +36,9 @@ import { formatCOP } from "@/data/mock";
 import DeliveryMap from "@/components/MapboxDeliveryMap";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { getWebSocketUrl } from "@/lib/utils";
+import { getWebSocketUrl, registerPush } from "@/lib/utils";
 import { estimateOrderEta, getPollingIntervalMs, shouldShowLiveMap } from "@/utils/orderTracking";
+import { OfferCountdown, isOfferActive } from "@/components/OfferCountdown";
 
 interface OrderLog {
   status: string;
@@ -82,11 +83,13 @@ interface OrderDetail {
   tracking_token?: string | null;
   offers?: Array<{
     id: number;
+    courier_id?: number;
     courier_name?: string;
     courier_vehicle?: string;
     courier_rating?: number;
     amount: number;
     status: string;
+    expires_at?: string | null;
   }>;
 }
 
@@ -107,9 +110,28 @@ const OrderTracking = () => {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratedLocally, setRatedLocally] = useState(false);
   const orderRef = useRef<OrderDetail | null>(null);
+  const knownOfferIdsRef = useRef<Set<number>>(new Set());
   const [cancellingOrder, setCancellingOrder] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const isPublicTrack = Boolean(urlTrackToken);
+
+  const notifyNewOffer = (offer: NonNullable<OrderDetail["offers"]>[number]) => {
+    const label = offer.courier_name || "Un domiciliario";
+    toast({
+      title: "Nueva oferta recibida",
+      description: `${label} ofrece ${formatCOP(offer.amount)} por tu encargo.`,
+    });
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        new Notification("Nueva oferta de domiciliario", {
+          body: `${label} ofrece ${formatCOP(offer.amount)}. Tienes 15 min para aceptar.`,
+          icon: "/favicon.ico",
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+  };
 
   const fetchOrder = async (opts?: { id?: string; token?: string; silent?: boolean }) => {
     const id = opts?.id ?? urlOrderId;
@@ -123,13 +145,28 @@ const OrderTracking = () => {
       const response = await fetch(url);
       if (!response.ok) throw new Error("Pedido no encontrado. Verifica el ID o enlace.");
       const data = await response.json();
+
+      if (opts?.silent && data.offers?.length) {
+        const activeOffers = data.offers.filter(isOfferActive);
+        for (const offer of activeOffers) {
+          if (!knownOfferIdsRef.current.has(offer.id)) {
+            notifyNewOffer(offer);
+            knownOfferIdsRef.current.add(offer.id);
+          }
+        }
+      } else if (data.offers?.length) {
+        knownOfferIdsRef.current = new Set(
+          data.offers.filter(isOfferActive).map((o: { id: number }) => o.id),
+        );
+      }
+
       setOrder(data);
       orderRef.current = data;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al cargar el pedido");
       setOrder(null);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   };
 
@@ -146,6 +183,13 @@ const OrderTracking = () => {
     }, intervalMs);
     return () => clearInterval(interval);
   }, [order?.id, order?.status, urlOrderId, urlTrackToken]);
+
+  useEffect(() => {
+    if (!user?.id || isPublicTrack) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      registerPush(user.id);
+    }
+  }, [user?.id, isPublicTrack]);
 
   // WebSocket for real-time location (logged-in customer orders only)
   useEffect(() => {
@@ -202,10 +246,17 @@ const OrderTracking = () => {
             description: `Tu pedido ahora está en estado: ${message.status}`,
           });
         } else if (message.type === "order_offer" && currentOrder && message.order_id === currentOrder.id) {
-          toast({
-            title: "Nueva oferta recibida",
-            description: message.message || `Un domiciliario ofreció ${message.amount}`,
-          });
+          const newOfferId = message.offer_id || Date.now();
+          if (!knownOfferIdsRef.current.has(newOfferId)) {
+            notifyNewOffer({
+              id: newOfferId,
+              courier_name: message.courier_name,
+              amount: message.amount,
+              status: "pending",
+              expires_at: message.expires_at ?? null,
+            });
+            knownOfferIdsRef.current.add(newOfferId);
+          }
 
           setOrder((prev) => {
             if (!prev) return prev;
@@ -225,6 +276,7 @@ const OrderTracking = () => {
                   courier_name: message.courier_name,
                   amount: message.amount,
                   status: "pending",
+                  expires_at: message.expires_at ?? null,
                 },
               ],
             };
@@ -658,7 +710,12 @@ const OrderTracking = () => {
                 {order.order_type === 'open' && !order.courier_id && !isPublicTrack && (
                   <div className="bg-card border-2 border-primary/20 rounded-[2rem] p-8 shadow-glow animate-in slide-in-from-right-4">
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-display font-bold">Ofertas activas</h3>
+                      <div>
+                        <h3 className="text-xl font-display font-bold">Ofertas activas</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Cada oferta expira en {15} minutos
+                        </p>
+                      </div>
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
                         <div className="h-2 w-2 rounded-full bg-primary" />
                       </div>
@@ -682,14 +739,14 @@ const OrderTracking = () => {
                         Solo el cliente que creó este pedido puede aceptar ofertas.
                       </div>
                     )}
-                    {(order.offers || []).filter(offer => offer.status === 'pending').length === 0 ? (
+                    {(order.offers || []).filter(isOfferActive).length === 0 ? (
                       <div className="rounded-2xl bg-primary/5 p-6 text-center border border-dashed border-primary/20">
                         <Loader2 className="h-8 w-8 text-primary/40 mx-auto mb-3 animate-spin" />
                         <p className="text-sm font-medium text-primary/70">Esperando que los domiciliarios propongan una tarifa...</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {(order.offers || []).filter(offer => offer.status === 'pending').map((offer) => (
+                        {(order.offers || []).filter(isOfferActive).map((offer) => (
                           <div key={offer.id} className="rounded-2xl border border-border/60 bg-background/50 p-4 hover:border-primary/40 transition-all group">
                             <div className="flex items-center gap-4 mb-3">
                               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black">
@@ -697,13 +754,19 @@ const OrderTracking = () => {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm truncate">{offer.courier_name || "Domiciliario Fasty"}</p>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                                     <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" /> {offer.courier_rating || "Nuevo"}
                                   </span>
                                   <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                                     <Bike className="h-2.5 w-2.5" /> {offer.courier_vehicle || "Bici/Moto"}
                                   </span>
+                                  {offer.expires_at && (
+                                    <OfferCountdown
+                                      expiresAt={offer.expires_at}
+                                      onExpired={() => fetchOrder({ silent: true })}
+                                    />
+                                  )}
                                 </div>
                               </div>
                             </div>

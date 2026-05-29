@@ -1,8 +1,9 @@
-import { Bike, DollarSign, ShoppingBag, Store, Users, Loader2, Download } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { Bike, DollarSign, ShoppingBag, Store, Loader2, Download } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import StatCard from "@/components/StatCard";
 import { HoursChart, RevenueChart, TopBusinessesChart } from "@/components/AdminCharts";
+import { AdminActionCenter } from "@/components/admin/AdminActionCenter";
+import { AdminPushSetup } from "@/components/admin/AdminPushSetup";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
@@ -20,22 +21,36 @@ const AdminPanel = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const [dailyReport, setDailyReport] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [dailyFinance, setDailyFinance] = useState<any>(null);
+  const [metricsPeriod, setMetricsPeriod] = useState<"today" | "7d" | "30d">("today");
+  const [resolvingSosId, setResolvingSosId] = useState<number | null>(null);
 
+
+  const fetchMetrics = useCallback(async (period: "today" | "7d" | "30d") => {
+    const res = await fetch(`/api/admin/metrics?period=${period}`);
+    if (res.ok) setMetrics(await res.json());
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsRes, revenueRes, hoursRes, topRes] = await Promise.all([
+        const [statsRes, revenueRes, hoursRes, topRes, alertsRes, financeRes] = await Promise.all([
           fetch("/api/admin/stats"),
           fetch("/api/admin/revenue-chart"),
           fetch("/api/admin/hours-chart"),
-          fetch("/api/admin/top-businesses")
+          fetch("/api/admin/top-businesses"),
+          fetch("/api/admin/alerts"),
+          fetch("/api/finance/daily-summary"),
         ]);
 
         if (statsRes.ok) setStats(await statsRes.json());
         if (revenueRes.ok) setRevenueChart(await revenueRes.json());
         if (hoursRes.ok) setHoursChart(await hoursRes.json());
         if (topRes.ok) setTopBusinesses(await topRes.json());
+        if (alertsRes.ok) setAlerts(await alertsRes.json());
+        if (financeRes.ok) setDailyFinance(await financeRes.json());
         
         const reportRes = await fetch("/api/admin/daily-report");
         if (reportRes.ok) setDailyReport(await reportRes.json());
@@ -53,6 +68,44 @@ const AdminPanel = () => {
     };
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    fetchMetrics(metricsPeriod);
+  }, [metricsPeriod, fetchMetrics, loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    const scanAlerts = () => {
+      fetch("/api/admin/push-alerts/scan", { method: "POST" }).catch(() => {});
+    };
+    scanAlerts();
+    const interval = setInterval(scanAlerts, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const handleResolveSos = async (sosId: number) => {
+    setResolvingSosId(sosId);
+    try {
+      const res = await fetch(`/api/admin/rides/sos/${sosId}/resolve`, { method: "PATCH" });
+      if (res.ok) {
+        setAlerts((prev: any) => ({
+          ...prev,
+          ride_sos: (prev?.ride_sos ?? []).filter((s: any) => s.id !== sosId),
+          summary: {
+            ...prev?.summary,
+            total: Math.max(0, (prev?.summary?.total ?? 1) - 1),
+            ride_sos: Math.max(0, (prev?.summary?.ride_sos ?? 1) - 1),
+          },
+        }));
+        toast({ title: "SOS resuelto", description: "La alerta fue marcada como atendida." });
+      }
+    } catch {
+      toast({ title: "Error", description: "No se pudo resolver la alerta.", variant: "destructive" });
+    } finally {
+      setResolvingSosId(null);
+    }
+  };
 
   const handleToggleMaintenance = async () => {
     setTogglingMaintenance(true);
@@ -205,10 +258,20 @@ const AdminPanel = () => {
                 icon={Bike}
                 label="Domiciliarios"
                 value={String(stats?.couriers?.online || 0)}
-                hint={`${stats?.couriers?.total || 0} registrados`}
+                hint={`${stats?.couriers?.total || 0} registrados · ${alerts?.summary?.total ?? 0} alertas`}
                 tone="warning"
               />
             </div>
+
+            <AdminActionCenter
+              alerts={alerts}
+              metrics={metrics}
+              dailyFinance={dailyFinance}
+              metricsPeriod={metricsPeriod}
+              onMetricsPeriodChange={setMetricsPeriod}
+              onResolveSos={handleResolveSos}
+              resolvingSosId={resolvingSosId}
+            />
 
             {/* Charts */}
             <div className="grid lg:grid-cols-2 gap-4 mb-6">
@@ -307,6 +370,7 @@ const AdminPanel = () => {
             </div>
           </main>
         </SidebarInset>
+        <AdminPushSetup />
       </div>
     </SidebarProvider>
   );

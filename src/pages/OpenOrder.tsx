@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ShoppingBag, MapPin, Store, CreditCard, Send, Loader2, LocateFixed, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import LocationPicker from "@/components/LocationPicker";
 
 const OpenOrder = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -46,6 +47,23 @@ const OpenOrder = () => {
   });
 
   useEffect(() => {
+    const repeat = (location.state as { repeatOrder?: typeof formData } | null)?.repeatOrder;
+    if (repeat) {
+      setFormData((prev) => ({
+        ...prev,
+        customerName: repeat.customerName || prev.customerName,
+        customerPhone: repeat.customerPhone || prev.customerPhone,
+        deliveryAddress: repeat.deliveryAddress || prev.deliveryAddress,
+        originName: repeat.originName || prev.originName,
+        originAddress: repeat.originAddress || prev.originAddress,
+        description: repeat.description || prev.description,
+        paymentMethod: repeat.paymentMethod || prev.paymentMethod,
+      }));
+      toast({ title: "Datos cargados", description: "Revisa y confirma tu encargo antes de enviar." });
+      window.history.replaceState({}, document.title);
+      return;
+    }
+
     const fetchLastOrder = async () => {
       if (!user?.id) return;
       try {
@@ -69,7 +87,7 @@ const OpenOrder = () => {
       }
     };
     fetchLastOrder();
-  }, [user]);
+  }, [user, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

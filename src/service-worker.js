@@ -18,12 +18,15 @@ self.addEventListener('push', (event) => {
     icon: '/pwa-192x192.png',
     badge: '/favicon.ico',
     vibrate: [500, 200, 500, 200, 500, 200, 1000],
-    requireInteraction: true,
+    requireInteraction: data.type === 'admin_alert' || (data.title && (data.title.includes('SOS') || data.title.includes('🚨'))),
     silent: false,
-    tag: data.title.includes('Pedido') ? 'nuevo-pedido' : 'notificacion-general',
+    tag: data.type === 'admin_alert'
+      ? 'admin-alert'
+      : data.title.includes('Pedido') ? 'nuevo-pedido' : 'notificacion-general',
     renotify: true,
     data: {
-      url: data.url || '/'
+      url: data.url || '/',
+      type: data.type || 'general',
     }
   };
 

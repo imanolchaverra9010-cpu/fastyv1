@@ -1,15 +1,21 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header
 from fastapi.responses import PlainTextResponse
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import uuid
+import os
 from utils import pwd_context, hash_password, get_bogota_time, log_event
 from pydantic import BaseModel
 from security import get_current_user, require_admin
 from .push import broadcast_push_notification
+from admin_push import scan_and_push_operational_alerts, notify_admins_push
 
 router = APIRouter()
+
+COURIER_EARNINGS_SHARE = 0.60
+BUSINESS_COMMISSION_RATE = 0.08
+UNASSIGNED_ORDER_THRESHOLD_MINUTES = 10
 
 # WebSocket Manager support
 websocket_manager = None
@@ -454,7 +460,17 @@ def toggle_maintenance_mode(data: dict, current_user: dict = Depends(get_current
     cursor = db.cursor()
     try:
         val = 'true' if enabled else 'false'
-        cursor.execute("UPDATE system_config SET config_value = %s WHERE config_key = 'maintenance_mode'", (val,))
+        cursor.execute("SELECT config_key FROM system_config WHERE config_key = 'maintenance_mode'")
+        if cursor.fetchone():
+            cursor.execute(
+                "UPDATE system_config SET config_value = %s WHERE config_key = 'maintenance_mode'",
+                (val,),
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO system_config (config_key, config_value) VALUES ('maintenance_mode', %s)",
+                (val,),
+            )
         db.commit()
         
         # Opcional: Notificar vía websocket a todos que la plataforma entró en mantenimiento
@@ -744,6 +760,307 @@ def get_admin_operations(current_user: dict = Depends(get_current_user)):
     finally:
         cursor.close()
         db.close()
+
+
+CRON_SECRET = os.getenv("CRON_SECRET") or os.getenv("ADMIN_CRON_SECRET")
+
+
+@router.post("/push-alerts/scan")
+def admin_scan_push_alerts(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
+    require_admin(current_user)
+    background_tasks.add_task(scan_and_push_operational_alerts)
+    return {"message": "Escaneo de alertas iniciado"}
+
+
+@router.get("/cron/push-alerts")
+def cron_scan_push_alerts(
+    x_cron_secret: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+):
+    token = x_cron_secret
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.removeprefix("Bearer ").strip()
+    if not CRON_SECRET or token != CRON_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized cron")
+    result = scan_and_push_operational_alerts()
+    return {"message": "Cron completed", **result}
+
+
+@router.post("/push-alerts/test")
+def admin_test_push_alert(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    sent = notify_admins_push(
+        title="🔔 Prueba de alertas admin",
+        body="Las notificaciones operativas están activas en Fasty.",
+        url="/admin",
+        alert_key=None,
+    )
+    return {"sent": sent}
+
+
+def _period_filter(period: str) -> tuple[str, list]:
+    today = get_bogota_time().date()
+    if period == "today":
+        return " AND DATE(o.created_at) = %s", [today]
+    if period == "7d":
+        return " AND DATE(o.created_at) >= %s", [today - timedelta(days=6)]
+    return " AND DATE(o.created_at) >= %s", [today - timedelta(days=29)]
+
+
+@router.get("/alerts")
+def get_admin_alerts(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            f"""
+            SELECT
+                o.id,
+                o.customer_name,
+                o.delivery_address,
+                o.status,
+                o.order_type,
+                o.origin_name,
+                o.created_at,
+                TIMESTAMPDIFF(MINUTE, o.created_at, NOW()) AS waiting_minutes,
+                b.name AS business_name
+            FROM orders o
+            LEFT JOIN businesses b ON b.id = o.business_id
+            WHERE o.courier_id IS NULL
+              AND o.status IN ('pending', 'confirmed', 'preparing')
+              AND TIMESTAMPDIFF(MINUTE, o.created_at, NOW()) > %s
+            ORDER BY o.created_at ASC
+            LIMIT 50
+            """,
+            (UNASSIGNED_ORDER_THRESHOLD_MINUTES,),
+        )
+        unassigned_orders = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT
+                c.id,
+                c.name,
+                c.status AS courier_status,
+                COUNT(o.id) AS active_orders,
+                GROUP_CONCAT(o.id ORDER BY o.created_at SEPARATOR ', ') AS order_ids
+            FROM couriers c
+            INNER JOIN orders o ON o.courier_id = c.id
+            WHERE c.status != 'online'
+              AND o.status IN ('confirmed', 'preparing', 'shipped', 'in_transit')
+            GROUP BY c.id, c.name, c.status
+            ORDER BY active_orders DESC
+            LIMIT 30
+            """
+        )
+        offline_couriers = cursor.fetchall()
+
+        ride_sos = []
+        try:
+            from .rides import ensure_rides_schema
+            ensure_rides_schema(db)
+            cursor.execute(
+                """
+                SELECT
+                    s.id,
+                    s.ride_id,
+                    s.user_id,
+                    s.lat,
+                    s.lng,
+                    s.message,
+                    s.status,
+                    s.created_at,
+                    u.username,
+                    r.pickup_address,
+                    r.dropoff_address,
+                    r.status AS ride_status
+                FROM ride_sos_events s
+                JOIN users u ON u.id = s.user_id
+                JOIN ride_requests r ON r.id = s.ride_id
+                WHERE s.status = 'active'
+                ORDER BY s.created_at DESC
+                LIMIT 20
+                """
+            )
+            ride_sos = cursor.fetchall()
+        except Exception:
+            ride_sos = []
+
+        total = len(unassigned_orders) + len(offline_couriers) + len(ride_sos)
+        return {
+            "summary": {
+                "total": total,
+                "unassigned_orders": len(unassigned_orders),
+                "offline_couriers": len(offline_couriers),
+                "ride_sos": len(ride_sos),
+            },
+            "unassigned_orders": unassigned_orders,
+            "offline_couriers_with_orders": offline_couriers,
+            "ride_sos": ride_sos,
+            "threshold_minutes": UNASSIGNED_ORDER_THRESHOLD_MINUTES,
+        }
+    finally:
+        cursor.close()
+        db.close()
+
+
+@router.get("/metrics")
+def get_admin_metrics(period: str = "7d", current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    if period not in {"today", "7d", "30d"}:
+        raise HTTPException(status_code=400, detail="period debe ser today, 7d o 30d")
+
+    db = get_db()
+    if not db:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cursor = db.cursor(dictionary=True)
+    try:
+        date_clause, date_params = _period_filter(period)
+
+        cursor.execute(
+            f"""
+            SELECT
+                COUNT(*) AS total_orders,
+                SUM(CASE WHEN o.status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+                SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders
+            FROM orders o
+            WHERE 1=1 {date_clause}
+            """,
+            date_params,
+        )
+        counts = cursor.fetchone() or {}
+        total_orders = int(counts.get("total_orders") or 0)
+        cancelled_orders = int(counts.get("cancelled_orders") or 0)
+        cancellation_rate_pct = round((cancelled_orders / total_orders) * 100, 1) if total_orders else 0.0
+
+        cursor.execute(
+            f"""
+            SELECT AVG(delivery_minutes) AS avg_delivery_minutes
+            FROM (
+                SELECT
+                    TIMESTAMPDIFF(
+                        MINUTE,
+                        o.created_at,
+                        MAX(CASE WHEN osl.status = 'delivered' THEN osl.changed_at END)
+                    ) AS delivery_minutes
+                FROM orders o
+                INNER JOIN order_status_logs osl ON osl.order_id = o.id
+                WHERE o.status = 'delivered' {date_clause}
+                GROUP BY o.id
+                HAVING delivery_minutes IS NOT NULL AND delivery_minutes >= 0
+            ) delivered_stats
+            """,
+            date_params,
+        )
+        avg_row = cursor.fetchone() or {}
+        avg_delivery_minutes = round(float(avg_row.get("avg_delivery_minutes") or 0), 1)
+
+        cursor.execute(
+            f"""
+            SELECT
+                c.id,
+                c.name,
+                COUNT(o.id) AS delivered_orders,
+                SUM(COALESCE(o.delivery_fee, 0) + COALESCE(o.night_fee, 0)) AS gross_fees
+            FROM couriers c
+            INNER JOIN orders o ON o.courier_id = c.id
+            WHERE o.status = 'delivered' {date_clause}
+            GROUP BY c.id, c.name
+            ORDER BY gross_fees DESC
+            LIMIT 10
+            """,
+            date_params,
+        )
+        courier_earnings = []
+        for row in cursor.fetchall():
+            gross = float(row.get("gross_fees") or 0)
+            courier_earnings.append({
+                **row,
+                "gross_fees": gross,
+                "courier_earnings": round(gross * COURIER_EARNINGS_SHARE, 2),
+            })
+
+        cursor.execute(
+            f"""
+            SELECT
+                b.id,
+                b.name,
+                COUNT(o.id) AS orders,
+                SUM(CASE WHEN o.status = 'delivered' THEN COALESCE(o.total, 0) ELSE 0 END) AS gross_sales
+            FROM businesses b
+            INNER JOIN orders o ON o.business_id = b.id
+            WHERE o.status = 'delivered' {date_clause}
+            GROUP BY b.id, b.name
+            ORDER BY gross_sales DESC
+            LIMIT 10
+            """,
+            date_params,
+        )
+        business_earnings = []
+        for row in cursor.fetchall():
+            gross = float(row.get("gross_sales") or 0)
+            commission = round(gross * BUSINESS_COMMISSION_RATE, 2)
+            business_earnings.append({
+                **row,
+                "gross_sales": gross,
+                "commission": commission,
+                "net_settlement": round(gross - commission, 2),
+            })
+
+        today = get_bogota_time().date()
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total_checked,
+                SUM(
+                    CASE
+                        WHEN (
+                            (o.payment_method IN ('card', 'wallet', 'Transferencia', 'transfer') AND p.id IS NULL)
+                            OR (p.status = 'APPROVED' AND o.status NOT IN ('confirmed', 'preparing', 'shipped', 'in_transit', 'delivered'))
+                            OR (p.id IS NOT NULL AND ROUND(COALESCE(p.amount, 0), 0) != ROUND(COALESCE(o.total, 0), 0))
+                            OR (p.status IN ('DECLINED', 'VOIDED', 'ERROR') AND o.status NOT IN ('cancelled', 'pending_payment'))
+                        ) THEN 1 ELSE 0 END
+                ) AS issues,
+                SUM(CASE WHEN p.status = 'APPROVED' THEN COALESCE(p.amount, 0) ELSE 0 END) AS approved_amount
+            FROM orders o
+            LEFT JOIN payments p ON p.order_id = o.id
+            WHERE DATE(o.created_at) = %s
+            """,
+            (today,),
+        )
+        wompi_today = cursor.fetchone() or {}
+
+        return {
+            "period": period,
+            "avg_delivery_minutes": avg_delivery_minutes,
+            "cancellation_rate_pct": cancellation_rate_pct,
+            "total_orders": total_orders,
+            "delivered_orders": int(counts.get("delivered_orders") or 0),
+            "cancelled_orders": cancelled_orders,
+            "courier_earnings": courier_earnings,
+            "business_earnings": business_earnings,
+            "wompi_today": {
+                "total_checked": int(wompi_today.get("total_checked") or 0),
+                "issues": int(wompi_today.get("issues") or 0),
+                "approved_amount": float(wompi_today.get("approved_amount") or 0),
+            },
+            "settings": {
+                "courier_earnings_share": COURIER_EARNINGS_SHARE,
+                "business_commission_rate": BUSINESS_COMMISSION_RATE,
+            },
+        }
+    finally:
+        cursor.close()
+        db.close()
+
 
 @router.get("/backup.sql", response_class=PlainTextResponse)
 def download_database_backup(current_user: dict = Depends(get_current_user)):

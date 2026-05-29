@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminPushSetup } from "@/components/admin/AdminPushSetup";
 import { useAuth } from "@/context/AuthContext";
 import { formatCOP } from "@/data/mock";
 
@@ -18,6 +19,7 @@ const AdminOperations = () => {
   const [settlements, setSettlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reconciliationTodayOnly, setReconciliationTodayOnly] = useState(true);
 
   useEffect(() => {
     const fetchOperations = async () => {
@@ -25,19 +27,24 @@ const AdminOperations = () => {
       setError(false);
       try {
         const headers = user?.token ? { Authorization: `Bearer ${user.token}` } : undefined;
-        const response = await fetch("/api/admin/operations", {
-          headers,
-        });
-        const reconciliationResponse = await fetch("/api/finance/payment-reconciliation", {
-          headers,
-        });
-        const settlementsResponse = await fetch("/api/finance/settlements", {
-          headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
-        });
+        const response = await fetch("/api/admin/operations", { headers });
+        const reconciliationResponse = await fetch(
+          `/api/finance/payment-reconciliation?today_only=${reconciliationTodayOnly}&issues_only=false`,
+          { headers },
+        );
+        const settlementsResponse = await fetch("/api/finance/settlements", { headers });
+        const dailySummaryResponse = await fetch("/api/finance/daily-summary", { headers });
         if (!response.ok) throw new Error("No se pudo cargar la operación admin");
         setData(await response.json());
         if (reconciliationResponse.ok) setReconciliation(await reconciliationResponse.json());
         if (settlementsResponse.ok) setSettlements(await settlementsResponse.json());
+        if (dailySummaryResponse.ok) {
+          const summary = await dailySummaryResponse.json();
+          setReconciliation((prev: any) => ({
+            ...(prev || {}),
+            daily_summary: summary,
+          }));
+        }
       } catch (err) {
         console.error("Error fetching admin operations:", err);
         setError(true);
@@ -47,7 +54,7 @@ const AdminOperations = () => {
     };
 
     fetchOperations();
-  }, [user?.token]);
+  }, [user?.token, reconciliationTodayOnly]);
 
   const exportCsv = (rows: any[], filename: string) => {
     if (!rows?.length) return;
@@ -88,9 +95,18 @@ const AdminOperations = () => {
                 <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Centro financiero y operativo</h1>
                 <p className="text-sm text-muted-foreground mt-1">Comisiones, liquidaciones, pagos, desempeño, auditoría, reclamos y tarifas.</p>
               </div>
-              <Button variant="outline" className="rounded-2xl" onClick={() => exportCsv(data?.business_sales || [], "liquidaciones_negocios.csv")}>
-                <FileText className="h-4 w-4 mr-2" /> Exportar liquidaciones
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" className="rounded-2xl" onClick={() => exportCsv(data?.business_sales || [], "liquidaciones_negocios.csv")}>
+                  <FileText className="h-4 w-4 mr-2" /> Exportar liquidaciones
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={() => window.open(`/api/finance/payment-reconciliation/export?today_only=${reconciliationTodayOnly}`, "_blank")}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" /> Exportar conciliación Wompi
+                </Button>
+              </div>
             </div>
 
             {error && (
@@ -160,10 +176,36 @@ const AdminOperations = () => {
 
             <div className="grid xl:grid-cols-2 gap-6">
               <Card className="rounded-3xl shadow-card">
-                <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Conciliación de pagos</CardTitle><CardDescription>Detecta pagos faltantes, montos diferentes o estados inconsistentes.</CardDescription></CardHeader>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Conciliación de pagos</CardTitle>
+                      <CardDescription>Detecta pagos faltantes, montos diferentes o estados inconsistentes.</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={reconciliationTodayOnly ? "default" : "outline"}
+                        className="rounded-xl text-xs"
+                        onClick={() => setReconciliationTodayOnly(true)}
+                      >
+                        Hoy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={!reconciliationTodayOnly ? "default" : "outline"}
+                        className="rounded-xl text-xs"
+                        onClick={() => setReconciliationTodayOnly(false)}
+                      >
+                        Histórico
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
                 <CardContent className="space-y-2 max-h-96 overflow-auto">
                   <div className="rounded-2xl border p-3 flex justify-between"><span>Registros revisados</span><b>{toNumber(reconciliation?.summary?.total)}</b></div>
                   <div className="rounded-2xl border p-3 flex justify-between"><span>Alertas</span><b className={toNumber(reconciliation?.summary?.issues) > 0 ? "text-destructive" : "text-success"}>{toNumber(reconciliation?.summary?.issues)}</b></div>
+                  <div className="rounded-2xl border p-3 flex justify-between"><span>Aprobado Wompi</span><b className="text-success">{formatCOP(toNumber(reconciliation?.summary?.approved_amount))}</b></div>
                   {(reconciliation?.items || []).filter((row: any) => row.reconciliation_status !== "ok").slice(0, 12).map((row: any) => (
                     <div key={`${row.order_id}-${row.payment_id || "none"}`} className="rounded-2xl border p-3 text-sm">
                       <div className="flex justify-between gap-3"><b>#{row.order_id}</b><span className="text-destructive font-semibold">{row.reconciliation_status}</span></div>
@@ -251,6 +293,7 @@ const AdminOperations = () => {
             </div>
           </main>
         </SidebarInset>
+        <AdminPushSetup />
       </div>
     </SidebarProvider>
   );

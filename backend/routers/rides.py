@@ -9,6 +9,7 @@ from database import get_db
 from security import get_current_user, get_optional_user
 from utils import get_bogota_time, log_event
 from .push import send_push_notification
+from admin_push import notify_admins_push
 
 router = APIRouter()
 
@@ -1418,13 +1419,14 @@ def trigger_sos(
         """, (ride_id, current_user["id"], data.lat, data.lng, data.message))
         db.commit()
         log_event("ride_sos", ride_id=ride_id, user_id=current_user["id"])
-        cursor.execute("SELECT id FROM users WHERE role = 'admin'")
-        for admin in cursor.fetchall():
-            background_tasks.add_task(send_push_notification, admin["id"], {
-                "title": "🚨 Alerta SOS en viaje",
-                "body": f"Viaje {ride_id}: {ride['pickup_address']} → {ride['dropoff_address']}",
-                "url": f"/admin/viajes?ride={ride_id}",
-            })
+        background_tasks.add_task(
+            notify_admins_push,
+            "🚨 Alerta SOS en viaje",
+            f"Viaje {ride_id}: {ride['pickup_address']} → {ride['dropoff_address']}",
+            f"/admin/viajes?ride={ride_id}",
+            f"sos:{ride_id}:{current_user['id']}",
+            15,
+        )
         if ride.get("driver_user_id") and current_user["id"] != ride["driver_user_id"]:
             background_tasks.add_task(send_push_notification, ride["driver_user_id"], {
                 "title": "Alerta de seguridad",

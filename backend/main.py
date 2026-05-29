@@ -86,8 +86,8 @@ app.include_router(rides.router, prefix="/rides", tags=["Rides"])
 @app.get("/api/maintenance")
 @app.get("/maintenance")
 def check_maintenance():
-    # Desactivado para reducir carga en producción
-    return {"maintenance_mode": False}
+    from utils import get_public_maintenance_mode
+    return {"maintenance_mode": get_public_maintenance_mode()}
 
 @app.get("/api/theme-color")
 @app.get("/theme-color")

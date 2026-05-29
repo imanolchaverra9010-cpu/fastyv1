@@ -112,6 +112,7 @@ class OrderResponse(BaseModel):
     estimated_delivery_minutes: Optional[int] = None
     eta_text: Optional[str] = None
     offers: Optional[List[dict]] = None
+    pending_offers_count: Optional[int] = 0
 
 class OrderDetailResponse(OrderResponse):
     items: List[OrderItemCreate]

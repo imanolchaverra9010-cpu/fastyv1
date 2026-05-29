@@ -16,5 +16,11 @@
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/index.py" },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/admin/cron/push-alerts",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }

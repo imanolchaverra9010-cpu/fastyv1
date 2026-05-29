@@ -17,25 +17,36 @@ import {
   Camera,
   X,
   Loader2,
-  Store
+  Store,
+  RotateCcw,
+  PackageOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 
 interface Order {
   id: string;
-  business_id: string;
+  business_id?: string;
   business_name: string;
   business_emoji: string;
   total: number;
   status: string;
   created_at: string;
   is_rated: boolean;
+  order_type?: string;
+  origin_name?: string;
+  origin_address?: string;
+  open_order_description?: string;
+  delivery_address?: string;
+  customer_phone?: string;
+  customer_name?: string;
+  payment_method?: string;
+  pending_offers_count?: number;
   items?: any[];
 }
 
@@ -58,8 +69,10 @@ const AVATARS = [
 const UserProfile = () => {
   const { user, logout, updateUser } = useAuth();
   const { add } = useCart();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"orders" | "benefits">("orders");
+  const [orderFilter, setOrderFilter] = useState<"all" | "open" | "regular">("all");
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
@@ -69,6 +82,25 @@ const UserProfile = () => {
   const [editName, setEditName] = useState(user?.username || "");
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editAvatar, setEditAvatar] = useState(user?.avatar_url || "");
+
+  const reorderOpenOrder = (order: Order) => {
+    navigate("/pedido-abierto", {
+      state: {
+        repeatOrder: {
+          customerName: order.customer_name || user?.username || "",
+          customerPhone: order.customer_phone || "",
+          deliveryAddress: order.delivery_address || "",
+          originName: order.origin_name || "",
+          originAddress: order.origin_address || "",
+          description: order.open_order_description || "",
+          paymentMethod: order.payment_method || "cash",
+        },
+      },
+    });
+    toast({ title: "Encargo cargado", description: "Revisa los datos y envía tu pedido abierto." });
+  };
+
+  const isOpenOrder = (order: Order) => order.order_type === "open";
 
   const reorder = (order: Order) => {
     if (!order.items?.length) {
@@ -112,6 +144,14 @@ const UserProfile = () => {
     },
     enabled: !!user?.id,
   });
+
+  const filteredOrders = (orders || []).filter((order) => {
+    if (orderFilter === "open") return isOpenOrder(order);
+    if (orderFilter === "regular") return !isOpenOrder(order);
+    return true;
+  });
+
+  const openOrdersCount = (orders || []).filter(isOpenOrder).length;
 
   // Fetch Benefits
   const { data: benefitsData, isLoading: isLoadingBenefits } = useQuery<{ order_count: number, level: number, benefits: Benefit[] }>({
@@ -254,20 +294,57 @@ const UserProfile = () => {
 
         {activeTab === "orders" && (
           <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {([
+                { key: "all" as const, label: "Todos" },
+                { key: "open" as const, label: `Encargos${openOrdersCount ? ` (${openOrdersCount})` : ""}` },
+                { key: "regular" as const, label: "Restaurantes" },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setOrderFilter(key)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    orderFilter === key
+                      ? "bg-primary text-white shadow-glow"
+                      : "bg-card/50 text-muted-foreground hover:text-foreground border border-border/40"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {isLoadingOrders ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-32 bg-card/50 animate-pulse rounded-3xl border border-border/40" />
               ))
-            ) : (orders || []).length > 0 ? (
-              (orders || []).map((order) => (
+            ) : filteredOrders.length > 0 ? (
+              filteredOrders.map((order) => (
                 <div key={order.id} className="bg-card/50 backdrop-blur-md border border-border/40 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                   <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
-                        {order.business_emoji || "🛍️"}
+                        {isOpenOrder(order) ? "🛍️" : (order.business_emoji || "🛍️")}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">{order.business_name || "Encargo Especial"}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-lg">{order.business_name || "Encargo Especial"}</h3>
+                          {isOpenOrder(order) && (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                              Encargo
+                            </span>
+                          )}
+                          {isOpenOrder(order) && order.status === "pending" && (order.pending_offers_count ?? 0) > 0 && (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                              {order.pending_offers_count} oferta{(order.pending_offers_count ?? 0) > 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                        {isOpenOrder(order) && order.open_order_description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">
+                            {order.open_order_description}
+                          </p>
+                        )}
                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 font-medium">
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(order.created_at).toLocaleDateString()}</span>
                           <span className="h-1 w-1 bg-border rounded-full" />
@@ -276,7 +353,9 @@ const UserProfile = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg text-primary">{formatCOP(order.total)}</p>
+                      <p className="font-bold text-lg text-primary">
+                        {isOpenOrder(order) && order.total === 0 ? "Por definir" : formatCOP(order.total)}
+                      </p>
                       <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${order.status === 'delivered' ? 'bg-success/10 text-success border-success/20' :
                           order.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
                             'bg-primary/10 text-primary border-primary/20'
@@ -290,9 +369,9 @@ const UserProfile = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between border-t border-border/40 pt-4 relative z-10">
+                  <div className="mt-6 flex items-center justify-between border-t border-border/40 pt-4 relative z-10 flex-wrap gap-2">
                     <Link to={`/rastreo/${order.id}`} className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                      Ver detalles <ChevronRight className="h-3 w-3" />
+                      {isOpenOrder(order) && order.status === "pending" ? "Ver ofertas" : "Ver detalles"} <ChevronRight className="h-3 w-3" />
                     </Link>
 
                     {order.status === 'delivered' && !order.is_rated && (
@@ -310,7 +389,16 @@ const UserProfile = () => {
                         <CheckCircle2 className="h-3.5 w-3.5" /> Calificado
                       </div>
                     )}
-                    {order.status === "delivered" && (
+                    {isOpenOrder(order) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl h-9 text-xs font-bold gap-1.5"
+                        onClick={() => reorderOpenOrder(order)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Repetir encargo
+                      </Button>
+                    ) : order.status === "delivered" ? (
                       <Button
                         size="sm"
                         variant="outline"
@@ -319,7 +407,7 @@ const UserProfile = () => {
                       >
                         Reordenar
                       </Button>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Decoración fondo */}
@@ -329,10 +417,23 @@ const UserProfile = () => {
             ) : (
               <div className="text-center py-20 bg-card/30 rounded-[3rem] border border-dashed border-border/60">
                 <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-                <p className="text-muted-foreground font-medium">Aún no has realizado pedidos.</p>
-                <Button asChild variant="soft" className="mt-6 rounded-xl">
-                  <Link to="/negocios">Explorar negocios</Link>
-                </Button>
+                <p className="text-muted-foreground font-medium">
+                  {orderFilter === "open"
+                    ? "Aún no has hecho encargos abiertos."
+                    : orderFilter === "regular"
+                      ? "Aún no has pedido de restaurantes."
+                      : "Aún no has realizado pedidos."}
+                </p>
+                <div className="flex flex-wrap justify-center gap-3 mt-6">
+                  <Button asChild variant="soft" className="rounded-xl">
+                    <Link to="/negocios">Explorar negocios</Link>
+                  </Button>
+                  {(orderFilter === "all" || orderFilter === "open") && (
+                    <Button asChild variant="hero" className="rounded-xl gap-2">
+                      <Link to="/pedido-abierto"><PackageOpen className="h-4 w-4" /> Hacer encargo</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
