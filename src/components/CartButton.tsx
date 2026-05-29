@@ -35,8 +35,12 @@ const CartButton = () => {
       <SheetContent className="flex flex-col w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="font-display text-2xl">Tu pedido</SheetTitle>
-          {lines[0] && (
-            <p className="text-sm text-muted-foreground">de {lines[0].businessName}</p>
+          {lines.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {new Set(lines.map((l) => l.businessId)).size > 1
+                ? `${new Set(lines.map((l) => l.businessId)).size} negocios`
+                : `de ${lines[0].businessName}`}
+            </p>
           )}
         </SheetHeader>
 
