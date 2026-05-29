@@ -20,7 +20,7 @@
   "crons": [
     {
       "path": "/api/admin/cron/push-alerts",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
