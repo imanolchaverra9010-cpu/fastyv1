@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart, Phone, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesario
@@ -165,8 +165,6 @@ const BusinessDetail = () => {
     toast({ title: isFavorite ? "Quitado de favoritos" : "Agregado a favoritos", description: business?.name });
   };
 
-  const contactUrl = business?.phone ? `https://wa.me/57${String(business.phone).replace(/\D/g, "").slice(-10)}` : "";
-
   // Filtrado y agrupación lógica
   const filteredGroupedItems = useMemo(() => {
     const items = menuItems || [];
@@ -289,16 +287,6 @@ const BusinessDetail = () => {
                   <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
                   {isFavorite ? "Favorito" : "Guardar favorito"}
                 </Button>
-                {business.phone && (
-                  <>
-                    <Button asChild type="button" variant="secondary" className="rounded-full gap-2 bg-white/90 text-foreground hover:bg-white">
-                      <a href={`tel:${business.phone}`}><Phone className="h-4 w-4" /> Llamar</a>
-                    </Button>
-                    <Button asChild type="button" variant="secondary" className="rounded-full gap-2 bg-white/90 text-foreground hover:bg-white">
-                      <a href={contactUrl} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
-                    </Button>
-                  </>
-                )}
               </div>
             </div>
           </div>
