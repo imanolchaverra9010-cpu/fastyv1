@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, Banknote, Bike, ClipboardList, CreditCard, DollarSign, FileText, Loader2, MapPinned, Scale, ShieldCheck, Store, TrendingUp } from "lucide-react";
-import { AdminSidebar } from "@/components/AdminSidebar";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import StatCard from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AdminPushSetup } from "@/components/admin/AdminPushSetup";
 import { useAuth } from "@/context/AuthContext";
 import { formatCOP } from "@/data/mock";
 
@@ -78,37 +76,27 @@ const AdminOperations = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-warm">
-        <AdminSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
-            <SidebarTrigger className="-ml-1" />
-            <div className="h-4 w-px bg-border/60 mx-2" />
-            <h2 className="text-sm font-semibold text-muted-foreground">Operación avanzada</h2>
-          </header>
-
-          <main className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-primary font-semibold">Administración robusta</p>
-                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Centro financiero y operativo</h1>
-                <p className="text-sm text-muted-foreground mt-1">Comisiones, liquidaciones, pagos, desempeño, auditoría, reclamos y tarifas.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="rounded-2xl" onClick={() => exportCsv(data?.business_sales || [], "liquidaciones_negocios.csv")}>
-                  <FileText className="h-4 w-4 mr-2" /> Exportar liquidaciones
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => window.open(`/api/finance/payment-reconciliation/export?today_only=${reconciliationTodayOnly}`, "_blank")}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" /> Exportar conciliación Wompi
-                </Button>
-              </div>
-            </div>
-
+    <AdminLayout
+      breadcrumb="Operación avanzada"
+      eyebrow="Administración robusta"
+      title="Centro financiero y operativo"
+      description="Comisiones, liquidaciones, pagos, desempeño, auditoría, reclamos y tarifas."
+      toolbar={
+        <>
+          <Button variant="outline" className="h-10 w-full rounded-2xl sm:w-auto" onClick={() => exportCsv(data?.business_sales || [], "liquidaciones_negocios.csv")}>
+            <FileText className="mr-2 h-4 w-4" /> Exportar liquidaciones
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10 w-full rounded-2xl sm:w-auto"
+            onClick={() => window.open(`/api/finance/payment-reconciliation/export?today_only=${reconciliationTodayOnly}`, "_blank")}
+          >
+            <CreditCard className="mr-2 h-4 w-4" /> Exportar conciliación Wompi
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6 sm:space-y-8">
             {error && (
               <Card className="border-destructive/30 bg-destructive/5">
                 <CardContent className="p-4 flex items-center gap-3 text-destructive">
@@ -117,7 +105,7 @@ const AdminOperations = () => {
               </Card>
             )}
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
               <StatCard icon={DollarSign} label="Ventas brutas" value={formatCOP(toNumber(data?.financial?.gross_sales))} hint="Pedidos no cancelados" tone="success" />
               <StatCard icon={Banknote} label="Ingreso domicilio" value={formatCOP(toNumber(data?.financial?.delivery_income))} hint="Domicilio + nocturno" tone="primary" />
               <StatCard icon={ClipboardList} label="Pedidos activos" value={String(toNumber(data?.financial?.active_orders))} hint={`${toNumber(data?.financial?.delivered_orders)} entregados`} tone="accent" />
@@ -291,11 +279,8 @@ const AdminOperations = () => {
                 </CardContent>
               </Card>
             </div>
-          </main>
-        </SidebarInset>
-        <AdminPushSetup />
       </div>
-    </SidebarProvider>
+    </AdminLayout>
   );
 };
 

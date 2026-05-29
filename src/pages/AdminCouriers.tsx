@@ -2,8 +2,7 @@ import { Plus, Search, Users, Trash2, Edit, Bike, Phone, Star, DollarSign, X, Us
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/AdminSidebar";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/hooks/use-toast";
 import { formatCOP } from "@/data/mock";
 
@@ -67,30 +66,20 @@ const AdminCouriers = () => {
   );
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-warm">
-        <AdminSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
-            <SidebarTrigger className="-ml-1" />
-            <div className="h-4 w-px bg-border/60 mx-2" />
-            <h2 className="text-sm font-semibold text-muted-foreground">Gestión de Domiciliarios</h2>
-          </header>
-
-          <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-primary font-semibold">Administración</p>
-                <h1 className="text-4xl font-display font-bold tracking-tight">Domiciliarios</h1>
-                <p className="text-muted-foreground mt-1">Administra el equipo de reparto de la plataforma.</p>
-              </div>
-              <Button variant="hero" className="h-11 rounded-xl gap-2" onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-5 w-5" /> Nuevo Domiciliario
-              </Button>
-            </div>
-
-            <div className="rounded-2xl bg-card border border-border/60 shadow-card overflow-hidden">
-              <div className="p-5 border-b border-border/60 flex items-center justify-end bg-muted/20">
+    <>
+      <AdminLayout
+        breadcrumb="Domiciliarios"
+        eyebrow="Administración"
+        title="Domiciliarios"
+        description="Administra el equipo de reparto de la plataforma."
+        toolbar={
+          <Button variant="hero" className="h-10 w-full gap-2 rounded-xl sm:w-auto" onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-5 w-5" /> Nuevo Domiciliario
+          </Button>
+        }
+      >
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
+              <div className="flex items-center justify-end border-b border-border/60 bg-muted/20 p-3 sm:p-5">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -275,21 +264,19 @@ const AdminCouriers = () => {
                 ))}
               </div>
             </div>
-          </main>
-        </SidebarInset>
+      </AdminLayout>
 
-        {isModalOpen && (
-          <CourierModal
-            courier={editingCourier}
-            onClose={() => {
-              setIsModalOpen(false);
-              setEditingCourier(null);
-            }}
-            onSuccess={fetchCouriers}
-          />
-        )}
-      </div>
-    </SidebarProvider>
+      {isModalOpen && (
+        <CourierModal
+          courier={editingCourier}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingCourier(null);
+          }}
+          onSuccess={fetchCouriers}
+        />
+      )}
+    </>
   );
 };
 

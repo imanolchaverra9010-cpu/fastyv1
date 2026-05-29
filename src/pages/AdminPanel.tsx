@@ -3,14 +3,11 @@ import { useState, useEffect, useCallback } from "react";
 import StatCard from "@/components/StatCard";
 import { HoursChart, RevenueChart, TopBusinessesChart } from "@/components/AdminCharts";
 import { AdminActionCenter } from "@/components/admin/AdminActionCenter";
-import { AdminPushSetup } from "@/components/admin/AdminPushSetup";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminMaintenanceToggle } from "@/components/admin/AdminMaintenanceToggle";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/AdminSidebar";
 import { formatCOP } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
-import { Switch } from "@/components/ui/switch";
-import { Hammer } from "lucide-react";
 
 const AdminPanel = () => {
   const [stats, setStats] = useState<any>(null);
@@ -202,37 +199,20 @@ const AdminPanel = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-warm">
-        <AdminSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
-            <SidebarTrigger className="-ml-1" />
-            <div className="h-4 w-px bg-border/60 mx-2" />
-            <h2 className="text-sm font-semibold text-muted-foreground capitalize">
-              Resumen
-            </h2>
-            <div className="ml-auto flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/40">
-                <Hammer className={`h-4 w-4 ${maintenanceMode ? "text-orange-500 animate-pulse" : "text-muted-foreground"}`} />
-                <span className="text-xs font-medium">Mantenimiento</span>
-                <Switch 
-                  checked={maintenanceMode} 
-                  onCheckedChange={handleToggleMaintenance} 
-                  disabled={togglingMaintenance}
-                />
-              </div>
-            </div>
-          </header>
-
-          <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-            <div className="mb-6 md:mb-8">
-              <p className="text-xs md:text-sm text-primary font-semibold">Administración</p>
-              <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight">Panel de control</h1>
-              <p className="text-sm text-muted-foreground mt-1">Visión completa de la operación de Fasty.</p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <AdminLayout
+      breadcrumb="Resumen"
+      eyebrow="Administración"
+      title="Panel de control"
+      description="Visión completa de la operación de Fasty."
+      headerActions={
+        <AdminMaintenanceToggle
+          enabled={maintenanceMode}
+          disabled={togglingMaintenance}
+          onToggle={handleToggleMaintenance}
+        />
+      }
+    >
+            <div className="mb-8 grid grid-cols-2 gap-2.5 sm:mb-10 sm:gap-4 lg:grid-cols-4">
               <StatCard
                 icon={DollarSign}
                 label="Ingresos totales"
@@ -274,7 +254,7 @@ const AdminPanel = () => {
             />
 
             {/* Charts */}
-            <div className="grid lg:grid-cols-2 gap-4 mb-6">
+            <div className="mb-6 grid gap-4 lg:grid-cols-2">
               <RevenueChart data={revenueChart} />
               <HoursChart data={hoursChart} />
             </div>
@@ -283,26 +263,28 @@ const AdminPanel = () => {
             </div>
 
             {/* Reporte Diario de Repartidores */}
-            <div className="mb-10 rounded-3xl bg-card border border-border/60 p-6 shadow-card overflow-hidden">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-display font-bold">Reporte Diario de Repartidores</h2>
-                  <p className="text-sm text-muted-foreground">Entregas realizadas hoy por cada repartidor.</p>
+            <div className="mb-10 overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-card sm:rounded-3xl sm:p-6">
+              <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-bold sm:text-xl">Reporte Diario de Repartidores</h2>
+                  <p className="text-xs text-muted-foreground sm:text-sm">Entregas realizadas hoy por cada repartidor.</p>
                 </div>
-                <div className="bg-primary/10 text-primary px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-2">
-                  <Bike className="h-4 w-4" />
-                  {dailyReport.reduce((acc, curr) => acc + curr.total_deliveries, 0)} Entregas Hoy
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="flex items-center justify-center gap-2 rounded-2xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary sm:px-4 sm:text-sm">
+                    <Bike className="h-4 w-4 shrink-0" />
+                    {dailyReport.reduce((acc, curr) => acc + curr.total_deliveries, 0)} Entregas Hoy
+                  </div>
+                  <Button 
+                    onClick={exportDailyReport} 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-10 w-full gap-2 rounded-2xl border-primary/20 hover:bg-primary/5 sm:w-auto"
+                    disabled={dailyReport.length === 0}
+                  >
+                    <Download className="h-4 w-4" />
+                    Exportar CSV
+                  </Button>
                 </div>
-                <Button 
-                  onClick={exportDailyReport} 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-2xl gap-2 border-primary/20 hover:bg-primary/5"
-                  disabled={dailyReport.length === 0}
-                >
-                  <Download className="h-4 w-4" />
-                  Exportar CSV
-                </Button>
               </div>
 
               <div className="grid gap-6">
@@ -336,8 +318,8 @@ const AdminPanel = () => {
                       </div>
                       
                       {courier.orders && courier.orders.length > 0 && (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
+                        <div className="-mx-4 overflow-x-auto sm:mx-0">
+                          <table className="w-full min-w-[520px] text-sm">
                             <thead>
                               <tr className="border-b border-border/40 text-left text-muted-foreground bg-muted/10">
                                 <th className="p-3 font-medium">ID Pedido</th>
@@ -368,11 +350,7 @@ const AdminPanel = () => {
                 )}
               </div>
             </div>
-          </main>
-        </SidebarInset>
-        <AdminPushSetup />
-      </div>
-    </SidebarProvider>
+    </AdminLayout>
   );
 };
 

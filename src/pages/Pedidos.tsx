@@ -4,8 +4,7 @@ import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/AdminSidebar";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { OrderDetailModal } from "@/components/OrderDetailModal";
 import { formatCOP } from "@/data/mock";
 
@@ -302,87 +301,72 @@ const Pedidos = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-warm">
-        <AdminSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/75 backdrop-blur-xl px-4 md:px-6">
-            <SidebarTrigger className="-ml-1" />
-            <div className="h-4 w-px bg-border/60 mx-2" />
-            <h2 className="text-sm font-semibold text-muted-foreground">Gestión de Pedidos</h2>
-          </header>
-
-          <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-primary font-semibold">Administración</p>
-                <h1 className="text-4xl font-display font-bold tracking-tight">Pedidos</h1>
-                <p className="text-muted-foreground mt-1">{filteredOrders.length} pedidos encontrados. Monitorea el flujo de vida de las órdenes.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <select
-                  className="h-10 w-full sm:w-auto rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                >
-                  <option value="all">Todos los estados</option>
-                  <option value="pending">Pendientes</option>
-                  <option value="preparing">En Preparación</option>
-                  <option value="shipped">En Camino</option>
-                  <option value="delivered">Entregados</option>
-                  <option value="cancelled">Cancelados</option>
-                </select>
-                <Input
-                  type="date"
-                  className="h-10 w-full sm:w-[150px] rounded-xl bg-card"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                />
-                <select
-                  className="h-10 w-full sm:w-auto rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={courierFilter}
-                  onChange={(e) => setCourierFilter(e.target.value)}
-                >
-                  <option value="all">Todos los repartidores</option>
-                  {courierOptions.map((courier) => (
-                    <option key={courier.id} value={courier.id}>{courier.name}</option>
-                  ))}
-                </select>
-                <div className="relative hidden md:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Buscar por ID, cliente o repartidor…" 
-                    className="pl-9 h-10 w-64 rounded-xl" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                {(filter !== "all" || dateFilter || courierFilter !== "all" || searchTerm) && (
-                  <Button
-                    onClick={clearFilters}
-                    variant="ghost"
-                    size="sm"
-                    className="h-10 rounded-xl"
-                  >
-                    Limpiar
-                  </Button>
-                )}
-                <Button 
-                  onClick={exportOrders} 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-10 rounded-xl gap-2 border-primary/20 hover:bg-primary/5"
-                  disabled={filteredOrders.length === 0}
-                >
-                  <Download className="h-4 w-4" />
-                  Exportar
-                </Button>
-              </div>
+    <>
+      <AdminLayout
+        breadcrumb="Pedidos"
+        eyebrow="Administración"
+        title="Pedidos"
+        description={`${filteredOrders.length} pedidos encontrados. Monitorea el flujo de vida de las órdenes.`}
+        toolbar={
+          <>
+            <select
+              className="h-10 w-full rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none transition-all focus:ring-2 focus:ring-primary/20 sm:w-auto"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">Todos los estados</option>
+              <option value="pending">Pendientes</option>
+              <option value="preparing">En Preparación</option>
+              <option value="shipped">En Camino</option>
+              <option value="delivered">Entregados</option>
+              <option value="cancelled">Cancelados</option>
+            </select>
+            <Input
+              type="date"
+              className="h-10 w-full rounded-xl bg-card sm:w-[150px]"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+            <select
+              className="h-10 w-full rounded-xl border-border/60 bg-card px-4 text-sm font-medium shadow-card outline-none transition-all focus:ring-2 focus:ring-primary/20 sm:w-auto"
+              value={courierFilter}
+              onChange={(e) => setCourierFilter(e.target.value)}
+            >
+              <option value="all">Todos los repartidores</option>
+              {courierOptions.map((courier) => (
+                <option key={courier.id} value={courier.id}>{courier.name}</option>
+              ))}
+            </select>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por ID, cliente o repartidor…"
+                className="h-10 w-full rounded-xl pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-
-            <div className="rounded-2xl bg-card border border-border/60 shadow-card overflow-hidden">
-              <div className="p-5 border-b border-border/60 flex items-center justify-between bg-muted/20">
-                <h3 className="font-bold flex items-center gap-2">
+            {(filter !== "all" || dateFilter || courierFilter !== "all" || searchTerm) && (
+              <Button onClick={clearFilters} variant="ghost" size="sm" className="h-10 w-full rounded-xl sm:w-auto">
+                Limpiar
+              </Button>
+            )}
+            <Button
+              onClick={exportOrders}
+              variant="outline"
+              size="sm"
+              className="h-10 w-full gap-2 rounded-xl border-primary/20 hover:bg-primary/5 sm:w-auto"
+              disabled={filteredOrders.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          </>
+        }
+      >
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
+              <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <h3 className="flex items-center gap-2 font-bold">
                   <TrendingUp className="h-4 w-4 text-primary" />
                   Lista de Pedidos {filter !== 'all' && <span className="text-muted-foreground font-normal">({filter})</span>}
                 </h3>
@@ -597,10 +581,9 @@ const Pedidos = () => {
                 )}
               </div>
             </div>
-          </main>
-        </SidebarInset>
+      </AdminLayout>
 
-        {selectedOrderId && (
+      {selectedOrderId && (
           <OrderDetailModal
             orderId={selectedOrderId}
             onClose={() => setSelectedOrderId(null)}
@@ -696,8 +679,7 @@ const Pedidos = () => {
             </div>
           </div>
         )}
-      </div>
-    </SidebarProvider>
+    </>
   );
 };
 

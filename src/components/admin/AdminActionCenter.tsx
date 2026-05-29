@@ -52,28 +52,28 @@ export function AdminActionCenter({
   };
 
   return (
-    <div className="space-y-8 mb-10">
+    <div className="mb-8 space-y-5 sm:mb-10 sm:space-y-8">
       {alertTotal > 0 && (
-        <div className="rounded-3xl border-2 border-destructive/30 bg-destructive/5 p-5 flex flex-col md:flex-row md:items-center gap-4">
+        <div className="flex flex-col gap-4 rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-4 sm:rounded-3xl sm:p-5 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-destructive animate-pulse" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 sm:h-12 sm:w-12">
+              <AlertTriangle className="h-5 w-5 animate-pulse text-destructive sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <p className="font-display font-bold text-lg text-destructive">{alertTotal} alertas activas</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="min-w-0">
+              <p className="font-display text-base font-bold text-destructive sm:text-lg">{alertTotal} alertas activas</p>
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 {alerts?.summary?.unassigned_orders ?? 0} sin asignar ·{" "}
                 {alerts?.summary?.ride_sos ?? 0} SOS ·{" "}
                 {alerts?.summary?.offline_couriers ?? 0} domiciliarios offline
               </p>
             </div>
           </div>
-          <div className="md:ml-auto flex gap-2">
-            <Button asChild variant="destructive" size="sm" className="rounded-xl">
+          <div className="flex flex-col gap-2 sm:flex-row md:ml-auto">
+            <Button asChild variant="destructive" size="sm" className="h-10 w-full rounded-xl sm:w-auto">
               <Link to="/admin/pedidos">Ver pedidos</Link>
             </Button>
             {(alerts?.summary?.ride_sos ?? 0) > 0 && (
-              <Button asChild variant="outline" size="sm" className="rounded-xl border-destructive/30">
+              <Button asChild variant="outline" size="sm" className="h-10 w-full rounded-xl border-destructive/30 sm:w-auto">
                 <Link to="/admin/viajes">Ver viajes SOS</Link>
               </Button>
             )}
@@ -81,15 +81,15 @@ export function AdminActionCenter({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         {(["today", "7d", "30d"] as const).map((p) => (
           <button
             key={p}
             onClick={() => onMetricsPeriodChange(p)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold transition-all active:scale-95 sm:py-2 ${
               metricsPeriod === p
                 ? "bg-primary text-white shadow-glow"
-                : "bg-card/50 text-muted-foreground border border-border/40 hover:text-foreground"
+                : "border border-border/40 bg-card/50 text-muted-foreground hover:text-foreground"
             }`}
           >
             {p === "today" ? "Hoy" : p === "7d" ? "7 días" : "30 días"}
@@ -97,7 +97,7 @@ export function AdminActionCenter({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <StatCard
           icon={Timer}
           label="Tiempo medio entrega"
@@ -128,16 +128,16 @@ export function AdminActionCenter({
         />
       </div>
 
-      <div className="grid xl:grid-cols-3 gap-6">
-        <Card className="rounded-3xl shadow-card border-orange-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-3">
+        <Card className="rounded-2xl border-orange-500/20 shadow-card sm:rounded-3xl">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Clock className="h-5 w-5 text-orange-500" />
               Sin asignar &gt; {alerts?.threshold_minutes ?? 10} min
             </CardTitle>
             <CardDescription>Pedidos esperando domiciliario.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-72 overflow-auto">
+          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.unassigned_orders ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sin pedidos retrasados.</p>
             ) : (
@@ -160,15 +160,15 @@ export function AdminActionCenter({
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl shadow-card border-destructive/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+        <Card className="rounded-2xl border-destructive/20 shadow-card sm:rounded-3xl">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <ShieldAlert className="h-5 w-5 text-destructive" />
               SOS viajes activos
             </CardTitle>
             <CardDescription>Alertas de seguridad en viajes.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-72 overflow-auto">
+          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.ride_sos ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Sin alertas SOS activas.</p>
             ) : (
@@ -202,15 +202,15 @@ export function AdminActionCenter({
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl shadow-card border-amber-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+        <Card className="rounded-2xl border-amber-500/20 shadow-card sm:rounded-3xl">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <WifiOff className="h-5 w-5 text-amber-600" />
               Domiciliarios offline con pedidos
             </CardTitle>
             <CardDescription>Pueden afectar el rastreo en vivo.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-72 overflow-auto">
+          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.offline_couriers_with_orders ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Todos los domiciliarios activos están online.</p>
             ) : (
@@ -232,15 +232,15 @@ export function AdminActionCenter({
         </Card>
       </div>
 
-      <div className="grid xl:grid-cols-2 gap-6">
-        <Card className="rounded-3xl shadow-card">
-          <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
+        <Card className="rounded-2xl shadow-card sm:rounded-3xl">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 p-4 pb-2 sm:p-6 sm:pb-2">
             <div>
-              <CardTitle className="flex items-center gap-2"><Bike className="h-5 w-5 text-primary" /> Ganancia domiciliarios</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base"><Bike className="h-5 w-5 text-primary" /> Ganancia domiciliarios</CardTitle>
               <CardDescription>60% de domicilio + recargo nocturno (periodo seleccionado).</CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-64 overflow-auto">
+          <CardContent className="max-h-64 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(metrics?.courier_earnings ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Sin entregas en el periodo.</p>
             ) : (
@@ -260,12 +260,12 @@ export function AdminActionCenter({
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Ventas por negocio</CardTitle>
+        <Card className="rounded-2xl shadow-card sm:rounded-3xl">
+          <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base"><MapPin className="h-5 w-5 text-primary" /> Ventas por negocio</CardTitle>
             <CardDescription>Liquidación estimada con comisión 8%.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-64 overflow-auto">
+          <CardContent className="max-h-64 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(metrics?.business_earnings ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Sin ventas en el periodo.</p>
             ) : (
@@ -286,28 +286,28 @@ export function AdminActionCenter({
         </Card>
       </div>
 
-      <Card className="rounded-3xl shadow-card border-primary/20">
-        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <Card className="rounded-2xl border-primary/20 shadow-card sm:rounded-3xl">
+        <CardHeader className="flex flex-col gap-4 p-4 pb-2 sm:p-6 sm:pb-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <CreditCard className="h-5 w-5 text-primary" />
               Conciliación Wompi — hoy
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               {dailyFinance?.reconciliation?.orders_checked ?? 0} pedidos revisados ·{" "}
               {formatCOP(dailyFinance?.reconciliation?.approved_amount ?? 0)} aprobados
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={exportWompiCsv}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" size="sm" className="h-10 w-full gap-2 rounded-xl sm:w-auto" onClick={exportWompiCsv}>
               <Download className="h-4 w-4" /> Exportar CSV
             </Button>
-            <Button asChild variant="soft" size="sm" className="rounded-xl">
+            <Button asChild variant="soft" size="sm" className="h-10 w-full rounded-xl sm:w-auto">
               <Link to="/admin/operacion">Centro financiero</Link>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2 max-h-56 overflow-auto">
+        <CardContent className="max-h-56 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
           {(dailyFinance?.reconciliation?.issue_items ?? []).length === 0 ? (
             <p className="text-sm text-success font-medium py-4 text-center">✓ Sin discrepancias hoy en pagos Wompi.</p>
           ) : (
