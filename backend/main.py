@@ -9,7 +9,7 @@ from typing import Dict
 # Añadir el directorio actual al path para importar los módulos locales
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push, support, finance, rides
+from routers import auth, orders, businesses, menu_items, admin, couriers, business_requests, promotions, users, ai, payments, banners, push, support, finance, rides, seo
 from utils import limiter, log_event
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
@@ -81,30 +81,51 @@ app.include_router(push.router, prefix="/push", tags=["Push Notifications"])
 app.include_router(support.router, prefix="/support", tags=["Support"])
 app.include_router(finance.router, prefix="/finance", tags=["Finance"])
 app.include_router(rides.router, prefix="/rides", tags=["Rides"])
+app.include_router(seo.router, tags=["SEO"])
 
 
 @app.get("/api/maintenance")
 @app.get("/maintenance")
 def check_maintenance():
     from utils import get_public_maintenance_mode
-    return {"maintenance_mode": get_public_maintenance_mode()}
+    from cache import get_or_set_cache
+    from http_cache import TTL_MAINTENANCE, apply_public_cache
+    from fastapi.responses import JSONResponse
+
+    def load():
+        return {"maintenance_mode": get_public_maintenance_mode()}
+
+    payload, _ = get_or_set_cache("config:maintenance", load, TTL_MAINTENANCE)
+    response = JSONResponse(content=payload)
+    apply_public_cache(response, max_age=TTL_MAINTENANCE, s_maxage=TTL_MAINTENANCE, stale_while_revalidate=120)
+    return response
 
 @app.get("/api/theme-color")
 @app.get("/theme-color")
 def get_theme_color_public():
-    from database import get_db
-    db = get_db()
-    if not db:
-        return {"theme_color": "#f97316"}
-    cursor = db.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
-        result = cursor.fetchone()
-        return {"theme_color": result['config_value'] if result else "#f97316"}
-    except Exception:
-        return {"theme_color": "#f97316"}
-    finally:
-        db.close()
+    from cache import get_or_set_cache
+    from http_cache import TTL_THEME, apply_public_cache
+    from fastapi.responses import JSONResponse
+
+    def load():
+        from database import get_db
+        db = get_db()
+        if not db:
+            return {"theme_color": "#f97316"}
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
+            result = cursor.fetchone()
+            return {"theme_color": result["config_value"] if result else "#f97316"}
+        except Exception:
+            return {"theme_color": "#f97316"}
+        finally:
+            db.close()
+
+    payload, _ = get_or_set_cache("config:theme_color", load, TTL_THEME)
+    response = JSONResponse(content=payload)
+    apply_public_cache(response, max_age=TTL_THEME, s_maxage=TTL_THEME, stale_while_revalidate=600)
+    return response
 
 @app.get("/")
 def read_root():
@@ -223,6 +244,8 @@ orders.set_websocket_manager(manager)
 businesses.set_websocket_manager(manager)
 couriers.set_websocket_manager(manager)
 admin.set_websocket_manager(manager)
+import task_handlers
+task_handlers.set_websocket_manager(manager)
 
 if __name__ == "__main__":
     import uvicorn

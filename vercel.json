@@ -13,6 +13,8 @@
     }
   ],
   "routes": [
+    { "src": "/sitemap.xml", "dest": "/api/index.py" },
+    { "src": "/robots.txt", "dest": "/api/index.py" },
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/index.py" },
     { "src": "/(.*)", "dest": "/index.html" }
@@ -21,6 +23,20 @@
     {
       "path": "/api/admin/cron/push-alerts",
       "schedule": "0 13 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/(.*\\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2|mp4))",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }
+      ]
     }
   ]
 }

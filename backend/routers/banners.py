@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, status
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, status, Response
 from typing import List, Optional
 from pydantic import BaseModel
 from database import get_db
 from security import get_current_user
+from cache import get_or_set_cache, delete_cache
+from http_cache import TTL_BANNERS, apply_public_cache
 
 router = APIRouter()
 
@@ -76,20 +78,23 @@ init_banners_table()
 # --- Endpoints ---
 
 @router.get("/active", response_model=List[BannerResponse])
-def get_active_banners():
-    conn = get_db()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT * FROM home_banners WHERE is_active = TRUE ORDER BY id DESC")
-        banners = cursor.fetchall()
-        return banners
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        cursor.close()
-        conn.close()
+def get_active_banners(response: Response):
+    apply_public_cache(response, max_age=120, s_maxage=120, stale_while_revalidate=300)
+
+    def load():
+        conn = get_db()
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT * FROM home_banners WHERE is_active = TRUE ORDER BY id DESC")
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+    banners, _ = get_or_set_cache("banners:active", load, TTL_BANNERS)
+    return banners
 
 @router.get("/admin", response_model=List[BannerResponse])
 def get_admin_banners(current_user: dict = Depends(get_current_user)):
@@ -138,6 +143,7 @@ def create_banner(banner: BannerCreate, current_user: dict = Depends(get_current
         banner_id = cursor.lastrowid
         
         cursor.execute("SELECT * FROM home_banners WHERE id = %s", (banner_id,))
+        delete_cache("banners:*")
         return cursor.fetchone()
     except Exception as e:
         conn.rollback()
@@ -173,6 +179,7 @@ def update_banner(banner_id: int, banner: BannerUpdate, current_user: dict = Dep
         conn.commit()
         
         cursor.execute("SELECT * FROM home_banners WHERE id = %s", (banner_id,))
+        delete_cache("banners:*")
         return cursor.fetchone()
     except Exception as e:
         conn.rollback()
@@ -196,6 +203,7 @@ def delete_banner(banner_id: int, current_user: dict = Depends(get_current_user)
         
         cursor.execute("DELETE FROM home_banners WHERE id = %s", (banner_id,))
         conn.commit()
+        delete_cache("banners:*")
         return {"detail": "Banner eliminado exitosamente"}
     except Exception as e:
         conn.rollback()

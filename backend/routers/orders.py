@@ -11,6 +11,7 @@ from order_validation import compute_order_pricing
 from offer_utils import ensure_offer_expires_column, expire_stale_offers
 import json
 import math
+from async_dispatch import schedule_async
 from .push import send_push_notification
 
 router = APIRouter()
@@ -307,6 +308,11 @@ websocket_manager = None
 def set_websocket_manager(manager):
     global websocket_manager
     websocket_manager = manager
+    try:
+        import task_handlers
+        task_handlers.set_websocket_manager(manager)
+    except Exception:
+        pass
 
 def normalize_payment_method(payment_method: str | None) -> str:
     normalized = (payment_method or "cash").strip().lower()
@@ -460,43 +466,27 @@ async def create_order(
             "description": order.open_order_description
         }
 
-        # 1. WebSocket Notifications (if manager exists)
-        if websocket_manager and should_notify_couriers:
-            await websocket_manager.notify_couriers(notification_data)
-
-        if websocket_manager and should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
-            biz_notif = {**notification_data, "order_id": order_id}
-            await websocket_manager.notify_business(order.business_id, biz_notif)
-
-        # 2. Push Notifications
-        # Notify Business Owner only when payment is not pending
-        if should_notify_couriers and order.business_id and business_info and business_info.get('owner_id'):
-            background_tasks.add_task(send_push_notification, business_info['owner_id'], {
-                "title": "¡Nuevo Pedido!",
-                "body": f"Has recibido un nuevo pedido de {order.customer_name}.",
-                "url": "/negocio/pedidos"
+        async_job_id = None
+        if should_notify_couriers:
+            async_job_id = schedule_async(background_tasks, "order.notify_created", {
+                "order_id": order_id,
+                "should_notify_couriers": True,
+                "notification_data": notification_data,
+                "business_id": order.business_id,
+                "notify_business": bool(order.business_id and business_info and business_info.get("owner_id")),
+                "business_owner_id": business_info.get("owner_id") if business_info else None,
+                "customer_name": order.customer_name,
+                "order_type": order.order_type,
+                "delivery_address": order.delivery_address,
+                "validated_total": validated_total,
             })
 
-        # Notify couriers only when payment is not pending
-        if should_notify_couriers:
-            cursor.execute("""
-                SELECT DISTINCT c.user_id
-                FROM couriers c
-                INNER JOIN push_subscriptions ps ON ps.user_id = c.user_id
-                WHERE c.user_id IS NOT NULL
-            """)
-            subscribed_couriers = cursor.fetchall()
-            for courier in subscribed_couriers:
-                push_title = f"Nuevo encargo: {notification_data['business_name']}" if order.order_type == "open" else f"Nuevo pedido: {notification_data['business_name']}"
-                push_body = f"Destino: {order.delivery_address}" if order.order_type == "open" else f"Destino: {order.delivery_address} | Valor aprox: ${validated_total}"
-                push_url = "/domiciliario"
-                background_tasks.add_task(send_push_notification, courier['user_id'], {
-                    "title": push_title,
-                    "body": push_body,
-                    "url": push_url
-                })
-
-        return {"id": order_id, "tracking_token": tracking_token, "message": "Order created successfully"}
+        return {
+            "id": order_id,
+            "tracking_token": tracking_token,
+            "async_job_id": async_job_id,
+            "message": "Order created successfully",
+        }
     except HTTPException:
         db.rollback()
         raise

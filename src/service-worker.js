@@ -1,6 +1,45 @@
 import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
 
 precacheAndRoute(self.__WB_MANIFEST);
+
+function createApiStrategy(cacheName) {
+  return new StaleWhileRevalidate({ cacheName });
+}
+
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    url.pathname.startsWith('/api/businesses') &&
+    !url.pathname.includes('/favorites'),
+  createApiStrategy('fasty-api-businesses'),
+);
+
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && url.pathname.includes('/menu'),
+  createApiStrategy('fasty-api-menu'),
+);
+
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/banners/active'),
+  createApiStrategy('fasty-api-banners'),
+);
+
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/promotions'),
+  createApiStrategy('fasty-api-promotions'),
+);
+
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    (url.pathname.endsWith('/theme-color') || url.pathname.endsWith('/maintenance')),
+  new NetworkFirst({
+    cacheName: 'fasty-api-config',
+    networkTimeoutSeconds: 3,
+  }),
+);
 
 self.addEventListener('push', (event) => {
   let data = { title: 'Fasty', body: 'Nueva notificacion', url: '/' };

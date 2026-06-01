@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
 import { CATEGORIES } from "@/constants/categories";
 import { useAuth } from "@/context/AuthContext";
+import { cachedFetch, CACHE_TTL } from "@/lib/clientCache";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,14 +44,7 @@ const Businesses = () => {
       url.searchParams.append("q", queryFilter);
     }
 
-    fetch(url.toString())
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`API request failed ${res.status}: ${text}`);
-        }
-        return res.json();
-      })
+    cachedFetch<any[]>(url.toString(), { ttlMs: CACHE_TTL.businesses, persist: true })
       .then((data) => {
         setBusinesses(Array.isArray(data) ? data : []);
         setLoading(false);

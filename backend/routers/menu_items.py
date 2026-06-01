@@ -48,7 +48,7 @@ def create_menu_item(business_id: str, menu_item: MenuItemCreate, current_user: 
 @router.get("/{business_id}/menu", response_model=List[MenuItemResponse])
 def get_menu_items(business_id: str, response: Response, active: Optional[bool] = None):
     # Enable Edge Caching for 60 seconds
-    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    response.headers["Cache-Control"] = "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
     
     cache_key = f"menu:{business_id}:{active if active is not None else 'all'}"
     cached_data = get_cache(cache_key)

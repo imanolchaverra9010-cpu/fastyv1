@@ -1,9 +1,12 @@
-# Robots rules for Fasty
+# Fallback estático — en producción Vercel sirve /robots.txt dinámico desde la API.
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /api/admin
-Disallow: /api/debug-db
+Disallow: /login
+Disallow: /checkout
+Disallow: /domiciliario
+Disallow: /negocio
+Disallow: /rastreo/
+Disallow: /api/
 
-# Sitemap
 Sitemap: https://fasty-delta.vercel.app/sitemap.xml

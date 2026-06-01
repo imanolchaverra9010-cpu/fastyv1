@@ -57,7 +57,7 @@ def spanish_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded
         content={"detail": "Has realizado demasiados intentos. Por favor, espera un minuto antes de intentar de nuevo."}
     )
 
-# Importar los routers del backend
+import task_handlers  # noqa: F401 — registra handlers async
 try:
     # Asegurarnos de que el path es absoluto
     sys.path.insert(0, str(backend_path.absolute()))
@@ -67,7 +67,7 @@ try:
     print(f"Contenido de backend: {os.listdir(backend_path) if backend_path.exists() else 'NO EXISTE'}")
     
     import routers
-    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners", "support", "finance", "rides"]
+    router_names = ["auth", "orders", "businesses", "menu_items", "admin", "couriers", "business_requests", "promotions", "users", "push", "ai", "payments", "banners", "support", "finance", "rides", "seo"]
     
     # Importar routers dinámicamente y continuar si alguno falla.
     import importlib
@@ -139,6 +139,7 @@ routers_to_load = [
     ("finance", f"{API_PREFIX}/finance", ["Finance"]),
     ("rides", f"{API_PREFIX}/rides", ["Rides"]),
     ("couriers", f"{API_PREFIX}/couriers", ["Couriers Panel"]),
+    ("seo", "", ["SEO"]),
 ]
 
 for name, prefix, tags in routers_to_load:
@@ -201,27 +202,47 @@ def health_check():
 @app.get("/maintenance")
 def check_maintenance():
     from utils import get_public_maintenance_mode
-    return {"maintenance_mode": get_public_maintenance_mode()}
+    from cache import get_or_set_cache
+    from http_cache import TTL_MAINTENANCE, apply_public_cache
+    from fastapi.responses import JSONResponse
+
+    def load():
+        return {"maintenance_mode": get_public_maintenance_mode()}
+
+    payload, _ = get_or_set_cache("config:maintenance", load, TTL_MAINTENANCE)
+    response = JSONResponse(content=payload)
+    apply_public_cache(response, max_age=TTL_MAINTENANCE, s_maxage=TTL_MAINTENANCE, stale_while_revalidate=120)
+    return response
 
 @app.get("/api/theme-color")
 @app.get("/theme-color")
 def get_theme_color_public():
-    try:
-        from database import get_db
-        db = get_db()
-        if not db:
-            return {"theme_color": "#f97316"}
-        cursor = db.cursor(dictionary=True)
+    from cache import get_or_set_cache
+    from http_cache import TTL_THEME, apply_public_cache
+    from fastapi.responses import JSONResponse
+
+    def load():
         try:
-            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
-            result = cursor.fetchone()
-            return {"theme_color": result['config_value'] if result else "#f97316"}
+            from database import get_db
+            db = get_db()
+            if not db:
+                return {"theme_color": "#f97316"}
+            cursor = db.cursor(dictionary=True)
+            try:
+                cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'theme_color'")
+                result = cursor.fetchone()
+                return {"theme_color": result["config_value"] if result else "#f97316"}
+            except Exception:
+                return {"theme_color": "#f97316"}
+            finally:
+                db.close()
         except Exception:
             return {"theme_color": "#f97316"}
-        finally:
-            db.close()
-    except Exception:
-        return {"theme_color": "#f97316"}
+
+    payload, _ = get_or_set_cache("config:theme_color", load, TTL_THEME)
+    response = JSONResponse(content=payload)
+    apply_public_cache(response, max_age=TTL_THEME, s_maxage=TTL_THEME, stale_while_revalidate=600)
+    return response
 
 # Diagnóstico de base de datos (solo admin)
 @app.get(f"{API_PREFIX}/debug-db")

@@ -90,7 +90,7 @@ def create_business(business: BusinessCreate, current_user: dict = Depends(get_c
 @router.get("/", response_model=List[BusinessResponse])
 def get_businesses(response: Response, status_filter: Optional[str] = None, category: Optional[str] = None, q: Optional[str] = None):
     # Enable Edge Caching for 60 seconds
-    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
     
     # Check cache first
     cache_key = f"businesses:list:{status_filter or 'all'}:{category or 'all'}:{q or 'none'}"
@@ -190,7 +190,7 @@ def remove_favorite_business(business_id: str, current_user: dict = Depends(get_
 @router.get("/{business_id}", response_model=BusinessResponse)
 def get_business(business_id: str, response: Response):
     # Enable Edge Caching for 60 seconds
-    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=60"
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=120, stale-while-revalidate=300"
     
     cache_key = f"businesses:detail:{business_id}"
     cached_data = get_cache(cache_key)

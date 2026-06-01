@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
 import heroImg from "@/assets/hero-delivery.jpg";
 import { useQuery } from "@tanstack/react-query";
+import { cachedFetch, CACHE_TTL } from "@/lib/clientCache";
+import { queryStaleTime } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/context/CartContext";
 import PromoModal from "@/components/PromoModal";
@@ -17,12 +19,13 @@ const Index = () => {
 
     const { data: businesses, isLoading: isLoadingBusinesses, error: errorBusinesses } = useQuery<any[]>({
         queryKey: ["featuredBusinesses"],
+        staleTime: queryStaleTime.businesses,
+        gcTime: 15 * 60 * 1000,
         queryFn: async () => {
-            const response = await fetch("/api/businesses?status_filter=active");
-            if (!response.ok) {
-                throw new Error("Error fetching featured businesses");
-            }
-            const data = await response.json();
+            const data = await cachedFetch<any[]>("/api/businesses?status_filter=active", {
+                ttlMs: CACHE_TTL.businesses,
+                persist: true,
+            });
             return data.sort((a: any, b: any) => b.rating - a.rating).slice(0, 12);
         },
     });

@@ -75,6 +75,7 @@ const AdminPanel = () => {
     if (loading) return;
     const scanAlerts = () => {
       fetch("/api/admin/push-alerts/scan", { method: "POST" }).catch(() => {});
+      fetch("/api/admin/jobs/process-pending", { method: "POST" }).catch(() => {});
     };
     scanAlerts();
     const interval = setInterval(scanAlerts, 3 * 60 * 1000);

@@ -7,7 +7,10 @@ import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesa
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { cachedFetch, CACHE_TTL } from "@/lib/clientCache";
+import { queryStaleTime } from "@/lib/queryClient";
 import { useAuth } from "@/context/AuthContext";
+import SeoHead from "@/components/SeoHead";
 
 interface Business {
   id: string;
@@ -76,25 +79,15 @@ const BusinessDetail = () => {
 
   const { data: business, isLoading: isLoadingBusiness, error: errorBusiness } = useQuery<Business>({
     queryKey: ["business", id],
-    queryFn: async () => {
-      const response = await fetch(`/api/businesses/${id}`);
-      if (!response.ok) {
-        throw new Error("Error fetching business details");
-      }
-      return response.json();
-    },
+    staleTime: queryStaleTime.businesses,
+    queryFn: async () => cachedFetch<Business>(`/api/businesses/${id}`, { ttlMs: CACHE_TTL.businesses }),
     enabled: !!id,
   });
 
   const { data: menuItems, isLoading: isLoadingMenuItems, error: errorMenuItems } = useQuery<MenuItem[]>({
     queryKey: ["menuItems", id],
-    queryFn: async () => {
-      const response = await fetch(`/api/businesses/${id}/menu`);
-      if (!response.ok) {
-        throw new Error("Error fetching menu items");
-      }
-      return response.json();
-    },
+    staleTime: queryStaleTime.menu,
+    queryFn: async () => cachedFetch<MenuItem[]>(`/api/businesses/${id}/menu`, { ttlMs: CACHE_TTL.menu }),
     enabled: !!id,
   });
 
@@ -226,6 +219,16 @@ const BusinessDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm">
+      <SeoHead
+        override={{
+          title: `${business.name} — Domicilio en Quibdó | Fasty`,
+          description:
+            business.description?.trim() ||
+            `Pide a ${business.name} con domicilio en Quibdó. ${business.category} disponible en Fasty.`,
+          path: `/negocios/${business.id}`,
+          index: true,
+        }}
+      />
       <main className="container py-8 pb-24">
         <Link to="/negocios" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="h-4 w-4" /> Todos los negocios

@@ -472,6 +472,8 @@ def toggle_maintenance_mode(data: dict, current_user: dict = Depends(get_current
                 (val,),
             )
         db.commit()
+        from cache import delete_cache
+        delete_cache("config:maintenance")
         
         # Opcional: Notificar vía websocket a todos que la plataforma entró en mantenimiento
         return {"message": "Maintenance mode updated", "maintenance_mode": enabled}
@@ -511,6 +513,8 @@ def save_theme_color(data: dict, current_user: dict = Depends(get_current_user))
         else:
             cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES ('theme_color', %s)", (theme_color,))
         db.commit()
+        from cache import delete_cache
+        delete_cache("config:theme_color")
         return {"message": "Color de tema actualizado correctamente", "theme_color": theme_color}
     except Exception as e:
         db.rollback()
@@ -528,6 +532,8 @@ def reset_theme_color(current_user: dict = Depends(get_current_user)):
     try:
         cursor.execute("DELETE FROM system_config WHERE config_key = 'theme_color'")
         db.commit()
+        from cache import delete_cache
+        delete_cache("config:theme_color")
         return {"message": "Color restaurado al naranja original de Fasty", "theme_color": "#f97316"}
     except Exception as e:
         db.rollback()
@@ -765,6 +771,23 @@ def get_admin_operations(current_user: dict = Depends(get_current_user)):
 CRON_SECRET = os.getenv("CRON_SECRET") or os.getenv("ADMIN_CRON_SECRET")
 
 
+@router.post("/jobs/process-pending")
+async def admin_process_pending_jobs(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    from async_jobs import process_pending_jobs
+    return await process_pending_jobs(25)
+
+
+@router.get("/jobs/{job_id}")
+def get_async_job_status(job_id: str, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
+    from async_jobs import get_job_status
+    status = get_job_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Job no encontrado")
+    return status
+
+
 @router.post("/push-alerts/scan")
 def admin_scan_push_alerts(
     background_tasks: BackgroundTasks,
@@ -776,7 +799,7 @@ def admin_scan_push_alerts(
 
 
 @router.get("/cron/push-alerts")
-def cron_scan_push_alerts(
+async def cron_scan_push_alerts(
     x_cron_secret: str | None = Header(default=None),
     authorization: str | None = Header(default=None),
 ):
@@ -786,7 +809,9 @@ def cron_scan_push_alerts(
     if not CRON_SECRET or token != CRON_SECRET:
         raise HTTPException(status_code=403, detail="Unauthorized cron")
     result = scan_and_push_operational_alerts()
-    return {"message": "Cron completed", **result}
+    from async_jobs import process_pending_jobs
+    jobs = await process_pending_jobs(25)
+    return {"message": "Cron completed", "alerts": result, "jobs": jobs}
 
 
 @router.post("/push-alerts/test")

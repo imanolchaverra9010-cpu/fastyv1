@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createAppQueryClient } from "@/lib/queryClient";
+import { cachedFetch, CACHE_TTL } from "@/lib/clientCache";
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { applyTheme } from "@/utils/theme";
@@ -45,6 +47,7 @@ import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import CustomerOrGuestRoute from "./components/CustomerOrGuestRoute.tsx";
 
 import SiteHeader from "@/components/SiteHeader";
+import SeoHead from "@/components/SeoHead";
 
 import AdminCouriers from "@/pages/AdminCouriers";
 import Rides from "./pages/Rides.tsx";
@@ -67,15 +70,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 30, // 30 segundos de gracia antes de revalidar
-      refetchOnWindowFocus: false, // Evita peticiones masivas al cambiar de pestaña
-      retry: 1,
-    },
-  },
-});
+const queryClient = createAppQueryClient();
 
 const AppContent = () => {
   const { pathname } = useLocation();
@@ -89,13 +84,11 @@ const AppContent = () => {
 
     const fetchMaintenance = async () => {
       try {
-        const res = await fetch("/api/maintenance");
-        if (!cancelled && res.ok) {
-          const data = await res.json();
-          setIsMaintenance(Boolean(data.maintenance_mode));
-        } else if (!cancelled) {
-          setIsMaintenance(false);
-        }
+        const data = await cachedFetch<{ maintenance_mode: boolean }>("/api/maintenance", {
+          ttlMs: CACHE_TTL.maintenance,
+          persist: true,
+        });
+        if (!cancelled) setIsMaintenance(Boolean(data.maintenance_mode));
       } catch {
         if (!cancelled) setIsMaintenance(false);
       } finally {
@@ -116,13 +109,11 @@ const AppContent = () => {
   useEffect(() => {
     const fetchThemeColor = async () => {
       try {
-        const res = await fetch("/api/theme-color");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.theme_color) {
-            applyTheme(data.theme_color);
-          }
-        }
+        const data = await cachedFetch<{ theme_color?: string }>("/api/theme-color", {
+          ttlMs: CACHE_TTL.config,
+          persist: true,
+        });
+        if (data.theme_color) applyTheme(data.theme_color);
       } catch (err) {
         console.error("Error al cargar el color del tema dinámico:", err);
       }
@@ -154,6 +145,7 @@ const AppContent = () => {
 
   return (
     <>
+      <SeoHead />
       {!hideHeader && <SiteHeader />}
       <InstallPWA />
       <NotificationPrompt />
