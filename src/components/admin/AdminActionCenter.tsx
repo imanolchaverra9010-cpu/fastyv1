@@ -52,7 +52,7 @@ export function AdminActionCenter({
   };
 
   return (
-    <div className="mb-8 space-y-5 sm:mb-10 sm:space-y-8">
+    <div className="mb-8 min-w-0 space-y-5 overflow-x-hidden sm:mb-10 sm:space-y-8">
       {alertTotal > 0 && (
         <div className="flex flex-col gap-4 rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-4 sm:rounded-3xl sm:p-5 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
@@ -128,31 +128,42 @@ export function AdminActionCenter({
         />
       </div>
 
-      <div className="grid gap-4 sm:gap-6 xl:grid-cols-3">
-        <Card className="rounded-2xl border-orange-500/20 shadow-card sm:rounded-3xl">
+      <div className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-3">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-orange-500/20 shadow-card sm:rounded-3xl">
           <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <Clock className="h-5 w-5 text-orange-500" />
-              Sin asignar &gt; {alerts?.threshold_minutes ?? 10} min
+              <Clock className="h-5 w-5 shrink-0 text-orange-500" />
+              <span className="min-w-0 leading-snug">
+                Sin asignar &gt; {alerts?.threshold_minutes ?? 10} min
+              </span>
             </CardTitle>
             <CardDescription>Pedidos esperando domiciliario.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <CardContent className="max-h-72 space-y-2 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.unassigned_orders ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Sin pedidos retrasados.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">Sin pedidos retrasados.</p>
             ) : (
               alerts.unassigned_orders.map((order: any) => (
-                <div key={order.id} className="rounded-2xl border p-3 text-sm bg-orange-500/5">
-                  <div className="flex justify-between gap-2">
-                    <b className="font-mono">#{order.id}</b>
-                    <span className="text-orange-600 font-bold">{order.waiting_minutes} min</span>
+                <div
+                  key={order.id}
+                  className="min-w-0 rounded-2xl border bg-orange-500/5 p-3 text-sm"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <b className="min-w-0 flex-1 break-all font-mono text-xs leading-snug sm:text-sm">
+                      #{order.id}
+                    </b>
+                    <span className="shrink-0 rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-bold text-orange-600">
+                      {order.waiting_minutes} min
+                    </span>
                   </div>
-                  <p className="font-medium">{order.customer_name}</p>
-                  <p className="text-muted-foreground text-xs truncate">
-                    {order.order_type === "open" ? order.origin_name : order.business_name} → {order.delivery_address}
+                  <p className="mt-1 truncate font-medium">{order.customer_name}</p>
+                  <p className="mt-0.5 line-clamp-2 break-words text-xs text-muted-foreground">
+                    {order.order_type === "open" ? order.origin_name : order.business_name}
+                    {" → "}
+                    {order.delivery_address}
                   </p>
-                  <Button asChild variant="link" className="h-auto p-0 text-xs mt-1">
-                    <Link to={`/admin/pedidos`}>Gestionar</Link>
+                  <Button asChild variant="link" className="mt-1 h-auto p-0 text-xs">
+                    <Link to="/admin/pedidos">Gestionar</Link>
                   </Button>
                 </div>
               ))
@@ -160,36 +171,41 @@ export function AdminActionCenter({
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-destructive/20 shadow-card sm:rounded-3xl">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-destructive/20 shadow-card sm:rounded-3xl">
           <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <ShieldAlert className="h-5 w-5 text-destructive" />
+              <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" />
               SOS viajes activos
             </CardTitle>
             <CardDescription>Alertas de seguridad en viajes.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <CardContent className="max-h-72 space-y-2 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.ride_sos ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Sin alertas SOS activas.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">Sin alertas SOS activas.</p>
             ) : (
               alerts.ride_sos.map((sos: any) => (
-                <div key={sos.id} className="rounded-2xl border border-destructive/20 p-3 text-sm bg-destructive/5">
-                  <div className="flex justify-between gap-2">
-                    <b>{sos.username}</b>
-                    <span className="text-xs text-muted-foreground">
+                <div
+                  key={sos.id}
+                  className="min-w-0 rounded-2xl border border-destructive/20 bg-destructive/5 p-3 text-sm"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <b className="min-w-0 flex-1 truncate">{sos.username}</b>
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {new Date(sos.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{sos.pickup_address} → {sos.dropoff_address}</p>
-                  {sos.message && <p className="text-xs mt-1 italic">{sos.message}</p>}
-                  <div className="flex gap-2 mt-2">
-                    <Button asChild variant="outline" size="sm" className="h-7 text-xs rounded-lg">
+                  <p className="mt-0.5 line-clamp-2 break-words text-xs text-muted-foreground">
+                    {sos.pickup_address} → {sos.dropoff_address}
+                  </p>
+                  {sos.message && <p className="mt-1 line-clamp-2 break-words text-xs italic">{sos.message}</p>}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button asChild variant="outline" size="sm" className="h-7 rounded-lg text-xs">
                       <Link to="/admin/viajes">Ver viaje</Link>
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="h-7 text-xs rounded-lg"
+                      className="h-7 rounded-lg text-xs"
                       disabled={resolvingSosId === sos.id}
                       onClick={() => onResolveSos(sos.id)}
                     >
@@ -202,27 +218,31 @@ export function AdminActionCenter({
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-amber-500/20 shadow-card sm:rounded-3xl">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-amber-500/20 shadow-card sm:rounded-3xl">
           <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <WifiOff className="h-5 w-5 text-amber-600" />
-              Domiciliarios offline con pedidos
+              <WifiOff className="h-5 w-5 shrink-0 text-amber-600" />
+              <span className="min-w-0 leading-snug">Domiciliarios offline con pedidos</span>
             </CardTitle>
             <CardDescription>Pueden afectar el rastreo en vivo.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-72 space-y-2 overflow-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <CardContent className="max-h-72 space-y-2 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             {(alerts?.offline_couriers_with_orders ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Todos los domiciliarios activos están online.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Todos los domiciliarios activos están online.
+              </p>
             ) : (
               alerts.offline_couriers_with_orders.map((courier: any) => (
-                <div key={courier.id} className="rounded-2xl border p-3 text-sm bg-amber-500/5">
-                  <div className="flex justify-between gap-2">
-                    <b>{courier.name}</b>
-                    <span className="text-amber-700 font-bold uppercase text-xs">{courier.courier_status}</span>
+                <div key={courier.id} className="min-w-0 rounded-2xl border bg-amber-500/5 p-3 text-sm">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <b className="min-w-0 flex-1 truncate">{courier.name}</b>
+                    <span className="shrink-0 text-xs font-bold uppercase text-amber-700">
+                      {courier.courier_status}
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">{courier.active_orders} pedido(s) activo(s)</p>
-                  <p className="text-xs font-mono truncate">IDs: {courier.order_ids}</p>
-                  <Button asChild variant="link" className="h-auto p-0 text-xs mt-1">
+                  <p className="break-all font-mono text-xs leading-snug">IDs: {courier.order_ids}</p>
+                  <Button asChild variant="link" className="mt-1 h-auto p-0 text-xs">
                     <Link to="/admin/domiciliarios">Ver domiciliario</Link>
                   </Button>
                 </div>
