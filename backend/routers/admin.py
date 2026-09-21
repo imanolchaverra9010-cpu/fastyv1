@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
 from database import get_db
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
@@ -1087,7 +1087,7 @@ def get_admin_metrics(period: str = "7d", current_user: dict = Depends(get_curre
         db.close()
 
 
-@router.get("/backup.sql", response_class=PlainTextResponse)
+@router.get("/backup.sql")
 def download_database_backup(current_user: dict = Depends(get_current_user)):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
@@ -1101,16 +1101,20 @@ def download_database_backup(current_user: dict = Depends(get_current_user)):
         cursor.execute("SHOW TABLES")
         table_key = next(iter(cursor.column_names))
         tables = [row[table_key] for row in cursor.fetchall()]
+        generated_at = get_bogota_time()
         lines = [
             "-- Fasty database backup",
-            f"-- Generated at {get_bogota_time().isoformat()}",
+            f"-- Generated at {generated_at.isoformat()}",
             "SET FOREIGN_KEY_CHECKS=0;",
+            "SET NAMES utf8mb4;",
         ]
         for table in tables:
             cursor.execute(f"SHOW CREATE TABLE `{table}`")
             create_row = cursor.fetchone()
+            create_sql = create_row.get("Create Table") or next(iter(create_row.values()))
+            lines.append(f"\n-- Table `{table}`")
             lines.append(f"DROP TABLE IF EXISTS `{table}`;")
-            lines.append(f"{create_row['Create Table']};")
+            lines.append(f"{create_sql};")
             cursor.execute(f"SELECT * FROM `{table}`")
             rows = cursor.fetchall()
             for row in rows:
@@ -1119,13 +1123,25 @@ def download_database_backup(current_user: dict = Depends(get_current_user)):
                 for value in row.values():
                     if value is None:
                         values.append("NULL")
+                    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                        values.append(str(value))
+                    elif isinstance(value, (bytes, bytearray)):
+                        values.append(f"X'{value.hex()}'")
                     else:
                         escaped = str(value).replace("\\", "\\\\").replace("'", "''")
                         values.append(f"'{escaped}'")
                 lines.append(f"INSERT INTO `{table}` ({columns}) VALUES ({', '.join(values)});")
-        lines.append("SET FOREIGN_KEY_CHECKS=1;")
+        lines.append("\nSET FOREIGN_KEY_CHECKS=1;")
         log_event("database_backup_generated", admin_id=current_user["id"], tables=len(tables))
-        return "\n".join(lines)
+        filename = f"fasty-backup-{generated_at.strftime('%Y%m%d-%H%M%S')}.sql"
+        return Response(
+            content="\n".join(lines),
+            media_type="application/sql",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
+        )
     except Exception as e:
         log_event("database_backup_failed", "error", admin_id=current_user["id"], error=str(e))
         raise HTTPException(status_code=500, detail=str(e))

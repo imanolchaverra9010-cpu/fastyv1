@@ -6,15 +6,16 @@ from utils import log_event
 
 # Cargar variables de entorno
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-# Base de datos - Railway
+# Base de datos
 db_config = {
     "host": os.getenv("DATABASE_HOST"),
     "user": os.getenv("DATABASE_USER"),
     "password": os.getenv("DATABASE_PASSWORD"),
     "database": os.getenv("DATABASE_NAME"),
     "port": int(os.getenv("DATABASE_PORT") or "3306"),
-    "ssl_disabled": False,
+    "ssl_disabled": os.getenv("DATABASE_SSL_DISABLED", "false").lower() in ("1", "true", "yes"),
     "ssl_verify_cert": False,
     "ssl_verify_identity": False,
     "connect_timeout": 5,

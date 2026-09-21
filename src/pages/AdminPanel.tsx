@@ -23,6 +23,7 @@ const AdminPanel = () => {
   const [dailyFinance, setDailyFinance] = useState<any>(null);
   const [metricsPeriod, setMetricsPeriod] = useState<"today" | "7d" | "30d">("today");
   const [resolvingSosId, setResolvingSosId] = useState<number | null>(null);
+  const [backingUp, setBackingUp] = useState(false);
 
 
   const fetchMetrics = useCallback(async (period: "today" | "7d" | "30d") => {
@@ -131,6 +132,44 @@ const AdminPanel = () => {
     }
   };
 
+  const handleDatabaseBackup = async () => {
+    setBackingUp(true);
+    try {
+      const response = await fetch("/api/admin/backup.sql");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || "No se pudo generar el backup");
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      const filename = match?.[1] || `fasty-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.sql`;
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Backup listo",
+        description: "Se descargó el archivo SQL de la base de datos.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error al generar backup",
+        description: error?.message || "Intenta de nuevo en unos segundos.",
+        variant: "destructive",
+      });
+    } finally {
+      setBackingUp(false);
+    }
+  };
+
   const exportDailyReport = () => {
     if (dailyReport.length === 0) return;
     
@@ -206,11 +245,24 @@ const AdminPanel = () => {
       title="Panel de control"
       description="Visión completa de la operación de Fasty."
       headerActions={
-        <AdminMaintenanceToggle
-          enabled={maintenanceMode}
-          disabled={togglingMaintenance}
-          onToggle={handleToggleMaintenance}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 rounded-full border-border/50 bg-card/70 px-3"
+            onClick={handleDatabaseBackup}
+            disabled={backingUp}
+          >
+            {backingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">{backingUp ? "Generando..." : "Backup BD"}</span>
+          </Button>
+          <AdminMaintenanceToggle
+            enabled={maintenanceMode}
+            disabled={togglingMaintenance}
+            onToggle={handleToggleMaintenance}
+          />
+        </div>
       }
     >
             <div className="mb-8 grid grid-cols-2 gap-2.5 sm:mb-10 sm:gap-4 lg:grid-cols-4">

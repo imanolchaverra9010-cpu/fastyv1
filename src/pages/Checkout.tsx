@@ -57,7 +57,7 @@ const Checkout = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [businessCoords, setBusinessCoords] = useState<Record<string, { lat: number, lng: number }>>({});
+  const [businessMeta, setBusinessMeta] = useState<Record<string, { lat: number; lng: number; freeDelivery: boolean }>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -118,28 +118,65 @@ const Checkout = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchBusinessCoords = async () => {
+    const fetchBusinessMeta = async () => {
       const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
 
-      const newCoords: Record<string, { lat: number, lng: number }> = {};
+      const newMeta: Record<string, { lat: number; lng: number; freeDelivery: boolean }> = {};
 
       for (const bId of uniqueBusinessIds) {
         try {
           const res = await fetch(`/api/businesses/${bId}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.latitude && data.longitude) {
-              newCoords[bId] = { lat: data.latitude, lng: data.longitude };
-            }
+            newMeta[bId] = {
+              lat: data.latitude ?? 0,
+              lng: data.longitude ?? 0,
+              freeDelivery: Boolean(data.free_delivery),
+            };
           }
         } catch (e) {
-          console.error("Error fetching business coords:", e);
+          console.error("Error fetching business meta:", e);
         }
       }
-      setBusinessCoords(newCoords);
+      setBusinessMeta(newMeta);
     };
-    if (lines.length > 0) fetchBusinessCoords();
+    if (lines.length > 0) fetchBusinessMeta();
   }, [lines]);
+
+  const getFurthestBusinessId = (businessIds: string[]) => {
+    let furthestBusinessId = businessIds[0];
+    let maxDistance = -1;
+
+    businessIds.forEach((bId) => {
+      const meta = businessMeta[bId];
+      if (meta?.lat && meta?.lng && latitude && longitude) {
+        const distance = getDistanceKm(latitude, longitude, meta.lat, meta.lng);
+        if (!isNaN(distance) && distance > maxDistance) {
+          maxDistance = distance;
+          furthestBusinessId = bId;
+        }
+      }
+    });
+
+    return furthestBusinessId;
+  };
+
+  const getBusinessDeliveryFee = (businessId: string, furthestBusinessId: string) => {
+    if (businessMeta[businessId]?.freeDelivery) return 0;
+
+    const isMainBusiness = businessId === furthestBusinessId;
+    if (!isMainBusiness) return 2000;
+
+    const meta = businessMeta[businessId];
+    let fee = 5000;
+    if (meta?.lat && meta?.lng && latitude && longitude) {
+      const distance = getDistanceKm(latitude, longitude, meta.lat, meta.lng);
+      fee = getDeliveryFeeByDistance(distance);
+    }
+
+    if (isNightFeeTime()) fee += 2000;
+    return fee;
+  };
 
   // Debug toast for night fee
   useEffect(() => {
@@ -165,26 +202,12 @@ const Checkout = () => {
   const calculateTotalFee = () => {
     if (lines.length === 0) return 0;
     const uniqueBusinessIds = Array.from(new Set(lines.map(l => String(l.businessId))));
+    const furthestBusinessId = getFurthestBusinessId(uniqueBusinessIds);
 
-    let maxDistance = -1;
-    let baseFee = 5000;
-
-    uniqueBusinessIds.forEach(bId => {
-      const coords = businessCoords[bId];
-      if (coords && latitude && longitude) {
-        const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-        if (!isNaN(distance) && distance > maxDistance) {
-          maxDistance = distance;
-          baseFee = getDeliveryFeeByDistance(distance);
-        }
-      }
-    });
-
-    const isNight = isNightFeeTime();
-    const additionalFees = (uniqueBusinessIds.length - 1) * 2000;
-    const nightFee = isNight ? 2000 : 0;
-
-    return baseFee + additionalFees + nightFee;
+    return uniqueBusinessIds.reduce(
+      (total, bId) => total + getBusinessDeliveryFee(bId, furthestBusinessId),
+      0,
+    );
   };
 
   const fee = calculateTotalFee();
@@ -305,50 +328,20 @@ const Checkout = () => {
 
     try {
       const summaries: any[] = [];
-      const businessIds = Object.keys(linesByBusiness);
-
-      // Determinar cuál es el negocio más lejano
-      let furthestBusinessId = businessIds[0];
-      let maxDistance = -1;
-
-      businessIds.forEach(bId => {
-        const coords = businessCoords[bId];
-        if (coords && latitude && longitude) {
-          const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-          if (distance > maxDistance) {
-            maxDistance = distance;
-            furthestBusinessId = bId;
-          }
-        }
-      });
+      const furthestBusinessId = getFurthestBusinessId(businessIds);
 
       const orderPromises = Object.entries(linesByBusiness).map(async ([businessId, bLines]) => {
         const businessIdString = String(businessId);
-        let bFee = 2000; // Base para negocios adicionales
-
-        if (businessIdString === furthestBusinessId) {
-          const coords = businessCoords[businessIdString];
-          if (coords && latitude && longitude) {
-            const distance = getDistanceKm(latitude, longitude, coords.lat, coords.lng);
-            bFee = getDeliveryFeeByDistance(distance);
-          } else {
-            bFee = 5000; // Fallback si no hay coordenadas
-          }
-
-          // Aplicar recargo nocturno SOLO a la orden del negocio principal (el más lejano)
-          if (isNightFeeTime()) {
-            bFee += 2000;
-          }
-        }
+        const bFee = getBusinessDeliveryFee(businessIdString, furthestBusinessId);
 
         const bSubtotal = bLines.reduce((s, l) => s + l.qty * l.item.price, 0);
         const rawBDiscount = promo ? (bFee * promo.discount / 100) : 0;
         const bDiscount = Math.min(bFee, rawBDiscount);
         const bTotal = bSubtotal + bFee - bDiscount;
 
-        // Separar delivery_fee y night_fee para el backend
         const isMainBusiness = businessIdString === furthestBusinessId;
-        const bNightFee = isMainBusiness && isNightFeeTime() ? 2000 : 0;
+        const hasFreeDelivery = Boolean(businessMeta[businessIdString]?.freeDelivery);
+        const bNightFee = isMainBusiness && isNightFeeTime() && !hasFreeDelivery ? 2000 : 0;
         const bDeliveryFee = bFee - bNightFee;
 
         const orderData = {
@@ -830,7 +823,9 @@ const Checkout = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="text-foreground font-bold">{formatCOP(fee)}</span>
+                    <span className="text-foreground font-bold">
+                      {fee === 0 ? "Gratis" : formatCOP(fee)}
+                    </span>
                   </div>
                 </div>
 

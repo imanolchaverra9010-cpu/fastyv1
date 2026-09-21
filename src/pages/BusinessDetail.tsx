@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Star, Store, ChevronDown, ChevronUp, Info, Search, X, Heart, Bike } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCOP } from "@/data/mock"; // Mantener solo formatCOP si es necesario
@@ -23,6 +23,7 @@ interface Business {
   emoji: string;
   image_url: string;
   delivery_fee: number;
+  free_delivery?: boolean;
   eta: string;
   status: string;
   created_at: string;
@@ -276,6 +277,12 @@ const BusinessDetail = () => {
                   <Clock className="h-4 w-4" />
                   {business.eta}
                 </span>
+                {business.free_delivery && (
+                  <span className="flex items-center gap-1.5 bg-emerald-500/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-emerald-500/30 shadow-soft font-bold text-emerald-300">
+                    <Bike className="h-4 w-4" />
+                    Domicilio gratis
+                  </span>
+                )}
                 <span className={`flex items-center gap-1.5 backdrop-blur-md px-4 py-1.5 rounded-full border shadow-soft font-bold ${
                   isOpen 
                     ? "bg-green-500/20 border-green-500/30 text-green-400" 

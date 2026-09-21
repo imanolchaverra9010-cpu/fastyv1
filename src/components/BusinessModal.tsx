@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { CATEGORIES } from "@/constants/categories";
 import { getPositionErrorMessage, getPreciseCurrentPosition } from "@/utils/geolocation";
@@ -26,6 +27,7 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
     emoji: "🏪",
     image_url: "",
     delivery_fee: 0,
+    free_delivery: false,
     eta: "20-30 min",
     latitude: 0,
     longitude: 0
@@ -43,6 +45,7 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
         emoji: business.emoji || "🏪",
         image_url: business.image_url || "",
         delivery_fee: business.delivery_fee || 0,
+        free_delivery: Boolean(business.free_delivery),
         eta: business.eta || "20-30 min",
         latitude: business.latitude || 0,
         longitude: business.longitude || 0
@@ -210,8 +213,21 @@ export function BusinessModal({ onClose, onSuccess, business }: BusinessModalPro
               <Input id="image_url" name="image_url" placeholder="https://..." value={formData.image_url} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="delivery_fee" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Costo de Envío</Label>
-              <Input id="delivery_fee" name="delivery_fee" type="number" placeholder="ej: 3500" required value={formData.delivery_fee} onChange={handleChange} />
+              <Label htmlFor="delivery_fee" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Costo de Envío (referencia)</Label>
+              <Input id="delivery_fee" name="delivery_fee" type="number" placeholder="ej: 3500" required value={formData.delivery_fee} onChange={handleChange} disabled={formData.free_delivery} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-3">
+                <div>
+                  <Label htmlFor="free_delivery" className="text-sm font-semibold">Domicilio gratis</Label>
+                  <p className="text-xs text-muted-foreground mt-1">El cliente no paga envío ni recargo nocturno en este negocio.</p>
+                </div>
+                <Switch
+                  id="free_delivery"
+                  checked={formData.free_delivery}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, free_delivery: checked }))}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="eta" className="flex items-center gap-2"><Clock className="h-4 w-4" /> Tiempo Estimado</Label>

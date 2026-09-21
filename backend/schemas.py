@@ -137,6 +137,7 @@ class BusinessBase(BaseModel):
     emoji: Optional[str] = "🏪"
     image_url: Optional[str] = None
     delivery_fee: int = 0
+    free_delivery: bool = False
     eta: Optional[str] = "20-30 min"
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -155,6 +156,7 @@ class BusinessUpdate(BaseModel):
     emoji: Optional[str] = None
     image_url: Optional[str] = None
     delivery_fee: Optional[int] = None
+    free_delivery: Optional[bool] = None
     eta: Optional[str] = None
     status: Optional[str] = None
     latitude: Optional[float] = None

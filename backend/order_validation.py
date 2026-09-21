@@ -118,11 +118,17 @@ def _calculate_delivery_fees(cursor, order) -> tuple[int, int]:
         return delivery_fee, night_fee
 
     cursor.execute(
-        "SELECT latitude, longitude FROM businesses WHERE id = %s",
+        "SELECT latitude, longitude, free_delivery FROM businesses WHERE id = %s",
         (order.business_id,),
     )
     business = cursor.fetchone()
-    if not business or order.latitude is None or order.longitude is None:
+    if not business:
+        return delivery_fee, night_fee
+
+    if business.get("free_delivery"):
+        return 0, 0
+
+    if order.latitude is None or order.longitude is None:
         return delivery_fee, night_fee
 
     distance = calculate_distance(
@@ -136,6 +142,8 @@ def _calculate_delivery_fees(cursor, order) -> tuple[int, int]:
 
     if order.batch_id:
         sent_total = delivery_fee + night_fee
+        if sent_total == 0:
+            return 0, 0
         if sent_total == 2000:
             return 2000, 0
         if abs(sent_total - (calculated_delivery + calculated_night)) <= 100:

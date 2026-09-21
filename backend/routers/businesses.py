@@ -14,6 +14,22 @@ from datetime import datetime, timedelta, date
 
 router = APIRouter()
 
+def ensure_business_schema(db):
+    cursor = db.cursor()
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'businesses'
+              AND COLUMN_NAME = 'free_delivery'
+        """)
+        if int(cursor.fetchone()[0]) == 0:
+            cursor.execute("ALTER TABLE businesses ADD COLUMN free_delivery TINYINT(1) NOT NULL DEFAULT 0")
+            db.commit()
+    finally:
+        cursor.close()
+
 def ensure_business_favorites_schema(db):
     cursor = db.cursor()
     try:
@@ -58,6 +74,8 @@ def format_business_data(data):
             formatted[key] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         elif isinstance(value, (datetime, date)):
             formatted[key] = value.isoformat()
+        elif key == "free_delivery":
+            formatted[key] = bool(value)
             
     return formatted
 
@@ -70,11 +88,12 @@ def create_business(business: BusinessCreate, current_user: dict = Depends(get_c
     
     cursor = db.cursor(dictionary=True)
     try:
+        ensure_business_schema(db)
         cursor.execute(
-            """INSERT INTO businesses (id, name, description, category, address, phone, emoji, image_url, delivery_fee, eta, status, latitude, longitude) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            """INSERT INTO businesses (id, name, description, category, address, phone, emoji, image_url, delivery_fee, free_delivery, eta, status, latitude, longitude) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (business.id, business.name, business.description, business.category, business.address, business.phone, 
-             business.emoji, business.image_url, business.delivery_fee, business.eta, 'active', business.latitude, business.longitude)
+             business.emoji, business.image_url, business.delivery_fee, int(business.free_delivery), business.eta, 'active', business.latitude, business.longitude)
         )
         db.commit()
         
@@ -102,6 +121,7 @@ def get_businesses(response: Response, status_filter: Optional[str] = None, cate
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
+    ensure_business_schema(db)
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT DISTINCT b.*, u.username, u.email, u.visible_password
@@ -372,6 +392,10 @@ def update_business(business_id: str, business_update: BusinessUpdate, current_u
     update_data = business_update.dict(exclude_unset=True)
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
+
+    ensure_business_schema(db)
+    if "free_delivery" in update_data:
+        update_data["free_delivery"] = int(bool(update_data["free_delivery"]))
         
     query = "UPDATE businesses SET "
     params = []
